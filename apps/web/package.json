@@ -10,7 +10,6 @@
   "dependencies": {
     "@catansaga/backend": "workspace:*",
     "@catansaga/env": "workspace:*",
-    "@catansaga/ui": "workspace:*",
     "@convex-dev/react-query": "^0.1.0",
     "@tailwindcss/vite": "^4.3.2",
     "@tanstack/react-query": "^5.101.2",
@@ -20,10 +19,8 @@
     "convex": "catalog:",
     "dotenv": "catalog:",
     "lucide-react": "catalog:",
-    "next-themes": "catalog:",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "sonner": "catalog:",
     "tailwindcss": "catalog:",
     "zod": "catalog:"
   },

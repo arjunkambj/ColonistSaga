@@ -1,4 +1,3 @@
-import { Toaster } from "@catansaga/ui/components/sonner";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
@@ -47,12 +46,11 @@ function RootDocument() {
         <head>
           <HeadContent />
         </head>
-        <body>
+        <body className="bg-neutral-950 text-neutral-50">
           <div className="grid h-svh grid-rows-[auto_1fr]">
             <Header />
             <Outlet />
           </div>
-          <Toaster richColors />
           <TanStackRouterDevtools position="bottom-left" />
           <Scripts />
         </body>

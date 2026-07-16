@@ -36,7 +36,7 @@ function HomeComponent() {
             <div
               className={`h-2 w-2 rounded-full ${healthCheck.data === "OK" ? "bg-green-500" : healthCheck.isLoading ? "bg-orange-400" : "bg-red-500"}`}
             />
-            <span className="text-muted-foreground text-sm">
+            <span className="text-sm text-neutral-400">
               {healthCheck.isLoading
                 ? "Checking..."
                 : healthCheck.data === "OK"

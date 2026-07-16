@@ -9,7 +9,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **React Native** - Build mobile apps using React
 - **Expo** - Tools for React Native development
 - **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
+- **App-local UI** - Each app owns its components and styles
 - **Convex** - Reactive backend-as-a-service platform
 - **Turborepo** - Optimized monorepo build system
 - **Oxlint** - Oxlint + Oxfmt (linting & formatting)
@@ -47,29 +47,26 @@ Your app will connect to the Convex cloud backend automatically.
 
 ## UI Customization
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+Each app owns its UI components, design tokens, and global styles. For the web app:
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+- Change global styles in `apps/web/src/index.css`
+- Keep primitives in `apps/web/src/components/ui/*`
+- Adjust shadcn aliases or style config in `apps/web/components.json`
 
-### Add more shared components
+### Add web components
 
-Run this from the project root to add more primitives to the shared UI package:
+Run the shadcn CLI from the web app so generated components remain app-local:
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+cd apps/web
+pnpm dlx shadcn@latest add accordion dialog popover sheet table
 ```
 
-Import shared components like this:
+Import app-local components like this:
 
 ```tsx
-import { Button } from "@catansaga/ui/components/button";
+import { Button } from "@/components/ui/button";
 ```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
 
 ## Deployment
 
@@ -94,7 +91,6 @@ catansaga/
 │   ├── web/         # Frontend application (React + TanStack Start)
 │   ├── native/      # Mobile application (React Native, Expo)
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
 │   ├── backend/     # Convex backend functions and schema
 ```
 
