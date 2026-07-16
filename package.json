@@ -1,0 +1,39 @@
+{
+  "name": "catansaga",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build --filter='!desktop' && turbo run build -F desktop",
+    "check-types": "turbo run check-types",
+    "dev:native": "turbo run dev -F native",
+    "dev:web": "turbo run dev -F web",
+    "dev:desktop": "turbo run dev:hmr -F desktop",
+    "build:desktop": "turbo run build:stable -F desktop",
+    "build:desktop:canary": "turbo run build:canary -F desktop",
+    "dev:server": "turbo run dev -F @catansaga/backend",
+    "dev:setup": "turbo run dev:setup -F @catansaga/backend",
+    "deploy": "turbo run deploy -F @catansaga/infra",
+    "destroy": "turbo run destroy -F @catansaga/infra",
+    "check": "oxlint && oxfmt --write"
+  },
+  "dependencies": {
+    "@catansaga/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@catansaga/config": "workspace:*",
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "@types/node": "^22.13.14",
+    "oxfmt": "^0.57.0",
+    "oxlint": "^1.72.0",
+    "turbo": "^2.10.2",
+    "typescript": "^6"
+  },
+  "packageManager": "pnpm@11.10.0"
+}

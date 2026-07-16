@@ -1,0 +1,3 @@
+{
+  "extends": "@catansaga/config/tsconfig.base.json"
+}

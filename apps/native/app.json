@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "catansaga",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "catansaga",
+    "slug": "catansaga",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
