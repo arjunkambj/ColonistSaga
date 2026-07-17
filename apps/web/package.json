@@ -5,13 +5,16 @@
   "scripts": {
     "build": "next build",
     "check-types": "tsc --noEmit",
-    "dev": "next dev --port 3001",
-    "start": "serve out --listen 3001",
-    "test": "node --test --experimental-strip-types src/lib/*.test.ts src/features/game/*.test.ts"
+    "dev": "next dev --port 3000",
+    "start": "serve out --listen 3000",
+    "test": "node --test --experimental-strip-types src/lib/*.test.ts src/features/game/*.test.ts src/features/lobby/*.test.ts"
   },
   "dependencies": {
     "@catansaga/backend": "workspace:*",
     "@catansaga/game": "workspace:*",
+    "@heroui/react": "^3.2.2",
+    "@heroui/styles": "^3.2.2",
+    "@hexclave/next": "^1.0.51",
     "convex": "catalog:",
     "lucide-react": "catalog:",
     "next": "^16.2.10",
@@ -20,6 +23,7 @@
   },
   "devDependencies": {
     "@catansaga/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.13.14",
@@ -27,6 +31,7 @@
     "@types/react-dom": "catalog:",
     "jsdom": "^29.1.1",
     "serve": "^14.2.5",
+    "tailwindcss": "catalog:",
     "typescript": "^6"
   }
 }

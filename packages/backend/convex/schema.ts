@@ -17,6 +17,28 @@ export const resourceTypeValidator = v.union(
   v.literal("wheat"),
 );
 
+export const baseGameSettingsValidator = v.object({
+  balancedDice: v.boolean(),
+  discardLimit: v.number(),
+  friendlyRobber: v.boolean(),
+  hideBankCards: v.boolean(),
+  maxPlayers: v.union(v.literal(3), v.literal(4)),
+  turnTimerSeconds: v.union(
+    v.literal(0),
+    v.literal(30),
+    v.literal(60),
+    v.literal(90),
+    v.literal(120),
+  ),
+  victoryPoints: v.number(),
+});
+
+export const botDifficultyValidator = v.union(
+  v.literal("easy"),
+  v.literal("medium"),
+  v.literal("hard"),
+);
+
 const roomStatusValidator = v.union(
   v.literal("waiting"),
   v.literal("active"),
@@ -28,10 +50,12 @@ const gameStatusValidator = v.union(v.literal("active"), v.literal("finished"));
 
 export default defineSchema({
   mvpRooms: defineTable({
+    botDifficulty: botDifficultyValidator,
     code: v.string(),
     createdAt: v.number(),
     gameId: v.optional(v.id("mvpGames")),
     hostSeatId: v.optional(v.id("mvpSeats")),
+    settings: baseGameSettingsValidator,
     status: roomStatusValidator,
     updatedAt: v.number(),
   })
@@ -39,23 +63,27 @@ export default defineSchema({
     .index("by_status_and_updated_at", ["status", "updatedAt"]),
 
   mvpSeats: defineTable({
+    authUserId: v.optional(v.string()),
     displayName: v.string(),
     joinedAt: v.number(),
     kind: seatKindValidator,
     roomId: v.id("mvpRooms"),
     seatIndex: v.number(),
-    sessionId: v.optional(v.string()),
   })
     .index("by_room", ["roomId"])
     .index("by_room_and_seat_index", ["roomId", "seatIndex"])
-    .index("by_room_and_session_id", ["roomId", "sessionId"]),
+    .index("by_room_and_auth_user_id", ["roomId", "authUserId"]),
 
   mvpGames: defineTable({
+    botDifficulty: botDifficultyValidator,
     createdAt: v.number(),
+    nextActionAt: v.optional(v.number()),
     revision: v.number(),
     roomId: v.id("mvpRooms"),
+    settings: baseGameSettingsValidator,
     stateJson: v.string(),
     status: gameStatusValidator,
+    turnDeadlineAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
     .index("by_room", ["roomId"])

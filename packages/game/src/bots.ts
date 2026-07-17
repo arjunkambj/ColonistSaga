@@ -7,21 +7,27 @@ import {
   getRoadEdgeKeys,
   getSettlementVertexKeys,
 } from "./rules";
-import { emptyInventory, totalResources } from "./resources";
+import { emptyInventory, hasResources, totalResources } from "./resources";
 import { DEFAULT_TOPOLOGY } from "./topology";
 import type { BankTradeOption, GameCommand, GameState, PlayerId, ResourceInventory } from "./types";
 
-function requireBotPlayer(state: GameState, playerId: PlayerId) {
+type StrategicBotDifficulty = "hard" | "medium";
+
+function requirePlayer(state: GameState, playerId: PlayerId) {
   const player = state.players.find((candidate) => candidate.id === playerId);
 
-  if (!player?.isBot) {
-    throw new Error(`Expected a bot player: ${playerId}`);
+  if (!player) {
+    throw new Error(`Unknown automated player: ${playerId}`);
   }
 
   return player;
 }
 
-function vertexProductionScore(state: GameState, vertexKey: string) {
+function vertexProductionScore(
+  state: GameState,
+  vertexKey: string,
+  difficulty: StrategicBotDifficulty,
+) {
   const resources = new Set<string>();
   let pips = 0;
 
@@ -35,7 +41,7 @@ function vertexProductionScore(state: GameState, vertexKey: string) {
     }
   }
 
-  return pips * 10 + resources.size * 3;
+  return pips * 10 + (difficulty === "hard" ? resources.size * 3 : 0);
 }
 
 function highestScoringKey(keys: readonly string[], score: (key: string) => number) {
@@ -44,20 +50,33 @@ function highestScoringKey(keys: readonly string[], score: (key: string) => numb
   )[0];
 }
 
-function chooseSettlement(state: GameState, vertexKeys: readonly string[]) {
-  return highestScoringKey(vertexKeys, (vertexKey) => vertexProductionScore(state, vertexKey));
+function chooseSettlement(
+  state: GameState,
+  vertexKeys: readonly string[],
+  difficulty: StrategicBotDifficulty,
+) {
+  return highestScoringKey(vertexKeys, (vertexKey) =>
+    vertexProductionScore(state, vertexKey, difficulty),
+  );
 }
 
-function chooseRoad(state: GameState, edgeKeys: readonly string[]) {
-  const openSettlementVertices = new Set(
-    getSettlementVertexKeys(state, state.activePlayerId, false),
-  );
+function chooseRoad(
+  state: GameState,
+  playerId: PlayerId,
+  edgeKeys: readonly string[],
+  difficulty: StrategicBotDifficulty,
+) {
+  const openSettlementVertices = new Set(getSettlementVertexKeys(state, playerId, false));
 
   return highestScoringKey(edgeKeys, (edgeKey) => {
     const endpoints = DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? [];
     return endpoints.reduce((score, vertexKey) => {
       const isOpenDestination = openSettlementVertices.has(vertexKey);
-      return score + vertexProductionScore(state, vertexKey) + (isOpenDestination ? 1_000 : 0);
+      return (
+        score +
+        vertexProductionScore(state, vertexKey, difficulty) +
+        (isOpenDestination ? 1_000 : 0)
+      );
     }, 0);
   });
 }
@@ -137,16 +156,20 @@ function chooseTradeTowardCost(
   return undefined;
 }
 
-function chooseBuildCommand(state: GameState, playerId: PlayerId): GameCommand {
-  const player = requireBotPlayer(state, playerId);
+function chooseBuildCommand(
+  state: GameState,
+  playerId: PlayerId,
+  difficulty: StrategicBotDifficulty,
+): GameCommand {
+  const player = requirePlayer(state, playerId);
   const legal = getLegalActions(state, playerId);
-  const cityVertex = chooseSettlement(state, legal.cityVertexKeys);
+  const cityVertex = chooseSettlement(state, legal.cityVertexKeys, difficulty);
 
   if (cityVertex) {
     return { kind: "build_city", vertexKey: cityVertex };
   }
 
-  const settlementVertex = chooseSettlement(state, legal.settlementVertexKeys);
+  const settlementVertex = chooseSettlement(state, legal.settlementVertexKeys, difficulty);
 
   if (settlementVertex) {
     return { kind: "place_settlement", vertexKey: settlementVertex };
@@ -176,18 +199,96 @@ function chooseBuildCommand(state: GameState, playerId: PlayerId): GameCommand {
     };
   }
 
-  const roadEdge = chooseRoad(state, legal.roadEdgeKeys);
+  const roadEdge = chooseRoad(state, playerId, legal.roadEdgeKeys, difficulty);
 
   return roadEdge ? { edgeKey: roadEdge, kind: "place_road" } : { kind: "end_turn" };
 }
 
-function chooseBotCommand(state: GameState, playerId: PlayerId): GameCommand {
-  const player = requireBotPlayer(state, playerId);
+function tradeResponseCommand(state: GameState, playerId: PlayerId): GameCommand | null {
+  const offer = state.tradeOffer;
+  const player = requirePlayer(state, playerId);
+  const legal = getLegalActions(state, playerId);
+
+  if (!offer || !legal.canRespondToTrade) {
+    return null;
+  }
+
+  const affordable = hasResources(player.resources, offer.want);
+  const fair = totalResources(offer.give) >= totalResources(offer.want);
+  return {
+    accept: affordable && fair,
+    kind: "respond_trade",
+    offerActionNumber: offer.offerActionNumber,
+  };
+}
+
+function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameCommand {
+  const player = requirePlayer(state, playerId);
   const legal = getLegalActions(state, playerId);
 
   switch (state.phase.kind) {
     case "setup_settlement": {
-      const vertexKey = chooseSettlement(state, legal.settlementVertexKeys);
+      const vertexKey = legal.settlementVertexKeys[0];
+      if (!vertexKey) throw new Error("Automated player has no legal setup settlement");
+      return { kind: "place_settlement", vertexKey };
+    }
+    case "setup_road": {
+      const edgeKey = legal.roadEdgeKeys[0];
+      if (!edgeKey) throw new Error("Automated player has no legal setup road");
+      return { edgeKey, kind: "place_road" };
+    }
+    case "roll":
+      return { kind: "roll" };
+    case "discard": {
+      if (legal.discardCount === null) throw new Error("Automated player cannot discard");
+      return {
+        kind: "discard",
+        resources: createDiscard(player.resources, legal.discardCount),
+      };
+    }
+    case "move_robber": {
+      const tileId = legal.robberTileIds[0];
+      if (!tileId) throw new Error("Automated player has no robber destination");
+      return { kind: "move_robber", tileId };
+    }
+    case "steal": {
+      const victimPlayerId = legal.victimPlayerIds[0];
+      if (!victimPlayerId) throw new Error("Automated player has no eligible victim");
+      return { kind: "steal", victimPlayerId };
+    }
+    case "build_and_trade": {
+      const cityVertex = legal.cityVertexKeys[0];
+      if (cityVertex) return { kind: "build_city", vertexKey: cityVertex };
+      const settlementVertex = legal.settlementVertexKeys[0];
+      if (settlementVertex) return { kind: "place_settlement", vertexKey: settlementVertex };
+      const roadEdge = legal.roadEdgeKeys[0];
+      if (roadEdge) return { edgeKey: roadEdge, kind: "place_road" };
+      const bankTrade = legal.bankTrades[0];
+      if (bankTrade) {
+        return {
+          give: bankTrade.give,
+          kind: "trade_bank",
+          receive: bankTrade.receive,
+        };
+      }
+      return { kind: "end_turn" };
+    }
+    case "finished":
+      throw new Error("Finished game does not require an automated command");
+  }
+}
+
+function chooseStrategicCommand(
+  state: GameState,
+  playerId: PlayerId,
+  difficulty: StrategicBotDifficulty,
+): GameCommand {
+  const player = requirePlayer(state, playerId);
+  const legal = getLegalActions(state, playerId);
+
+  switch (state.phase.kind) {
+    case "setup_settlement": {
+      const vertexKey = chooseSettlement(state, legal.settlementVertexKeys, difficulty);
 
       if (!vertexKey) {
         throw new Error("Bot has no legal setup settlement");
@@ -196,7 +297,7 @@ function chooseBotCommand(state: GameState, playerId: PlayerId): GameCommand {
       return { kind: "place_settlement", vertexKey };
     }
     case "setup_road": {
-      const edgeKey = chooseRoad(state, legal.roadEdgeKeys);
+      const edgeKey = chooseRoad(state, playerId, legal.roadEdgeKeys, difficulty);
 
       if (!edgeKey) {
         throw new Error("Bot has no legal setup road");
@@ -216,9 +317,12 @@ function chooseBotCommand(state: GameState, playerId: PlayerId): GameCommand {
       return { kind: "discard", resources: createDiscard(player.resources, count) };
     }
     case "move_robber": {
-      const tileId = highestScoringKey(legal.robberTileIds, (candidate) =>
-        robberTileScore(state, playerId, candidate),
-      );
+      const tileId =
+        difficulty === "hard"
+          ? highestScoringKey(legal.robberTileIds, (candidate) =>
+              robberTileScore(state, playerId, candidate),
+            )
+          : legal.robberTileIds[0];
 
       if (!tileId) {
         throw new Error("Bot has no legal robber destination");
@@ -227,15 +331,18 @@ function chooseBotCommand(state: GameState, playerId: PlayerId): GameCommand {
       return { kind: "move_robber", tileId };
     }
     case "steal": {
-      const victimPlayerId = [...legal.victimPlayerIds].sort((first, second) => {
-        const firstPlayer = state.players.find((candidate) => candidate.id === first);
-        const secondPlayer = state.players.find((candidate) => candidate.id === second);
-        return (
-          totalResources(secondPlayer?.resources ?? emptyInventory()) -
-            totalResources(firstPlayer?.resources ?? emptyInventory()) ||
-          (firstPlayer?.seatIndex ?? 0) - (secondPlayer?.seatIndex ?? 0)
-        );
-      })[0];
+      const victimPlayerId =
+        difficulty === "hard"
+          ? [...legal.victimPlayerIds].sort((first, second) => {
+              const firstPlayer = state.players.find((candidate) => candidate.id === first);
+              const secondPlayer = state.players.find((candidate) => candidate.id === second);
+              return (
+                totalResources(secondPlayer?.resources ?? emptyInventory()) -
+                  totalResources(firstPlayer?.resources ?? emptyInventory()) ||
+                (firstPlayer?.seatIndex ?? 0) - (secondPlayer?.seatIndex ?? 0)
+              );
+            })[0]
+          : legal.victimPlayerIds[0];
 
       if (!victimPlayerId) {
         throw new Error("Bot has no eligible victim");
@@ -244,10 +351,32 @@ function chooseBotCommand(state: GameState, playerId: PlayerId): GameCommand {
       return { kind: "steal", victimPlayerId };
     }
     case "build_and_trade":
-      return chooseBuildCommand(state, playerId);
+      return chooseBuildCommand(state, playerId, difficulty);
     case "finished":
       throw new Error("Finished game does not require a bot command");
   }
+}
+
+export function chooseAutomatedCommand(state: GameState, playerId: PlayerId): GameCommand {
+  if (state.status === "completed") {
+    throw new Error("Finished game does not require an automated command");
+  }
+
+  const player = requirePlayer(state, playerId);
+  const tradeResponse = tradeResponseCommand(state, playerId);
+  if (tradeResponse) {
+    return tradeResponse;
+  }
+
+  if (player.botDifficulty === "easy") {
+    return chooseFirstLegalCommand(state, playerId);
+  }
+
+  return chooseStrategicCommand(
+    state,
+    playerId,
+    player.botDifficulty === "hard" ? "hard" : "medium",
+  );
 }
 
 export function advanceBots(state: GameState, maxActions = 256) {
@@ -270,7 +399,7 @@ export function advanceBots(state: GameState, maxActions = 256) {
       return next;
     }
 
-    next = applyCommand(next, botPlayerId, chooseBotCommand(next, botPlayerId));
+    next = applyCommand(next, botPlayerId, chooseAutomatedCommand(next, botPlayerId));
   }
 
   return next;

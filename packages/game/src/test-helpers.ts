@@ -14,7 +14,11 @@ export function createTestPlayers(isBot = false): GamePlayerInput[] {
 }
 
 export function createTestGame(seed = "test-seed", victoryPoints = 10) {
-  return createDefaultGame(createTestPlayers(), seed, victoryPoints);
+  return createDefaultGame(createTestPlayers(), seed, {
+    balancedDice: false,
+    friendlyRobber: false,
+    victoryPoints,
+  });
 }
 
 export function completeSetup(initialState = createTestGame()) {

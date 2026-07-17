@@ -2,14 +2,13 @@ import {
   ANY_PORT_TRADE_RATIO,
   BANK_TRADE_RATIO,
   BUILD_COSTS,
-  DEFAULT_DISCARD_LIMIT,
   MAX_PLAYER_TURNS,
   RESOURCE_PORT_TRADE_RATIO,
   RESOURCE_ORDER,
-  SETUP_SEAT_ORDER,
   TERRAIN_RESOURCE,
+  getSetupSeatOrder,
 } from "./constants";
-import { deterministicInteger } from "./random";
+import { createBalancedDiceBag, deterministicInteger } from "./random";
 import {
   addResources,
   emptyInventory,
@@ -29,10 +28,21 @@ import type {
   PlayerState,
   ResourceInventory,
   ResourceType,
+  TradeOffer,
 } from "./types";
 
 function fail(code: GameRuleErrorCode, message: string): never {
   throw new GameRuleError(code, message);
+}
+
+function getCurrentSetupSeatOrder(state: GameState) {
+  const playerCount = state.players.length;
+
+  if (playerCount !== 3 && playerCount !== 4) {
+    fail("INVALID_COMMAND", "A base game requires three or four players");
+  }
+
+  return getSetupSeatOrder(playerCount);
 }
 
 function requirePlayer(state: GameState, playerId: PlayerId) {
@@ -251,6 +261,7 @@ function finishIfWinner(state: GameState, playerId: PlayerId) {
     ...state,
     phase: { kind: "finished" } as const,
     status: "completed" as const,
+    tradeOffer: null,
     winnerPlayerId: playerId,
   };
 }
@@ -327,8 +338,9 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
 
     const withRoad = addRoad(state, playerId, edgeKey);
     const nextSetupIndex = setupIndex + 1;
+    const setupSeatOrder = getCurrentSetupSeatOrder(state);
 
-    if (nextSetupIndex >= SETUP_SEAT_ORDER.length) {
+    if (nextSetupIndex >= setupSeatOrder.length) {
       const firstPlayerId = state.turnOrder[0];
 
       if (!firstPlayerId) {
@@ -343,7 +355,7 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
       };
     }
 
-    const nextSeat = SETUP_SEAT_ORDER[nextSetupIndex];
+    const nextSeat = setupSeatOrder[nextSetupIndex];
     const nextPlayerId = nextSeat === undefined ? undefined : state.turnOrder[nextSeat];
 
     if (!nextPlayerId) {
@@ -492,20 +504,49 @@ export function distributeResourcesForRoll(state: GameState, rollTotal: number) 
   };
 }
 
+function drawDice(state: GameState) {
+  if (!state.settings.balancedDice) {
+    const firstDraw = deterministicInteger(state.seed, state.randomIndex, 6);
+    const secondDraw = deterministicInteger(state.seed, firstDraw.nextIndex, 6);
+    const first = firstDraw.value + 1;
+    const second = secondDraw.value + 1;
+
+    return {
+      balancedDiceBag: state.balancedDiceBag,
+      randomIndex: secondDraw.nextIndex,
+      roll: { first, second, sum: first + second },
+    };
+  }
+
+  const shuffled =
+    state.balancedDiceBag.length > 0
+      ? { bag: state.balancedDiceBag, nextIndex: state.randomIndex }
+      : createBalancedDiceBag(state.seed, state.randomIndex);
+  const [roll, ...balancedDiceBag] = shuffled.bag;
+
+  if (!roll) {
+    fail("INVALID_COMMAND", "Balanced dice bag is empty");
+  }
+
+  return {
+    balancedDiceBag,
+    randomIndex: shuffled.nextIndex,
+    roll,
+  };
+}
+
 function rollDice(state: GameState, playerId: PlayerId) {
   if (state.phase.kind !== "roll") {
     fail("INVALID_PHASE", "Dice can only be rolled at the start of a turn");
   }
 
-  const firstDraw = deterministicInteger(state.seed, state.randomIndex, 6);
-  const secondDraw = deterministicInteger(state.seed, firstDraw.nextIndex, 6);
-  const first = firstDraw.value + 1;
-  const second = secondDraw.value + 1;
-  const sum = first + second;
+  const draw = drawDice(state);
+  const { first, second, sum } = draw.roll;
   const rolled: GameState = {
     ...state,
+    balancedDiceBag: draw.balancedDiceBag,
     lastDiceRoll: { first, second, sum },
-    randomIndex: secondDraw.nextIndex,
+    randomIndex: draw.randomIndex,
   };
 
   if (sum !== 7) {
@@ -521,7 +562,7 @@ function rollDice(state: GameState, playerId: PlayerId) {
       playerId: player.id,
       total: totalResources(player.resources),
     }))
-    .filter((requirement) => requirement.total > DEFAULT_DISCARD_LIMIT)
+    .filter((requirement) => requirement.total > state.settings.discardLimit)
     .map(({ count, playerId: pendingPlayerId }) => ({
       count,
       playerId: pendingPlayerId,
@@ -575,6 +616,37 @@ function discardResources(state: GameState, playerId: PlayerId, discarded: Resou
   };
 }
 
+function friendlyRobberProtectedPlayerIds(state: GameState) {
+  if (!state.settings.friendlyRobber) {
+    return new Set<PlayerId>();
+  }
+
+  return new Set(
+    state.players.filter((player) => player.victoryPoints <= 2).map((player) => player.id),
+  );
+}
+
+function robberTileIds(state: GameState) {
+  const available = state.board.tiles
+    .filter((tile) => tile.id !== state.board.robberTileId)
+    .map((tile) => tile.id);
+  const protectedPlayerIds = friendlyRobberProtectedPlayerIds(state);
+
+  if (protectedPlayerIds.size === 0) {
+    return available;
+  }
+
+  const friendly = available.filter((tileId) => {
+    const adjacentVertices = new Set(DEFAULT_TOPOLOGY.tileById[tileId]?.vertexKeys ?? []);
+    return !state.board.buildings.some(
+      (building) =>
+        protectedPlayerIds.has(building.playerId) && adjacentVertices.has(building.vertexKey),
+    );
+  });
+
+  return friendly.length > 0 ? friendly : [state.board.robberTileId];
+}
+
 function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
   if (state.phase.kind !== "move_robber") {
     fail("INVALID_PHASE", "Robber cannot be moved in this phase");
@@ -586,15 +658,21 @@ function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
     fail("INVALID_ROBBER_TILE", `Unknown robber tile: ${tileId}`);
   }
 
-  if (tileId === state.board.robberTileId) {
-    fail("ROBBER_TILE_UNCHANGED", "Robber must move to another tile");
+  const legalTileIds = robberTileIds(state);
+  if (!legalTileIds.includes(tileId)) {
+    if (tileId === state.board.robberTileId) {
+      fail("ROBBER_TILE_UNCHANGED", "Robber must move to another tile");
+    }
+    fail("INVALID_ROBBER_TILE", "Friendly robber protects players with two or fewer points");
   }
 
   const adjacentVertices = new Set(DEFAULT_TOPOLOGY.tileById[tileId]?.vertexKeys ?? []);
+  const protectedPlayerIds = friendlyRobberProtectedPlayerIds(state);
   const eligibleVictimIds = state.players
     .filter(
       (player) =>
         player.id !== playerId &&
+        !protectedPlayerIds.has(player.id) &&
         totalResources(player.resources) > 0 &&
         state.board.buildings.some(
           (building) => building.playerId === player.id && adjacentVertices.has(building.vertexKey),
@@ -705,6 +783,142 @@ function tradeWithBank(state: GameState, playerId: PlayerId, give: unknown, rece
   };
 }
 
+function requireOfferActionNumber(offerActionNumber: number) {
+  if (!Number.isSafeInteger(offerActionNumber) || offerActionNumber < 1) {
+    fail("INVALID_TRADE", "Trade offer action number is invalid");
+  }
+}
+
+function validateDomesticTradeInventories(give: ResourceInventory, want: ResourceInventory): void {
+  if (
+    !isValidInventory(give) ||
+    !isValidInventory(want) ||
+    totalResources(give) === 0 ||
+    totalResources(want) === 0
+  ) {
+    fail("INVALID_TRADE", "A trade must give and request at least one resource");
+  }
+
+  if (RESOURCE_TYPES.some((resource) => give[resource] > 0 && want[resource] > 0)) {
+    fail("INVALID_TRADE", "A trade cannot give and request the same resource");
+  }
+}
+
+function proposeTrade(
+  state: GameState,
+  playerId: PlayerId,
+  give: ResourceInventory,
+  want: ResourceInventory,
+  recipientPlayerIds: readonly PlayerId[],
+) {
+  if (state.phase.kind !== "build_and_trade" || state.activePlayerId !== playerId) {
+    fail("INVALID_PHASE", "Only the active player may propose a trade after rolling");
+  }
+
+  if (state.tradeOffer) {
+    fail("INVALID_TRADE", "Cancel the current trade offer before proposing another");
+  }
+
+  validateDomesticTradeInventories(give, want);
+  const proposer = requirePlayer(state, playerId);
+  if (!hasResources(proposer.resources, give)) {
+    fail("INSUFFICIENT_RESOURCES", "Player cannot afford the proposed trade");
+  }
+
+  const uniqueRecipients = [...new Set(recipientPlayerIds)];
+  if (
+    uniqueRecipients.length === 0 ||
+    uniqueRecipients.length !== recipientPlayerIds.length ||
+    uniqueRecipients.includes(playerId)
+  ) {
+    fail("INVALID_TRADE", "Trade recipients must be unique opponents");
+  }
+
+  for (const recipientPlayerId of uniqueRecipients) {
+    requirePlayer(state, recipientPlayerId);
+  }
+
+  const tradeOffer: TradeOffer = {
+    give: { ...give },
+    offerActionNumber: state.actionNumber + 1,
+    proposerPlayerId: playerId,
+    recipientPlayerIds: uniqueRecipients,
+    rejectedPlayerIds: [],
+    want: { ...want },
+  };
+
+  return { ...state, tradeOffer };
+}
+
+function respondToTrade(
+  state: GameState,
+  playerId: PlayerId,
+  offerActionNumber: number,
+  accept: boolean,
+) {
+  requireOfferActionNumber(offerActionNumber);
+  const offer = state.tradeOffer;
+
+  if (state.phase.kind !== "build_and_trade" || !offer) {
+    fail("INVALID_TRADE", "There is no active trade offer");
+  }
+
+  if (offer.offerActionNumber !== offerActionNumber) {
+    fail("INVALID_TRADE", "Trade offer is stale");
+  }
+
+  if (!offer.recipientPlayerIds.includes(playerId) || offer.rejectedPlayerIds.includes(playerId)) {
+    fail("INVALID_TRADE", "Player cannot respond to this trade offer");
+  }
+
+  if (!accept) {
+    const rejectedPlayerIds = [...offer.rejectedPlayerIds, playerId];
+    const allRejected = offer.recipientPlayerIds.every((recipientPlayerId) =>
+      rejectedPlayerIds.includes(recipientPlayerId),
+    );
+    return {
+      ...state,
+      tradeOffer: allRejected ? null : { ...offer, rejectedPlayerIds },
+    };
+  }
+
+  const proposer = requirePlayer(state, offer.proposerPlayerId);
+  const recipient = requirePlayer(state, playerId);
+  if (
+    !hasResources(proposer.resources, offer.give) ||
+    !hasResources(recipient.resources, offer.want)
+  ) {
+    fail("INSUFFICIENT_RESOURCES", "Trade participants can no longer afford this offer");
+  }
+
+  const withProposer = updatePlayer(state, proposer.id, (current) => ({
+    ...current,
+    resources: addResources(subtractResources(current.resources, offer.give), offer.want),
+  }));
+  const withRecipient = updatePlayer(withProposer, recipient.id, (current) => ({
+    ...current,
+    resources: addResources(subtractResources(current.resources, offer.want), offer.give),
+  }));
+
+  return { ...withRecipient, tradeOffer: null };
+}
+
+function cancelTrade(state: GameState, playerId: PlayerId, offerActionNumber: number) {
+  requireOfferActionNumber(offerActionNumber);
+  const offer = state.tradeOffer;
+
+  if (
+    state.phase.kind !== "build_and_trade" ||
+    !offer ||
+    offer.offerActionNumber !== offerActionNumber ||
+    offer.proposerPlayerId !== playerId
+  ) {
+    fail("INVALID_TRADE", "Player cannot cancel this trade offer");
+  }
+
+  return { ...state, tradeOffer: null };
+}
+
 function endTurn(state: GameState) {
   if (state.phase.kind !== "build_and_trade") {
     fail("INVALID_PHASE", "Turn cannot end before rolling and resolving actions");
@@ -716,6 +930,7 @@ function endTurn(state: GameState) {
       lastDiceRoll: null,
       phase: { kind: "finished" as const },
       status: "completed" as const,
+      tradeOffer: null,
       winnerPlayerId: null,
     };
   }
@@ -732,6 +947,7 @@ function endTurn(state: GameState) {
     activePlayerId: nextPlayerId,
     lastDiceRoll: null,
     phase: { kind: "roll" as const },
+    tradeOffer: null,
     turnNumber: state.turnNumber + 1,
   };
 }
@@ -745,15 +961,28 @@ export function getRequiredPlayerIds(state: GameState) {
     return [];
   }
 
-  return state.phase.kind === "discard"
-    ? state.phase.pending.map((pending) => pending.playerId)
-    : [state.activePlayerId];
+  if (state.phase.kind === "discard") {
+    return state.phase.pending.map((pending) => pending.playerId);
+  }
+
+  if (state.phase.kind === "build_and_trade" && state.tradeOffer) {
+    const offer = state.tradeOffer;
+    const outstandingRecipients = offer.recipientPlayerIds.filter(
+      (playerId) => !offer.rejectedPlayerIds.includes(playerId),
+    );
+    return [state.activePlayerId, ...outstandingRecipients];
+  }
+
+  return [state.activePlayerId];
 }
 
 function emptyLegalActions(state: GameState): LegalActions {
   return {
     bankTrades: [],
+    canCancelTrade: false,
     canEndTurn: false,
+    canProposeTrade: false,
+    canRespondToTrade: false,
     canRoll: false,
     cityVertexKeys: [],
     discardCount: null,
@@ -800,15 +1029,23 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
         null;
       return actions;
     case "move_robber":
-      actions.robberTileIds = state.board.tiles
-        .filter((tile) => tile.id !== state.board.robberTileId)
-        .map((tile) => tile.id);
+      actions.robberTileIds = robberTileIds(state);
       return actions;
     case "steal":
       actions.victimPlayerIds = [...state.phase.eligibleVictimIds];
       return actions;
     case "build_and_trade":
+      if (actorPlayerId !== state.activePlayerId) {
+        actions.canRespondToTrade = Boolean(
+          state.tradeOffer?.recipientPlayerIds.includes(actorPlayerId) &&
+          !state.tradeOffer.rejectedPlayerIds.includes(actorPlayerId),
+        );
+        return actions;
+      }
+
       actions.canEndTurn = true;
+      actions.canCancelTrade = state.tradeOffer?.proposerPlayerId === actorPlayerId;
+      actions.canProposeTrade = state.tradeOffer === null;
       actions.cityVertexKeys =
         player.piecesRemaining.cities > 0 && hasResources(player.resources, BUILD_COSTS.city)
           ? getCityVertexKeys(state, actorPlayerId)
@@ -852,6 +1089,14 @@ export function applyCommand(
     fail("NOT_REQUIRED_ACTOR", "Player cannot act in the current phase");
   }
 
+  if (
+    actorPlayerId !== state.activePlayerId &&
+    state.phase.kind !== "discard" &&
+    command.kind !== "respond_trade"
+  ) {
+    fail("NOT_REQUIRED_ACTOR", "Player may only respond to the active trade offer");
+  }
+
   let next: GameState;
 
   switch (command.kind) {
@@ -878,6 +1123,21 @@ export function applyCommand(
       break;
     case "trade_bank":
       next = tradeWithBank(state, actorPlayerId, command.give, command.receive);
+      break;
+    case "propose_trade":
+      next = proposeTrade(
+        state,
+        actorPlayerId,
+        command.give,
+        command.want,
+        command.recipientPlayerIds,
+      );
+      break;
+    case "respond_trade":
+      next = respondToTrade(state, actorPlayerId, command.offerActionNumber, command.accept);
+      break;
+    case "cancel_trade":
+      next = cancelTrade(state, actorPlayerId, command.offerActionNumber);
       break;
     case "end_turn":
       next = endTurn(state);

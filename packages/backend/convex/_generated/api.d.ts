@@ -9,6 +9,7 @@
  */
 
 import type * as healthCheck from "../healthCheck.js";
+import type * as hexclave_auth from "../hexclave/auth.js";
 import type * as mvp from "../mvp.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
+  "hexclave/auth": typeof hexclave_auth;
   mvp: typeof mvp;
 }>;
 
@@ -48,4 +50,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  stack_auth: import("@hexclave/next/_generated/component.js").ComponentApi<"stack_auth">;
+};

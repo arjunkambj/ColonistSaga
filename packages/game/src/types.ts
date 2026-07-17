@@ -16,6 +16,18 @@ export const TERRAIN_TYPES = [
 export type TerrainType = (typeof TERRAIN_TYPES)[number];
 export type PlayerId = string;
 export type BuildingKind = "city" | "settlement";
+export type BotDifficulty = "easy" | "medium" | "hard";
+export type TurnTimerSeconds = 0 | 30 | 60 | 90 | 120;
+
+export interface BaseGameSettings {
+  balancedDice: boolean;
+  discardLimit: number;
+  friendlyRobber: boolean;
+  hideBankCards: boolean;
+  maxPlayers: 3 | 4;
+  turnTimerSeconds: TurnTimerSeconds;
+  victoryPoints: number;
+}
 
 export interface AxialCoordinate {
   q: number;
@@ -28,6 +40,7 @@ export interface PixelCoordinate {
 }
 
 export interface GamePlayerInput {
+  botDifficulty?: BotDifficulty;
   id: PlayerId;
   displayName: string;
   isBot: boolean;
@@ -138,9 +151,19 @@ export interface DiceRoll {
   sum: number;
 }
 
+export interface TradeOffer {
+  give: ResourceInventory;
+  offerActionNumber: number;
+  proposerPlayerId: PlayerId;
+  recipientPlayerIds: PlayerId[];
+  rejectedPlayerIds: PlayerId[];
+  want: ResourceInventory;
+}
+
 export interface GameState {
   actionNumber: number;
   activePlayerId: PlayerId;
+  balancedDiceBag: DiceRoll[];
   bank: ResourceInventory;
   board: BoardState;
   lastDiceRoll: DiceRoll | null;
@@ -148,7 +171,9 @@ export interface GameState {
   players: PlayerState[];
   randomIndex: number;
   seed: string;
+  settings: BaseGameSettings;
   status: "active" | "completed";
+  tradeOffer: TradeOffer | null;
   turnNumber: number;
   turnOrder: PlayerId[];
   version: 1;
@@ -169,6 +194,21 @@ export type GameCommand =
       kind: "trade_bank";
       receive: ResourceType;
     }
+  | {
+      give: ResourceInventory;
+      kind: "propose_trade";
+      recipientPlayerIds: PlayerId[];
+      want: ResourceInventory;
+    }
+  | {
+      accept: boolean;
+      kind: "respond_trade";
+      offerActionNumber: number;
+    }
+  | {
+      kind: "cancel_trade";
+      offerActionNumber: number;
+    }
   | { kind: "end_turn" };
 
 export interface BankTradeOption {
@@ -179,7 +219,10 @@ export interface BankTradeOption {
 
 export interface LegalActions {
   bankTrades: BankTradeOption[];
+  canCancelTrade: boolean;
   canEndTurn: boolean;
+  canProposeTrade: boolean;
+  canRespondToTrade: boolean;
   canRoll: boolean;
   cityVertexKeys: string[];
   discardCount: number | null;
@@ -205,8 +248,9 @@ export type PlayerViewState = PublicPlayerState | PrivatePlayerState;
 
 export interface PlayerGameView extends Omit<
   GameState,
-  "bank" | "players" | "randomIndex" | "seed"
+  "balancedDiceBag" | "bank" | "players" | "randomIndex" | "seed"
 > {
+  bank: ResourceInventory | null;
   legalActions: LegalActions;
   players: PlayerViewState[];
   viewerPlayerId: PlayerId;

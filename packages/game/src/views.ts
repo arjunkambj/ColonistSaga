@@ -7,7 +7,14 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
     throw new Error(`Unknown viewer: ${viewerPlayerId}`);
   }
 
-  const { bank: _bank, randomIndex: _randomIndex, seed: _seed, players, ...publicState } = state;
+  const {
+    balancedDiceBag: _balancedDiceBag,
+    bank,
+    randomIndex: _randomIndex,
+    seed: _seed,
+    players,
+    ...publicState
+  } = state;
   const playerViews: PlayerViewState[] = players.map((player) => {
     const resourceCount = totalResources(player.resources);
 
@@ -27,6 +34,7 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
 
   return {
     ...publicState,
+    bank: state.settings.hideBankCards ? null : { ...bank },
     legalActions: getLegalActions(state, viewerPlayerId),
     players: playerViews,
     viewerPlayerId,

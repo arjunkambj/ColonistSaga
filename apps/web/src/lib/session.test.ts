@@ -3,10 +3,10 @@ import test from "node:test";
 
 import {
   SESSION_STORAGE_KEY,
-  createGuestSession,
+  createPlayerSession,
   normalizeRoomCode,
-  readGuestSession,
-  writeGuestSession,
+  readPlayerSession,
+  writePlayerSession,
 } from "./session.ts";
 
 function createMemoryStorage(initialValue: string | null = null) {
@@ -27,22 +27,38 @@ test("normalizes invite codes for URL and form use", () => {
   assert.equal(normalizeRoomCode(" ab-c 123! "), "ABC123");
 });
 
-test("creates and persists a versioned opaque guest session", () => {
+test("persists only account-scoped player preferences", () => {
   const storage = createMemoryStorage();
-  const session = createGuestSession(() => "opaque-session-id");
+  const session = createPlayerSession("hexclave-user-1", "Arjun");
 
-  writeGuestSession(storage, { ...session, activeCode: "CATAN1" });
+  writePlayerSession(storage, { ...session, activeCode: "CATAN1" });
 
-  assert.deepEqual(readGuestSession(storage), {
+  assert.deepEqual(readPlayerSession(storage, "hexclave-user-1", "Arjun"), {
     activeCode: "CATAN1",
-    displayName: "Explorer",
-    sessionId: "opaque-session-id",
-    version: 1,
+    displayName: "Arjun",
+    userId: "hexclave-user-1",
+    version: 2,
+  });
+});
+
+test("does not restore another account's room or display name", () => {
+  const storage = createMemoryStorage(
+    '{"version":2,"userId":"hexclave-user-1","displayName":"Arjun","activeCode":"CATAN1"}',
+  );
+
+  assert.deepEqual(readPlayerSession(storage, "hexclave-user-2", "Mira"), {
+    displayName: "Mira",
+    userId: "hexclave-user-2",
+    version: 2,
   });
 });
 
 test("replaces malformed or obsolete stored data", () => {
-  const storage = createMemoryStorage('{"version":0,"sessionId":"old-value"}');
+  const storage = createMemoryStorage('{"version":1,"sessionId":"old-value"}');
 
-  assert.equal(readGuestSession(storage, () => "replacement-id").sessionId, "replacement-id");
+  assert.deepEqual(readPlayerSession(storage, "hexclave-user-1", "Arjun"), {
+    displayName: "Arjun",
+    userId: "hexclave-user-1",
+    version: 2,
+  });
 });

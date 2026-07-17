@@ -1,5 +1,14 @@
 # Catansaga default Base asset generation prompts
 
+> The current detailed V7 terrain and piece refinement is documented in
+> `docs/game-asset-generation-v3.md`. It supersedes the V6 terrain, road,
+> settlement, and city prompts below.
+
+> The current light V6 pack was generated on July 17, 2026. Its authoritative
+> references and prompt set are recorded in
+> `docs/game-asset-generation-v2.md`. The material below documents earlier
+> generation passes and is retained only as iteration history.
+
 All 15 sources were generated with the built-in `image_gen` mode. The supplied
 Colonist screenshot was inspected as a style reference only; it was not used as
 an edit target. Each source used a flat chroma-key backdrop and was processed
@@ -336,4 +345,17 @@ Color palette: charcoal, graphite gray, muted slate; do not use #00ff00 anywhere
 Materials/textures: matte modeling clay, restrained texture, strong readable silhouette at 64 px.
 Constraints: one fused pawn silhouette; no base disk separate from the pawn, no ground, no words, no numbers, no logos, no watermark, no UI, no extra objects.
 Avoid: branded game piece designs, photorealism, human figure, hooded character, crop, background shadow, green color.
+```
+
+## ui/trade-caravan.png
+
+```text
+Use case: reference-guided image edit
+References: the supplied bright casual-game home screen and character-selection images, used only for softness, palette, and material cues.
+Asset type: Catansaga decorative domestic-trade modal illustration.
+Primary request: Create one original cheerful island trading caravan: a compact blue-and-gold wooden handcart piled with timber logs, red bricks, wheat sheaves, a wool bundle, and rounded stone, with a rolled map and a small balance scale suggesting fair exchange.
+Style/medium: polished friendly casual-mobile-game illustration with softly rounded clay forms, pale warm highlights, clean silhouettes, and playful proportions; original unbranded design.
+Composition/framing: isolated three-quarter view, cart facing right, complete silhouette, no cropped wheels or cargo, no ground plane.
+Scene/backdrop: perfectly flat #ff00ff chroma-key background for local alpha removal.
+Constraints: no words, numbers, logos, watermark, UI panels, characters, coins, gems, branded board-game imagery, or extra scenery.
 ```

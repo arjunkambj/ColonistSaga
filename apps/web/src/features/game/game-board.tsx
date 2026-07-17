@@ -5,7 +5,7 @@ import {
   type PlayerViewState,
   type ResourceType,
 } from "@catansaga/game";
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import {
   BOARD_CANVAS,
@@ -15,6 +15,7 @@ import {
   getTilePoint,
   getVertexPoint,
 } from "./board-layout";
+import { ROAD_ASSET_ROTATION_OFFSET, TERRAIN_ASSET } from "./board-assets";
 import { ResourceIcon } from "./resource-icon";
 
 export type BuildMode = "city" | "road" | "settlement" | null;
@@ -36,12 +37,18 @@ export function GameBoard({
     game.players.map((player) => [player.id, getPlayerTheme(player)]),
   );
   const targetMode = getTargetMode(game, buildMode);
+  const compactPlacement = useCompactPlacementLayout();
 
   return (
     <section className="board-shell" aria-label="Game board">
       <div
         className="game-board"
-        style={{ aspectRatio: `${BOARD_CANVAS.width} / ${BOARD_CANVAS.height}` }}
+        style={
+          {
+            "--tile-size": `${(BOARD_CANVAS.tileSize / BOARD_CANVAS.width) * 100}%`,
+            aspectRatio: `${BOARD_CANVAS.width} / ${BOARD_CANVAS.height}`,
+          } as CSSProperties
+        }
       >
         <div className="ocean-glow" aria-hidden="true" />
 
@@ -58,9 +65,9 @@ export function GameBoard({
                 alt=""
                 className="terrain-tile"
                 draggable={false}
-                height={BOARD_CANVAS.tileImageSize}
+                height={TERRAIN_ASSET.size}
                 src={`/game-assets/terrain/${tile.terrain}.png`}
-                width={BOARD_CANVAS.tileImageSize}
+                width={TERRAIN_ASSET.size}
               />
               {tile.numberToken === null ? null : (
                 <NumberToken number={tile.numberToken} terrain={tile.terrain} />
@@ -115,9 +122,11 @@ export function GameBoard({
               const point = getVertexPoint(vertexKey);
               return point ? (
                 <BuildTarget
+                  compactPlacement={compactPlacement}
                   disabled={pending}
                   key={vertexKey}
                   label={`Place settlement at legal location ${index + 1}`}
+                  marker={index + 1}
                   onClick={() =>
                     onCommand({ kind: "place_settlement", vertexKey }, "Settlement placed.")
                   }
@@ -133,9 +142,11 @@ export function GameBoard({
               const point = getVertexPoint(vertexKey);
               return point ? (
                 <BuildTarget
+                  compactPlacement={compactPlacement}
                   disabled={pending}
                   key={vertexKey}
                   label={`Upgrade city at legal location ${index + 1}`}
+                  marker={index + 1}
                   onClick={() => onCommand({ kind: "build_city", vertexKey }, "City completed.")}
                   point={point}
                   type="vertex"
@@ -150,9 +161,11 @@ export function GameBoard({
               return point ? (
                 <BuildTarget
                   angle={point.angle}
+                  compactPlacement={compactPlacement}
                   disabled={pending}
                   key={edgeKey}
                   label={`Place road at legal edge ${index + 1}`}
+                  marker={index + 1}
                   onClick={() => onCommand({ edgeKey, kind: "place_road" }, "Road placed.")}
                   point={point}
                   type="edge"
@@ -169,9 +182,11 @@ export function GameBoard({
               }
               return (
                 <BuildTarget
+                  compactPlacement={compactPlacement}
                   disabled={pending}
                   key={tileId}
                   label={`Move robber to legal tile ${index + 1}`}
+                  marker={index + 1}
                   onClick={() => onCommand({ kind: "move_robber", tileId }, "Robber moved.")}
                   point={getTilePoint(tile)}
                   type="tile"
@@ -228,7 +243,7 @@ function Piece({
   point: { x: number; y: number };
   theme: (typeof PLAYER_THEMES)[number];
 }) {
-  const rotation = asset === "road" ? angle + 45 : 0;
+  const rotation = asset === "road" ? angle + ROAD_ASSET_ROTATION_OFFSET : 0;
   return (
     <span
       aria-label={`${theme} ${asset}`}
@@ -273,34 +288,60 @@ function Robber({ game }: { game: PlayerGameView }) {
 
 function BuildTarget({
   angle = 0,
+  compactPlacement,
   disabled,
   label,
+  marker,
   onClick,
   point,
   type,
 }: {
   angle?: number;
+  compactPlacement: boolean;
   disabled: boolean;
   label: string;
+  marker: number;
   onClick(): void;
   point: { x: number; y: number };
   type: "edge" | "tile" | "vertex";
 }) {
   return (
     <button
+      aria-hidden={compactPlacement || undefined}
       aria-label={label}
       className={`build-target target-${type}`}
       disabled={disabled}
-      onClick={onClick}
-      style={{ ...getPointStyle(point), "--target-rotation": `${angle}deg` } as CSSProperties}
+      onClick={compactPlacement ? undefined : onClick}
+      style={
+        {
+          ...getPointStyle(point),
+          "--target-label-rotation": `${-angle}deg`,
+          "--target-rotation": `${angle}deg`,
+        } as CSSProperties
+      }
+      tabIndex={compactPlacement ? -1 : undefined}
       type="button"
     >
-      <span aria-hidden="true">+</span>
+      <span aria-hidden="true" data-marker={marker} />
     </button>
   );
 }
 
-function getTargetMode(game: PlayerGameView, buildMode: BuildMode) {
+function useCompactPlacementLayout(): boolean {
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-height: 560px) and (orientation: landscape)");
+    const update = () => setIsCompact(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return isCompact;
+}
+
+export function getTargetMode(game: PlayerGameView, buildMode: BuildMode) {
   if (!game.legalActions.isRequiredActor) {
     return null;
   }

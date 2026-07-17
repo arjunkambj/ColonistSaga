@@ -1,16 +1,16 @@
 # Catansaga
 
-Catansaga is a real-time, reconnect-safe four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current MVP intentionally supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
+Catansaga is a real-time, reconnect-safe three- or four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current MVP intentionally supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
 
 ## MVP features
 
-- Quick Play against three deterministic bots.
-- Private rooms for up to four human players, with bot-filled empty seats.
-- Canonical 19-tile board, nine port-aware trade ratios, snake setup, production, robber/discard/steal, construction, and a 10-point victory target.
+- Quick Play against two or three paced deterministic bots with Easy, Medium, and Hard strategies.
+- Private three- or four-seat rooms with atomic bot, timer, victory-target, discard, dice, robber, and bank-visibility settings.
+- Canonical 19-tile board, nine port-aware bank ratios, domestic trade offers, snake setup, production, robber/discard/steal, construction, and a configurable victory target.
 - Server-authoritative, revisioned commands with idempotent retries.
-- Stable guest sessions and reactive reconnect through Convex.
+- Hexclave-authenticated player sessions and reactive reconnect through Convex.
 - Private player hands and server-only random state.
-- Responsive, keyboard-accessible board controls using the generated terrain, resource, and piece pack.
+- Full-viewport, keyboard-accessible game controls using the generated terrain, resource, piece, and trade art pack.
 
 The implemented state model and command contract are documented in [docs/mvp-game-schema.md](docs/mvp-game-schema.md). The complete art inventory is in [docs/game-asset-manifest.md](docs/game-asset-manifest.md).
 
@@ -23,11 +23,13 @@ pnpm install
 pnpm dev:setup
 ```
 
-Convex writes its local deployment values to `packages/backend/.env.local`. Add the same public deployment URL to the ignored file `apps/web/.env.local`:
+Convex writes its deployment values to `packages/backend/.env.local`. Copy the deployment URL into the ignored file `apps/web/.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 ```
+
+`pnpm dev` starts the local Hexclave dashboard, syncs `hexclave.config.ts`, injects the public Hexclave project values into the web process, and sets the matching `HEXCLAVE_PROJECT_ID` on the Convex development deployment. Backend environment values belong in Convex, not in the web app. A publishable client key is only needed when `requirePublishableClientKey` is enabled. This integration uses individual accounts only; it does not enable Hexclave Teams.
 
 Run the backend and web app together:
 
@@ -35,7 +37,7 @@ Run the backend and web app together:
 pnpm dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001). To run only the web client against an already-running Convex deployment, use `pnpm dev:web`.
+Open [http://localhost:3000](http://localhost:3000). To run only the web client against an already-running Convex deployment, use `pnpm dev:web`.
 
 ## Verification
 
@@ -61,8 +63,7 @@ apps/desktop                Electrobun shell for the static web export
 packages/game               Pure deterministic game engine and tests
 packages/backend/convex     Convex schema, rooms, state, and commands
 packages/env                Environment validation
-packages/infra              Alchemy deployment entrypoint
 docs                        Game study, schema, assets, and QA notes
 ```
 
-Do not edit `packages/backend/convex/_generated` manually; regenerate it through Convex. Backend secrets belong in the Convex dashboard, while the web client receives only `NEXT_PUBLIC_CONVEX_URL`.
+Do not edit `packages/backend/convex/_generated` manually; regenerate it through Convex. Backend values belong in the Convex dashboard, while the web client receives only explicitly public `NEXT_PUBLIC_*` values.

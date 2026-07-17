@@ -1,21 +1,44 @@
 import {
-  advanceBots,
+  DEFAULT_BASE_GAME_SETTINGS,
   applyCommand,
+  chooseAutomatedCommand,
   createDefaultGame,
   getRequiredPlayerIds,
   toPlayerView,
 } from "@catansaga/game";
-import type { GameCommand, GamePlayerInput, GameState, ResourceInventory } from "@catansaga/game";
+import type {
+  BaseGameSettings,
+  BotDifficulty,
+  GameCommand,
+  GamePlayerInput,
+  GameState,
+  ResourceInventory,
+} from "@catansaga/game";
 import { ConvexError, v } from "convex/values";
+import type { Infer } from "convex/values";
 
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { resourceInventoryValidator, resourceTypeValidator } from "./schema";
+import { requireCurrentHexclaveUser } from "./hexclave/auth";
+import type { HexclaveUser } from "./hexclave/auth";
+import {
+  earliestActionDeadlineAt,
+  isActionDeadlineExpired,
+  isScheduledActionDue,
+  nextScheduledActionAt,
+  nextTurnDeadlineAt,
+} from "../lib/mvp-scheduling";
+import {
+  baseGameSettingsValidator,
+  botDifficultyValidator,
+  resourceInventoryValidator,
+  resourceTypeValidator,
+} from "./schema";
 
 const MAX_SEATS = 4;
-const MAX_BOT_ACTIONS = 2_048;
-const DEFAULT_VICTORY_POINTS = 10;
+const DEFAULT_BOT_DIFFICULTY: BotDifficulty = "medium";
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const PLAYER_COLORS = ["red", "blue", "orange", "green"] as const;
@@ -38,17 +61,22 @@ const roomMemberViewValidator = v.object({
   ),
   ready: v.boolean(),
   role: v.union(v.literal("host"), v.literal("player")),
+  seatIndex: v.number(),
 });
 
 const roomViewValidator = v.object({
   actionNumber: v.optional(v.number()),
+  botDifficulty: botDifficultyValidator,
+  botThinking: v.boolean(),
   code: v.string(),
   events: v.array(gameEventViewValidator),
   gameId: v.optional(v.id("mvpGames")),
   gameJson: v.optional(v.string()),
   isHost: v.boolean(),
   members: v.array(roomMemberViewValidator),
+  nextActionAt: v.optional(v.number()),
   rules: v.object({ victoryPoints: v.number() }),
+  settings: baseGameSettingsValidator,
   status: v.union(v.literal("completed"), v.literal("in_progress"), v.literal("waiting")),
 });
 
@@ -83,6 +111,21 @@ const commandValidator = v.union(
     kind: v.literal("trade_bank"),
     receive: resourceTypeValidator,
   }),
+  v.object({
+    give: resourceInventoryValidator,
+    kind: v.literal("propose_trade"),
+    recipientPlayerIds: v.array(v.string()),
+    want: resourceInventoryValidator,
+  }),
+  v.object({
+    accept: v.boolean(),
+    kind: v.literal("respond_trade"),
+    offerActionNumber: v.number(),
+  }),
+  v.object({
+    kind: v.literal("cancel_trade"),
+    offerActionNumber: v.number(),
+  }),
   v.object({ kind: v.literal("end_turn") }),
 );
 
@@ -90,6 +133,7 @@ type ReadCtx = Pick<QueryCtx, "db">;
 type MvpRoom = Doc<"mvpRooms">;
 type MvpSeat = Doc<"mvpSeats">;
 type MvpGame = Doc<"mvpGames">;
+type RoomView = Infer<typeof roomViewValidator>;
 type GameEventView = {
   createdAt: number;
   sequence: number;
@@ -98,14 +142,6 @@ type GameEventView = {
 
 function fail(code: string, message: string): never {
   throw new ConvexError({ code, message });
-}
-
-function normalizeSessionId(value: string): string {
-  const sessionId = value.trim();
-  if (sessionId.length < 8 || sessionId.length > 128) {
-    fail("INVALID_SESSION", "Session ID must contain 8 to 128 characters.");
-  }
-  return sessionId;
 }
 
 function normalizeDisplayName(value: string): string {
@@ -170,8 +206,8 @@ function hashText(value: string): number {
   return hash >>> 0;
 }
 
-function roomCodeCandidate(sessionId: string, now: number, attempt: number): string {
-  let random = hashText(`${sessionId}:${now}:${attempt}`);
+function roomCodeCandidate(authUserId: string, now: number, attempt: number): string {
+  let random = hashText(`${authUserId}:${now}:${attempt}`);
   return Array.from({ length: ROOM_CODE_LENGTH }, () => {
     random ^= random << 13;
     random ^= random >>> 17;
@@ -180,9 +216,9 @@ function roomCodeCandidate(sessionId: string, now: number, attempt: number): str
   }).join("");
 }
 
-async function allocateRoomCode(ctx: ReadCtx, sessionId: string, now: number): Promise<string> {
+async function allocateRoomCode(ctx: ReadCtx, authUserId: string, now: number): Promise<string> {
   for (let attempt = 0; attempt < 32; attempt += 1) {
-    const code = roomCodeCandidate(sessionId, now, attempt);
+    const code = roomCodeCandidate(authUserId, now, attempt);
     const existing = await ctx.db
       .query("mvpRooms")
       .withIndex("by_code", (index) => index.eq("code", code))
@@ -217,15 +253,15 @@ async function listSeats(ctx: ReadCtx, roomId: Id<"mvpRooms">): Promise<MvpSeat[
   return [...seats].sort((left, right) => left.seatIndex - right.seatIndex);
 }
 
-async function findSeatBySession(
+async function findSeatByAuthUser(
   ctx: ReadCtx,
   roomId: Id<"mvpRooms">,
-  sessionId: string,
+  authUserId: string,
 ): Promise<MvpSeat | null> {
   return await ctx.db
     .query("mvpSeats")
-    .withIndex("by_room_and_session_id", (index) =>
-      index.eq("roomId", roomId).eq("sessionId", sessionId),
+    .withIndex("by_room_and_auth_user_id", (index) =>
+      index.eq("roomId", roomId).eq("authUserId", authUserId),
     )
     .unique();
 }
@@ -233,22 +269,37 @@ async function findSeatBySession(
 async function requireHumanSeat(
   ctx: ReadCtx,
   roomId: Id<"mvpRooms">,
-  rawSessionId: string,
+  authUserId: string,
 ): Promise<MvpSeat> {
-  const sessionId = normalizeSessionId(rawSessionId);
-  const seat = await findSeatBySession(ctx, roomId, sessionId);
+  const seat = await findSeatByAuthUser(ctx, roomId, authUserId);
   if (!seat || seat.kind !== "human") {
-    fail("NOT_ROOM_MEMBER", "This session does not own a human seat in the room.");
+    fail("NOT_ROOM_MEMBER", "Your account does not own a human seat in this room.");
   }
   return seat;
 }
 
-function nextOpenSeatIndex(seats: readonly MvpSeat[]): number {
+async function requireWaitingHost(
+  ctx: ReadCtx,
+  rawCode: string,
+  authUserId: string,
+): Promise<{ hostSeat: MvpSeat; room: MvpRoom }> {
+  const room = await requireRoom(ctx, rawCode);
+  const hostSeat = await requireHumanSeat(ctx, room._id, authUserId);
+  if (hostSeat._id !== room.hostSeatId) {
+    fail("NOT_HOST", "Only the room host can change lobby settings.");
+  }
+  if (room.status !== "waiting" || room.gameId) {
+    fail("ROOM_STARTED", "Lobby settings can only be changed before the game starts.");
+  }
+  return { hostSeat, room };
+}
+
+function nextOpenSeatIndex(seats: readonly MvpSeat[], maxPlayers: number): number {
   const occupied = new Set(seats.map((seat) => seat.seatIndex));
-  const seatIndex = Array.from({ length: MAX_SEATS }, (_, index) => index).find(
+  const seatIndex = Array.from({ length: maxPlayers }, (_, index) => index).find(
     (index) => !occupied.has(index),
   );
-  if (seatIndex === undefined) fail("ROOM_FULL", "Room already has four seats.");
+  if (seatIndex === undefined) fail("ROOM_FULL", "Room already has its maximum seats.");
   return seatIndex;
 }
 
@@ -288,23 +339,85 @@ function roomViewStatus(status: MvpRoom["status"]): "completed" | "in_progress" 
   return "waiting";
 }
 
-function settleBots(state: GameState): GameState {
-  let nextState: GameState;
-  try {
-    nextState = advanceBots(state, MAX_BOT_ACTIONS);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Bot advancement failed.";
-    fail("BOT_ADVANCE_FAILED", message);
+function validateGameSettings(settings: BaseGameSettings): BaseGameSettings {
+  if (
+    !Number.isSafeInteger(settings.victoryPoints) ||
+    settings.victoryPoints < 3 ||
+    settings.victoryPoints > 13
+  ) {
+    fail("INVALID_SETTINGS", "Victory points must be an integer from 3 to 13.");
   }
+  if (
+    !Number.isSafeInteger(settings.discardLimit) ||
+    settings.discardLimit < 5 ||
+    settings.discardLimit > 20
+  ) {
+    fail("INVALID_SETTINGS", "Discard limit must be an integer from 5 to 20.");
+  }
+  if (![0, 30, 60, 90, 120].includes(settings.turnTimerSeconds)) {
+    fail("INVALID_SETTINGS", "Turn timer must be 0, 30, 60, 90, or 120 seconds.");
+  }
+  if (settings.maxPlayers !== 3 && settings.maxPlayers !== 4) {
+    fail("INVALID_SETTINGS", "Player count must be 3 or 4.");
+  }
+  return { ...settings };
+}
 
-  const playersById = new Map(nextState.players.map((player) => [player.id, player]));
-  const botStillRequired = getRequiredPlayerIds(nextState).some(
-    (playerId) => playersById.get(playerId)?.isBot,
-  );
-  if (nextState.status === "active" && botStillRequired) {
-    fail("BOT_ADVANCE_FAILED", "Bot action limit was reached before human input.");
+function requiredAutomatedActor(state: GameState) {
+  if (state.status === "completed") return null;
+  const requiredPlayerIds = getRequiredPlayerIds(state);
+  const playersById = new Map(state.players.map((player) => [player.id, player]));
+  const playerId =
+    requiredPlayerIds.find((requiredPlayerId) => playersById.get(requiredPlayerId)?.isBot) ??
+    requiredPlayerIds[0];
+  const player = playerId ? playersById.get(playerId) : undefined;
+  return player ? { isBot: player.isBot, playerId } : null;
+}
+
+function activeTurnOwner(state: GameState) {
+  if (state.status === "completed") return null;
+  const player = state.players.find((candidate) => candidate.id === state.activePlayerId);
+  return player ? { isBot: player.isBot, playerId: player.id } : null;
+}
+
+async function scheduleNextAutomatedAction(
+  ctx: MutationCtx,
+  gameId: Id<"mvpGames">,
+  state: GameState,
+  settings: BaseGameSettings,
+  now: number,
+  previousState?: GameState,
+  previousActionAt?: number,
+  previousTurnDeadlineAt?: number,
+): Promise<{ nextActionAt?: number; turnDeadlineAt?: number }> {
+  const actor = requiredAutomatedActor(state);
+  const activePlayer = activeTurnOwner(state);
+  const previousActor = previousState ? requiredAutomatedActor(previousState) : null;
+  const previousHumanDeadline =
+    previousActor && !previousActor.isBot && previousActionAt !== undefined
+      ? { actorPlayerId: previousActor.playerId, nextActionAt: previousActionAt }
+      : undefined;
+  const previousTurnDeadline =
+    previousState && previousTurnDeadlineAt !== undefined
+      ? {
+          actorPlayerId: previousState.activePlayerId,
+          nextActionAt: previousTurnDeadlineAt,
+        }
+      : undefined;
+  const turnDeadlineAt = nextTurnDeadlineAt(activePlayer, settings, now, previousTurnDeadline);
+  const nextActionAt = nextScheduledActionAt(actor, settings, now, {
+    previousHumanDeadline,
+    turnDeadlineAt,
+  });
+  if (nextActionAt !== undefined && actor) {
+    await ctx.scheduler.runAt(nextActionAt, internal.mvp.runAutomatedAction, {
+      expectedActionNumber: state.actionNumber,
+      expectedActorPlayerId: actor.playerId,
+      gameId,
+      scheduledFor: nextActionAt,
+    });
   }
-  return nextState;
+  return { nextActionAt, turnDeadlineAt };
 }
 
 function playerViewJson(state: GameState, seat: MvpSeat): string {
@@ -313,6 +426,16 @@ function playerViewJson(state: GameState, seat: MvpSeat): string {
     fail("CORRUPT_GAME_STATE", "Room seat is missing from the game state.");
   }
   return JSON.stringify(toPlayerView(state, playerId));
+}
+
+function serializableInventory(inventory: ResourceInventory) {
+  return {
+    brick: inventory.brick,
+    sheep: inventory.sheep,
+    stone: inventory.stone,
+    tree: inventory.tree,
+    wheat: inventory.wheat,
+  };
 }
 
 function serializeCommand(command: GameCommand): string {
@@ -324,13 +447,7 @@ function serializeCommand(command: GameCommand): string {
     case "discard":
       return JSON.stringify({
         kind: command.kind,
-        resources: {
-          brick: command.resources.brick,
-          sheep: command.resources.sheep,
-          stone: command.resources.stone,
-          tree: command.resources.tree,
-          wheat: command.resources.wheat,
-        },
+        resources: serializableInventory(command.resources),
       });
     case "move_robber":
       return JSON.stringify({ kind: command.kind, tileId: command.tileId });
@@ -340,6 +457,24 @@ function serializeCommand(command: GameCommand): string {
       return JSON.stringify({ kind: command.kind, vertexKey: command.vertexKey });
     case "trade_bank":
       return JSON.stringify({ give: command.give, kind: command.kind, receive: command.receive });
+    case "propose_trade":
+      return JSON.stringify({
+        give: serializableInventory(command.give),
+        kind: command.kind,
+        recipientPlayerIds: [...command.recipientPlayerIds],
+        want: serializableInventory(command.want),
+      });
+    case "respond_trade":
+      return JSON.stringify({
+        accept: command.accept,
+        kind: command.kind,
+        offerActionNumber: command.offerActionNumber,
+      });
+    case "cancel_trade":
+      return JSON.stringify({
+        kind: command.kind,
+        offerActionNumber: command.offerActionNumber,
+      });
     case "roll":
     case "end_turn":
       return JSON.stringify({ kind: command.kind });
@@ -368,14 +503,17 @@ function commandText(command: GameCommand, displayName: string, nextState: GameS
       return `${displayName} built a city.`;
     case "trade_bank":
       return `${displayName} traded ${command.give} for ${command.receive}.`;
+    case "propose_trade":
+      return `${displayName} proposed a player trade.`;
+    case "respond_trade":
+      return command.accept
+        ? `${displayName} accepted a player trade.`
+        : `${displayName} declined a player trade.`;
+    case "cancel_trade":
+      return `${displayName} cancelled a player trade.`;
     case "end_turn":
       return `${displayName} ended the turn.`;
   }
-}
-
-function appendBotActionSummary(text: string, actionCount: number): string {
-  if (actionCount <= 0) return text;
-  return `${text} ${actionCount} bot action${actionCount === 1 ? "" : "s"} resolved automatically.`;
 }
 
 function validateCommandBounds(command: GameCommand): void {
@@ -397,6 +535,23 @@ function validateCommandBounds(command: GameCommand): void {
     case "discard":
       if (!validInventory(command.resources)) fail("INVALID_COMMAND", "Invalid discard inventory.");
       return;
+    case "propose_trade":
+      if (!validInventory(command.give) || !validInventory(command.want)) {
+        fail("INVALID_COMMAND", "Invalid player trade inventory.");
+      }
+      if (
+        command.recipientPlayerIds.length < 1 ||
+        command.recipientPlayerIds.length >= MAX_SEATS ||
+        new Set(command.recipientPlayerIds).size !== command.recipientPlayerIds.length ||
+        command.recipientPlayerIds.some((playerId) => !boundedKey(playerId))
+      ) {
+        fail("INVALID_COMMAND", "Invalid player trade recipients.");
+      }
+      return;
+    case "respond_trade":
+    case "cancel_trade":
+      validateActionNumber(command.offerActionNumber);
+      return;
     case "trade_bank":
     case "roll":
     case "end_turn":
@@ -410,28 +565,160 @@ function validInventory(inventory: ResourceInventory): boolean {
   );
 }
 
+async function persistAppliedCommand(
+  ctx: MutationCtx,
+  game: MvpGame,
+  state: GameState,
+  nextState: GameState,
+  actorSeat: MvpSeat,
+  command: GameCommand,
+  clientActionId: string,
+  text: string,
+): Promise<void> {
+  if (nextState.actionNumber !== state.actionNumber + 1) {
+    fail("CORRUPT_GAME_STATE", "Accepted command did not advance exactly one action.");
+  }
+
+  const now = Date.now();
+  const schedule = await scheduleNextAutomatedAction(
+    ctx,
+    game._id,
+    nextState,
+    game.settings,
+    now,
+    state,
+    game.nextActionAt,
+    game.turnDeadlineAt,
+  );
+  await ctx.db.patch("mvpGames", game._id, {
+    ...schedule,
+    revision: nextState.actionNumber,
+    stateJson: serializeGameState(nextState),
+    status: gameStatus(nextState),
+    updatedAt: now,
+  });
+  await ctx.db.insert("mvpGameActions", {
+    actorSeatId: actorSeat._id,
+    afterRevision: nextState.actionNumber,
+    beforeRevision: state.actionNumber,
+    clientActionId,
+    commandJson: serializeCommand(command),
+    createdAt: now,
+    gameId: game._id,
+    text,
+  });
+  await ctx.db.patch("mvpRooms", game.roomId, {
+    status: gameStatus(nextState),
+    updatedAt: now,
+  });
+}
+
+function validateBotCount(value: number, maxPlayers: number): number {
+  if (!Number.isSafeInteger(value) || value < 0 || value > maxPlayers - 1) {
+    fail("INVALID_BOT_COUNT", `Bot count must be an integer from 0 to ${maxPlayers - 1}.`);
+  }
+  return value;
+}
+
+async function setWaitingBotCount(
+  ctx: MutationCtx,
+  room: MvpRoom,
+  botCount: number,
+): Promise<void> {
+  const maxPlayers = room.settings.maxPlayers;
+  validateBotCount(botCount, maxPlayers);
+  const seats = await listSeats(ctx, room._id);
+  const humanCount = seats.filter((seat) => seat.kind === "human").length;
+  if (humanCount + botCount > maxPlayers) {
+    fail(
+      "ROOM_FULL",
+      `${humanCount} human player${humanCount === 1 ? "" : "s"} leave room for at most ${maxPlayers - humanCount} bots.`,
+    );
+  }
+
+  const bots = seats
+    .filter((seat) => seat.kind === "bot")
+    .sort((left, right) => right.seatIndex - left.seatIndex);
+  const botsToRemove = bots.slice(0, Math.max(0, bots.length - botCount));
+  await Promise.all(botsToRemove.map((seat) => ctx.db.delete("mvpSeats", seat._id)));
+
+  const remainingSeats = seats.filter(
+    (seat) => !botsToRemove.some((removed) => removed._id === seat._id),
+  );
+  for (let index = bots.length - botsToRemove.length; index < botCount; index += 1) {
+    const seatIndex = nextOpenSeatIndex(remainingSeats, maxPlayers);
+    const seatId = await ctx.db.insert("mvpSeats", {
+      displayName: `Bot ${seatIndex + 1}`,
+      joinedAt: Date.now(),
+      kind: "bot",
+      roomId: room._id,
+      seatIndex,
+    });
+    const seat = await ctx.db.get("mvpSeats", seatId);
+    if (!seat) fail("CORRUPT_GAME_STATE", "Bot seat creation did not complete.");
+    remainingSeats.push(seat);
+  }
+}
+
+async function fitWaitingSeatsToSettings(
+  ctx: MutationCtx,
+  room: MvpRoom,
+  settings: BaseGameSettings,
+): Promise<void> {
+  const seats = await listSeats(ctx, room._id);
+  const humans = seats.filter((seat) => seat.kind === "human");
+  if (humans.length > settings.maxPlayers) {
+    fail("TOO_MANY_PLAYERS", "The room has more human players than the selected player count.");
+  }
+
+  const botCapacity = settings.maxPlayers - humans.length;
+  const bots = seats
+    .filter((seat) => seat.kind === "bot")
+    .sort((left, right) => left.seatIndex - right.seatIndex);
+  await Promise.all(bots.slice(botCapacity).map((seat) => ctx.db.delete("mvpSeats", seat._id)));
+
+  const keptSeats = [...humans, ...bots.slice(0, botCapacity)].sort((left, right) => {
+    if (left._id === room.hostSeatId) return -1;
+    if (right._id === room.hostSeatId) return 1;
+    if (left.kind !== right.kind) return left.kind === "human" ? -1 : 1;
+    return left.seatIndex - right.seatIndex;
+  });
+  await Promise.all(
+    keptSeats.map((seat, seatIndex) => {
+      const displayName = seat.kind === "bot" ? `Bot ${seatIndex + 1}` : seat.displayName;
+      return seat.seatIndex === seatIndex && displayName === seat.displayName
+        ? Promise.resolve()
+        : ctx.db.patch("mvpSeats", seat._id, { displayName, seatIndex });
+    }),
+  );
+}
+
 async function createRoomRecord(
   ctx: MutationCtx,
-  rawSessionId: string,
+  user: HexclaveUser,
   rawDisplayName: string,
+  settings: BaseGameSettings = DEFAULT_BASE_GAME_SETTINGS,
+  botDifficulty: BotDifficulty = DEFAULT_BOT_DIFFICULTY,
 ): Promise<{ code: string; room: MvpRoom; seat: MvpSeat }> {
-  const sessionId = normalizeSessionId(rawSessionId);
   const displayName = normalizeDisplayName(rawDisplayName);
   const now = Date.now();
-  const code = await allocateRoomCode(ctx, sessionId, now);
+  const code = await allocateRoomCode(ctx, user.id, now);
+  const validatedSettings = validateGameSettings(settings);
   const roomId = await ctx.db.insert("mvpRooms", {
+    botDifficulty,
     code,
     createdAt: now,
+    settings: validatedSettings,
     status: "waiting",
     updatedAt: now,
   });
   const seatId = await ctx.db.insert("mvpSeats", {
+    authUserId: user.id,
     displayName,
     joinedAt: now,
     kind: "human",
     roomId,
     seatIndex: 0,
-    sessionId,
   });
   await ctx.db.patch("mvpRooms", roomId, { hostSeatId: seatId });
 
@@ -451,43 +738,37 @@ async function startRoomGame(ctx: MutationCtx, room: MvpRoom): Promise<MvpGame> 
   if (!room.hostSeatId) fail("NOT_HOST", "Room does not have a host seat.");
 
   const now = Date.now();
-  const existingSeats = await listSeats(ctx, room._id);
-  const occupiedIndexes = new Set(existingSeats.map((seat) => seat.seatIndex));
-  const botSeatIndexes = Array.from({ length: MAX_SEATS }, (_, index) => index).filter(
-    (index) => !occupiedIndexes.has(index),
-  );
-  const botSeatIds = await Promise.all(
-    botSeatIndexes.map((seatIndex) =>
-      ctx.db.insert("mvpSeats", {
-        displayName: `Bot ${seatIndex + 1}`,
-        joinedAt: now,
-        kind: "bot",
-        roomId: room._id,
-        seatIndex,
-      }),
-    ),
-  );
-  const botSeats = await Promise.all(botSeatIds.map((seatId) => ctx.db.get("mvpSeats", seatId)));
-  const seats = [...existingSeats, ...botSeats.filter((seat) => seat !== null)].sort(
-    (left, right) => left.seatIndex - right.seatIndex,
-  );
-  if (seats.length !== MAX_SEATS) fail("ROOM_FULL", "A game requires exactly four seats.");
+  const settings = validateGameSettings(room.settings);
+  const seats = await listSeats(ctx, room._id);
+  if (
+    seats.length !== settings.maxPlayers ||
+    seats.some((seat, index) => seat.seatIndex !== index)
+  ) {
+    fail(
+      "ROOM_NOT_READY",
+      `A ${settings.maxPlayers}-player game requires exactly ${settings.maxPlayers} configured seats.`,
+    );
+  }
 
   const players: GamePlayerInput[] = seats.map((seat) => ({
+    botDifficulty: seat.kind === "bot" ? room.botDifficulty : undefined,
     displayName: seat.displayName,
     id: String(seat._id),
     isBot: seat.kind === "bot",
   }));
-  const initialState = createDefaultGame(players, createPrivateGameSeed(), DEFAULT_VICTORY_POINTS);
-  const state = settleBots(initialState);
+  const state = createDefaultGame(players, createPrivateGameSeed(), settings);
   const gameId = await ctx.db.insert("mvpGames", {
+    botDifficulty: room.botDifficulty,
     createdAt: now,
     revision: state.actionNumber,
     roomId: room._id,
+    settings,
     stateJson: serializeGameState(state),
     status: gameStatus(state),
     updatedAt: now,
   });
+  const schedule = await scheduleNextAutomatedAction(ctx, gameId, state, settings, now);
+  await ctx.db.patch("mvpGames", gameId, schedule);
   await ctx.db.patch("mvpRooms", room._id, {
     gameId,
     status: gameStatus(state),
@@ -510,7 +791,11 @@ async function startRoomGame(ctx: MutationCtx, room: MvpRoom): Promise<MvpGame> 
   return game;
 }
 
-function transferPlayerToBot(state: GameState, seat: MvpSeat): GameState {
+function transferPlayerToBot(
+  state: GameState,
+  seat: MvpSeat,
+  botDifficulty: BotDifficulty,
+): GameState {
   const playerId = String(seat._id);
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (!player) {
@@ -523,7 +808,7 @@ function transferPlayerToBot(state: GameState, seat: MvpSeat): GameState {
   return {
     ...state,
     players: state.players.map((candidate) =>
-      candidate.id === playerId ? { ...candidate, isBot: true } : candidate,
+      candidate.id === playerId ? { ...candidate, botDifficulty, isBot: true } : candidate,
     ),
   };
 }
@@ -550,14 +835,28 @@ async function convertGameSeatToBot(
     fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
   }
 
-  const nextState = settleBots(transferPlayerToBot(state, seat));
+  const playerId = String(seat._id);
+  const nextState = transferPlayerToBot(state, seat, room.botDifficulty);
   const now = Date.now();
-  const botActionCount = nextState.actionNumber - state.actionNumber;
+  const schedule = getRequiredPlayerIds(state).includes(playerId)
+    ? await scheduleNextAutomatedAction(
+        ctx,
+        game._id,
+        nextState,
+        game.settings,
+        now,
+        state,
+        game.nextActionAt,
+        game.turnDeadlineAt,
+      )
+    : { nextActionAt: game.nextActionAt, turnDeadlineAt: game.turnDeadlineAt };
   await ctx.db.patch("mvpSeats", seat._id, {
+    authUserId: undefined,
+    displayName: `Bot ${seat.seatIndex + 1}`,
     kind: "bot",
-    sessionId: undefined,
   });
   await ctx.db.patch("mvpGames", game._id, {
+    ...schedule,
     revision: nextState.actionNumber,
     stateJson: serializeGameState(nextState),
     status: gameStatus(nextState),
@@ -575,7 +874,7 @@ async function convertGameSeatToBot(
     commandJson: JSON.stringify({ kind: "bot_control_started" }),
     createdAt: now,
     gameId: game._id,
-    text: appendBotActionSummary(eventText, botActionCount),
+    text: eventText,
   });
 }
 
@@ -592,7 +891,7 @@ async function listGameEvents(ctx: ReadCtx, gameId: Id<"mvpGames">): Promise<Gam
   }));
 }
 
-async function roomView(ctx: ReadCtx, room: MvpRoom, seat: MvpSeat) {
+async function roomView(ctx: ReadCtx, room: MvpRoom, seat: MvpSeat): Promise<RoomView> {
   const seats = await listSeats(ctx, room._id);
   const members = seats.map((member) => ({
     controller: member.kind === "bot" ? ("bot" as const) : ("player" as const),
@@ -601,13 +900,17 @@ async function roomView(ctx: ReadCtx, room: MvpRoom, seat: MvpSeat) {
     playerColor: PLAYER_COLORS[member.seatIndex] ?? PLAYER_COLORS[0],
     ready: true,
     role: member._id === room.hostSeatId ? ("host" as const) : ("player" as const),
+    seatIndex: member.seatIndex,
   }));
-  const base = {
+  const base: RoomView = {
+    botDifficulty: room.botDifficulty,
+    botThinking: false,
     code: room.code,
     events: [] as GameEventView[],
     isHost: seat._id === room.hostSeatId,
     members,
-    rules: { victoryPoints: DEFAULT_VICTORY_POINTS },
+    rules: { victoryPoints: room.settings.victoryPoints },
+    settings: room.settings,
     status: roomViewStatus(room.status),
   };
   if (!room.gameId) return base;
@@ -616,24 +919,53 @@ async function roomView(ctx: ReadCtx, room: MvpRoom, seat: MvpSeat) {
   if (!game) fail("CORRUPT_GAME_STATE", "Room points to a missing game.");
   const state = parseGameState(game.stateJson);
   const events = await listGameEvents(ctx, game._id);
+  const automatedActor = requiredAutomatedActor(state);
   return {
     ...base,
     actionNumber: state.actionNumber,
+    botDifficulty: game.botDifficulty,
+    botThinking: automatedActor?.isBot === true && game.nextActionAt !== undefined,
     events,
     gameId: game._id,
     gameJson: playerViewJson(state, seat),
+    nextActionAt: game.nextActionAt,
+    rules: { victoryPoints: game.settings.victoryPoints },
+    settings: game.settings,
   };
 }
 
 export const createRoom = mutation({
   args: {
     displayName: v.string(),
-    sessionId: v.string(),
   },
   returns: v.object({ code: v.string() }),
   handler: async (ctx, args) => {
-    const { code } = await createRoomRecord(ctx, args.sessionId, args.displayName);
+    const user = await requireCurrentHexclaveUser(ctx);
+    const { code } = await createRoomRecord(ctx, user, args.displayName);
     return { code };
+  },
+});
+
+export const updateLobbyConfiguration = mutation({
+  args: {
+    botCount: v.number(),
+    botDifficulty: botDifficultyValidator,
+    code: v.string(),
+    settings: baseGameSettingsValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
+    const { room } = await requireWaitingHost(ctx, args.code, user.id);
+    const settings = validateGameSettings(args.settings);
+    await fitWaitingSeatsToSettings(ctx, room, settings);
+    await setWaitingBotCount(ctx, { ...room, settings }, args.botCount);
+    await ctx.db.patch("mvpRooms", room._id, {
+      botDifficulty: args.botDifficulty,
+      settings,
+      updatedAt: Date.now(),
+    });
+    return null;
   },
 });
 
@@ -641,26 +973,40 @@ export const joinRoom = mutation({
   args: {
     code: v.string(),
     displayName: v.string(),
-    sessionId: v.string(),
   },
   returns: v.object({ code: v.string() }),
   handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
     const room = await requireRoom(ctx, args.code);
-    const sessionId = normalizeSessionId(args.sessionId);
-    const existingSeat = await findSeatBySession(ctx, room._id, sessionId);
+    const existingSeat = await findSeatByAuthUser(ctx, room._id, user.id);
     if (existingSeat) return { code: room.code };
     if (room.status !== "waiting") fail("ROOM_STARTED", "Game has already started.");
 
     const seats = await listSeats(ctx, room._id);
-    const seatIndex = nextOpenSeatIndex(seats);
-    await ctx.db.insert("mvpSeats", {
-      displayName: normalizeDisplayName(args.displayName),
-      joinedAt: Date.now(),
-      kind: "human",
-      roomId: room._id,
-      seatIndex,
-      sessionId,
-    });
+    const displayName = normalizeDisplayName(args.displayName);
+    const now = Date.now();
+    if (seats.length < room.settings.maxPlayers) {
+      const seatIndex = nextOpenSeatIndex(seats, room.settings.maxPlayers);
+      await ctx.db.insert("mvpSeats", {
+        authUserId: user.id,
+        displayName,
+        joinedAt: now,
+        kind: "human",
+        roomId: room._id,
+        seatIndex,
+      });
+    } else {
+      const replaceableBot = seats
+        .filter((seat) => seat.kind === "bot")
+        .sort((left, right) => right.seatIndex - left.seatIndex)[0];
+      if (!replaceableBot) fail("ROOM_FULL", "Room is full.");
+      await ctx.db.patch("mvpSeats", replaceableBot._id, {
+        authUserId: user.id,
+        displayName,
+        joinedAt: now,
+        kind: "human",
+      });
+    }
     await ctx.db.patch("mvpRooms", room._id, { updatedAt: Date.now() });
     return { code: room.code };
   },
@@ -669,12 +1015,12 @@ export const joinRoom = mutation({
 export const leaveRoom = mutation({
   args: {
     code: v.string(),
-    sessionId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
     const room = await requireRoom(ctx, args.code);
-    const seat = await requireHumanSeat(ctx, room._id, args.sessionId);
+    const seat = await requireHumanSeat(ctx, room._id, user.id);
 
     if (room.status === "waiting") {
       const seats = await listSeats(ctx, room._id);
@@ -689,12 +1035,58 @@ export const leaveRoom = mutation({
       return null;
     }
 
+    const seats = await listSeats(ctx, room._id);
+    const remainingHumans = seats.filter(
+      (candidate) => candidate.kind === "human" && candidate._id !== seat._id,
+    );
+    if (room.status === "active" && remainingHumans.length === 0) {
+      if (!room.gameId) fail("CORRUPT_GAME_STATE", "Active room does not have a game.");
+      const game = await ctx.db.get("mvpGames", room.gameId);
+      if (!game) fail("CORRUPT_GAME_STATE", "Room points to a missing game.");
+      const state = parseGameState(game.stateJson);
+      if (game.revision !== state.actionNumber) {
+        fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
+      }
+      const nextState: GameState = {
+        ...transferPlayerToBot(state, seat, room.botDifficulty),
+        phase: { kind: "finished" },
+        status: "completed",
+        tradeOffer: null,
+        winnerPlayerId: null,
+      };
+      const now = Date.now();
+      await ctx.db.patch("mvpSeats", seat._id, {
+        authUserId: undefined,
+        displayName: `Bot ${seat.seatIndex + 1}`,
+        kind: "bot",
+      });
+      await ctx.db.patch("mvpGames", game._id, {
+        nextActionAt: undefined,
+        stateJson: serializeGameState(nextState),
+        status: gameStatus(nextState),
+        turnDeadlineAt: undefined,
+        updatedAt: now,
+      });
+      await ctx.db.patch("mvpRooms", room._id, {
+        status: gameStatus(nextState),
+        updatedAt: now,
+      });
+      await ctx.db.insert("mvpGameActions", {
+        actorSeatId: seat._id,
+        afterRevision: game.revision,
+        beforeRevision: game.revision,
+        clientActionId: `system:game-abandoned:${game.revision}`,
+        commandJson: JSON.stringify({ kind: "game_abandoned" }),
+        createdAt: now,
+        gameId: game._id,
+        text: `${seat.displayName} left. The game closed because no human players remain.`,
+      });
+      return null;
+    }
+
     let eventText = `${seat.displayName} left the game and is now controlled by a bot.`;
     if (room.status === "active" && seat._id === room.hostSeatId) {
-      const seats = await listSeats(ctx, room._id);
-      const nextHost = seats.find(
-        (candidate) => candidate.kind === "human" && candidate._id !== seat._id,
-      );
+      const nextHost = remainingHumans[0];
       if (nextHost) {
         await ctx.db.patch("mvpRooms", room._id, { hostSeatId: nextHost._id });
         eventText = `${eventText} ${nextHost.displayName} is now the room host.`;
@@ -709,13 +1101,13 @@ export const leaveRoom = mutation({
 export const replacePlayerWithBot = mutation({
   args: {
     code: v.string(),
-    sessionId: v.string(),
     targetSeatId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
     const room = await requireRoom(ctx, args.code);
-    const hostSeat = await requireHumanSeat(ctx, room._id, args.sessionId);
+    const hostSeat = await requireHumanSeat(ctx, room._id, user.id);
     if (hostSeat._id !== room.hostSeatId) {
       fail("NOT_HOST", "Only the room host can replace a player with a bot.");
     }
@@ -737,7 +1129,12 @@ export const replacePlayerWithBot = mutation({
     }
 
     if (room.status === "waiting") {
-      await ctx.db.delete("mvpSeats", targetSeat._id);
+      await ctx.db.patch("mvpSeats", targetSeat._id, {
+        authUserId: undefined,
+        displayName: `Bot ${targetSeat.seatIndex + 1}`,
+        joinedAt: Date.now(),
+        kind: "bot",
+      });
       await ctx.db.patch("mvpRooms", room._id, { updatedAt: Date.now() });
       return null;
     }
@@ -758,12 +1155,12 @@ export const replacePlayerWithBot = mutation({
 export const startGame = mutation({
   args: {
     code: v.string(),
-    sessionId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
     const room = await requireRoom(ctx, args.code);
-    const seat = await requireHumanSeat(ctx, room._id, args.sessionId);
+    const seat = await requireHumanSeat(ctx, room._id, user.id);
     if (seat._id !== room.hostSeatId) fail("NOT_HOST", "Only the room host can start the game.");
     await startRoomGame(ctx, room);
     return null;
@@ -772,12 +1169,34 @@ export const startGame = mutation({
 
 export const createQuickGame = mutation({
   args: {
+    botCount: v.optional(v.number()),
+    botDifficulty: v.optional(botDifficultyValidator),
     displayName: v.string(),
-    sessionId: v.string(),
+    settings: v.optional(baseGameSettingsValidator),
   },
   returns: v.object({ code: v.string() }),
   handler: async (ctx, args) => {
-    const { code, room } = await createRoomRecord(ctx, args.sessionId, args.displayName);
+    const user = await requireCurrentHexclaveUser(ctx);
+    const settings = validateGameSettings(args.settings ?? DEFAULT_BASE_GAME_SETTINGS);
+    const botCount = validateBotCount(
+      args.botCount ?? settings.maxPlayers - 1,
+      settings.maxPlayers,
+    );
+    if (botCount + 1 !== settings.maxPlayers) {
+      fail(
+        "INVALID_BOT_COUNT",
+        `A solo ${settings.maxPlayers}-player game requires ${settings.maxPlayers - 1} bots.`,
+      );
+    }
+    const botDifficulty = args.botDifficulty ?? DEFAULT_BOT_DIFFICULTY;
+    const { code, room } = await createRoomRecord(
+      ctx,
+      user,
+      args.displayName,
+      settings,
+      botDifficulty,
+    );
+    await setWaitingBotCount(ctx, room, botCount);
     await startRoomGame(ctx, room);
     return { code };
   },
@@ -786,17 +1205,81 @@ export const createQuickGame = mutation({
 export const getRoom = query({
   args: {
     code: v.string(),
-    sessionId: v.string(),
   },
   returns: v.union(v.null(), roomViewValidator),
   handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
     const code = normalizeRoomCode(args.code);
-    const sessionId = normalizeSessionId(args.sessionId);
     const room = await findRoom(ctx, code);
     if (!room) return null;
-    const seat = await findSeatBySession(ctx, room._id, sessionId);
+    const seat = await findSeatByAuthUser(ctx, room._id, user.id);
     if (!seat || seat.kind !== "human") return null;
     return await roomView(ctx, room, seat);
+  },
+});
+
+export const runAutomatedAction = internalMutation({
+  args: {
+    expectedActionNumber: v.number(),
+    expectedActorPlayerId: v.optional(v.string()),
+    gameId: v.id("mvpGames"),
+    scheduledFor: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    if (args.expectedActorPlayerId === undefined || args.scheduledFor === undefined) {
+      return null;
+    }
+    const expectedActionNumber = validateActionNumber(args.expectedActionNumber);
+    const game = await ctx.db.get("mvpGames", args.gameId);
+    if (
+      !game ||
+      game.status !== "active" ||
+      game.revision !== expectedActionNumber ||
+      !isScheduledActionDue(game.nextActionAt, args.scheduledFor, Date.now())
+    ) {
+      return null;
+    }
+
+    const state = parseGameState(game.stateJson);
+    if (state.actionNumber !== game.revision) {
+      fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
+    }
+    const actor = requiredAutomatedActor(state);
+    if (
+      !actor ||
+      actor.playerId !== args.expectedActorPlayerId ||
+      (!actor.isBot && game.settings.turnTimerSeconds === 0)
+    ) {
+      return null;
+    }
+
+    const seats = await listSeats(ctx, game.roomId);
+    const actorSeat = seats.find((seat) => String(seat._id) === actor.playerId);
+    if (!actorSeat) fail("CORRUPT_GAME_STATE", "Automated actor does not own a room seat.");
+
+    let command: GameCommand;
+    let nextState: GameState;
+    try {
+      command = chooseAutomatedCommand(state, actor.playerId);
+      nextState = applyCommand(state, actor.playerId, command);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Automated action failed.";
+      fail("AUTOMATED_ACTION_FAILED", message);
+    }
+    await persistAppliedCommand(
+      ctx,
+      game,
+      state,
+      nextState,
+      actorSeat,
+      command,
+      `system:automated:${state.actionNumber}`,
+      actor.isBot
+        ? commandText(command, actorSeat.displayName, nextState)
+        : `${actorSeat.displayName} timed out. ${commandText(command, actorSeat.displayName, nextState)}`,
+    );
+    return null;
   },
 });
 
@@ -806,12 +1289,12 @@ export const command = mutation({
     code: v.string(),
     command: commandValidator,
     expectedActionNumber: v.number(),
-    sessionId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
     const room = await requireRoom(ctx, args.code);
-    const seat = await requireHumanSeat(ctx, room._id, args.sessionId);
+    const seat = await requireHumanSeat(ctx, room._id, user.id);
     if (!room.gameId) fail("GAME_NOT_STARTED", "Game has not started.");
 
     const game = await ctx.db.get("mvpGames", room.gameId);
@@ -846,10 +1329,18 @@ export const command = mutation({
       );
     }
     if (state.status === "completed") fail("GAME_ALREADY_FINISHED", "Game has already finished.");
+    if (
+      isActionDeadlineExpired(
+        earliestActionDeadlineAt(game.nextActionAt, game.turnDeadlineAt),
+        Date.now(),
+      )
+    ) {
+      fail("ACTION_DEADLINE_PASSED", "The scheduled action deadline has passed.");
+    }
 
     let nextState: GameState;
     try {
-      nextState = settleBots(applyCommand(state, String(seat._id), command));
+      nextState = applyCommand(state, String(seat._id), command);
     } catch (error) {
       if (error instanceof ConvexError) throw error;
       const message = error instanceof Error ? error.message : "Game command was rejected.";
@@ -863,33 +1354,16 @@ export const command = mutation({
       fail(code, message);
     }
 
-    if (nextState.actionNumber <= state.actionNumber) {
-      fail("CORRUPT_GAME_STATE", "Accepted command did not advance the action number.");
-    }
-    const now = Date.now();
-    await ctx.db.patch("mvpGames", game._id, {
-      revision: nextState.actionNumber,
-      stateJson: serializeGameState(nextState),
-      status: gameStatus(nextState),
-      updatedAt: now,
-    });
-    await ctx.db.insert("mvpGameActions", {
-      actorSeatId: seat._id,
-      afterRevision: nextState.actionNumber,
-      beforeRevision: state.actionNumber,
+    await persistAppliedCommand(
+      ctx,
+      game,
+      state,
+      nextState,
+      seat,
+      command,
       clientActionId,
-      commandJson,
-      createdAt: now,
-      gameId: game._id,
-      text: appendBotActionSummary(
-        commandText(command, seat.displayName, nextState),
-        nextState.actionNumber - state.actionNumber - 1,
-      ),
-    });
-    await ctx.db.patch("mvpRooms", room._id, {
-      status: gameStatus(nextState),
-      updatedAt: now,
-    });
+      commandText(command, seat.displayName, nextState),
+    );
     return null;
   },
 });

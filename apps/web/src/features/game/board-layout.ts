@@ -1,12 +1,14 @@
 import { DEFAULT_TOPOLOGY, axialToPixel } from "@catansaga/game";
 import type { AxialCoordinate, PixelCoordinate } from "@catansaga/game";
 
+import { BOARD_TILE } from "./board-assets";
+
 export const BOARD_CANVAS = {
   centerX: 600,
   centerY: 660,
   height: 1320,
-  tileImageSize: 360,
-  tileRadius: 145,
+  tileRadius: BOARD_TILE.radius,
+  tileSize: BOARD_TILE.renderSize,
   width: 1200,
 } as const;
 

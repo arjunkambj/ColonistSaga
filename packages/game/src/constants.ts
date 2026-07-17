@@ -1,4 +1,5 @@
 import type {
+  BaseGameSettings,
   BuildingKind,
   PlayerPieces,
   ResourceInventory,
@@ -12,6 +13,16 @@ export const ANY_PORT_TRADE_RATIO = 3;
 export const RESOURCE_PORT_TRADE_RATIO = 2;
 export const DEFAULT_DISCARD_LIMIT = 7;
 export const MAX_PLAYER_TURNS = 500;
+
+export const DEFAULT_BASE_GAME_SETTINGS: Readonly<BaseGameSettings> = Object.freeze({
+  balancedDice: true,
+  discardLimit: DEFAULT_DISCARD_LIMIT,
+  friendlyRobber: true,
+  hideBankCards: false,
+  maxPlayers: 4,
+  turnTimerSeconds: 60,
+  victoryPoints: 10,
+});
 
 export const INITIAL_PIECES: Readonly<PlayerPieces> = {
   cities: 4,
@@ -48,5 +59,10 @@ export const NUMBER_TOKEN_PIPS: Readonly<Record<number, number>> = {
 };
 
 export const SETUP_SEAT_ORDER = [0, 1, 2, 3, 3, 2, 1, 0] as const;
+
+export function getSetupSeatOrder(playerCount: 3 | 4): number[] {
+  const ascending = Array.from({ length: playerCount }, (_, index) => index);
+  return [...ascending, ...[...ascending].reverse()];
+}
 
 export const RESOURCE_ORDER: readonly ResourceType[] = ["tree", "brick", "sheep", "wheat", "stone"];

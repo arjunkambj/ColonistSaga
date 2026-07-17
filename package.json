@@ -7,18 +7,19 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "hexclave dev --config-file ./hexclave.config.ts -- pnpm dev:inner",
+    "dev:inner": "pnpm sync:hexclave:convex && turbo run dev",
     "build": "turbo run build --filter='!desktop' && turbo run build -F desktop",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
-    "dev:web": "turbo run dev -F web",
+    "dev:web": "hexclave dev --config-file ./hexclave.config.ts -- pnpm dev:web:inner",
+    "dev:web:inner": "pnpm sync:hexclave:convex && turbo run dev -F web",
     "dev:desktop": "turbo run dev:hmr -F desktop",
     "build:desktop": "turbo run build:stable -F desktop",
     "build:desktop:canary": "turbo run build:canary -F desktop",
     "dev:server": "turbo run dev -F @catansaga/backend",
     "dev:setup": "turbo run dev:setup -F @catansaga/backend",
-    "deploy": "turbo run deploy -F @catansaga/infra",
-    "destroy": "turbo run destroy -F @catansaga/infra",
+    "sync:hexclave:convex": "pnpm --dir packages/backend exec convex env set HEXCLAVE_PROJECT_ID \"$HEXCLAVE_PROJECT_ID\"",
     "check": "oxlint && oxfmt --write"
   },
   "dependencies": {
@@ -28,7 +29,8 @@
   },
   "devDependencies": {
     "@catansaga/config": "workspace:*",
-    "@cloudflare/workers-types": "^4.20260702.1",
+    "@hexclave/cli": "^1.0.51",
+    "@hexclave/next": "^1.0.51",
     "@types/node": "^22.13.14",
     "oxfmt": "^0.57.0",
     "oxlint": "^1.72.0",

@@ -24,9 +24,10 @@ describe("player view", () => {
     expect(opponentState.isViewer).toBe(false);
     expect("resources" in opponentState).toBe(false);
     expect(opponentState.resourceCount).toBe(4);
-    expect("bank" in view).toBe(false);
+    expect(view.bank).toEqual(state.bank);
     expect("seed" in view).toBe(false);
     expect("randomIndex" in view).toBe(false);
+    expect("balancedDiceBag" in view).toBe(false);
   });
 
   it("keeps the canonical state JSON serializable", () => {

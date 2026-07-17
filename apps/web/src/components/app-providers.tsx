@@ -1,20 +1,48 @@
 "use client";
 
+import { HexclaveProvider, HexclaveTheme } from "@hexclave/next";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 
-export function AppProviders({ children, convexUrl }: { children: ReactNode; convexUrl?: string }) {
-  const convexClient = useMemo(
-    () => (convexUrl ? new ConvexReactClient(convexUrl) : null),
-    [convexUrl],
-  );
+import { createHexclaveClientApp } from "@/hexclave/client";
 
-  if (!convexClient) {
+export interface AppProvidersProps {
+  children: ReactNode;
+  convexUrl?: string;
+  hexclaveProjectId?: string;
+  hexclavePublishableClientKey?: string;
+}
+
+export function AppProviders({
+  children,
+  convexUrl,
+  hexclaveProjectId,
+  hexclavePublishableClientKey,
+}: AppProvidersProps) {
+  const clients = useMemo(() => {
+    if (!convexUrl || !hexclaveProjectId) {
+      return null;
+    }
+
+    const hexclave = createHexclaveClientApp(hexclaveProjectId, hexclavePublishableClientKey);
+    const convex = new ConvexReactClient(convexUrl);
+    convex.setAuth(hexclave.getConvexClientAuth({}));
+
+    return { convex, hexclave };
+  }, [convexUrl, hexclaveProjectId, hexclavePublishableClientKey]);
+
+  if (!clients) {
     return <SetupRequired />;
   }
 
-  return <ConvexProvider client={convexClient}>{children}</ConvexProvider>;
+  return (
+    <HexclaveProvider app={clients.hexclave}>
+      <HexclaveTheme>
+        <ConvexProvider client={clients.convex}>{children}</ConvexProvider>
+      </HexclaveTheme>
+    </HexclaveProvider>
+  );
 }
 
 function SetupRequired() {
@@ -24,12 +52,13 @@ function SetupRequired() {
         C
       </div>
       <p className="eyebrow">One Last Step</p>
-      <h1>Connect Catansaga to Convex</h1>
+      <h1>Connect Catansaga</h1>
       <p>
-        Add your deployment URL as <code>NEXT_PUBLIC_CONVEX_URL</code> in
+        Add the Convex deployment URL and Hexclave project ID to
         <code> apps/web/.env.local</code>, then restart the web server.
       </p>
-      <pre> NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud</pre>
+      <pre>{`NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+NEXT_PUBLIC_HEXCLAVE_PROJECT_ID=your-project-id`}</pre>
     </main>
   );
 }

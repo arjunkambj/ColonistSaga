@@ -1,20 +1,13 @@
-import { Suspense } from "react";
-
-import { MvpApp } from "@/features/app/mvp-app";
+import { ClientApp } from "./client-app";
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<AppLoading label="Preparing Your Island…" />}>
-      <MvpApp />
-    </Suspense>
-  );
-}
-
-function AppLoading({ label }: { label: string }) {
-  return (
-    <main className="centered-page" id="main-content">
-      <div className="loading-mark" aria-hidden="true" />
-      <p role="status">{label}</p>
-    </main>
+    <ClientApp
+      convexUrl={process.env.NEXT_PUBLIC_CONVEX_URL}
+      hexclaveProjectId={process.env.NEXT_PUBLIC_HEXCLAVE_PROJECT_ID}
+      hexclavePublishableClientKey={
+        process.env.NEXT_PUBLIC_HEXCLAVE_PUBLISHABLE_CLIENT_KEY
+      }
+    />
   );
 }

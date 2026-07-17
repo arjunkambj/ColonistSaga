@@ -5,16 +5,15 @@ import {
   BUILD_COSTS,
   RESOURCE_ORDER,
   emptyInventory,
-  getBankTradeRatio,
   type GameCommand,
   type PlayerGameView,
   type PrivatePlayerState,
   type ResourceInventory,
   type ResourceType,
 } from "@catansaga/game";
+import { Button, Modal } from "@heroui/react";
 import { useMutation } from "convex/react";
 import {
-  ArrowRightLeft,
   Bot,
   BrickWall,
   Castle,
@@ -24,6 +23,7 @@ import {
   Flag,
   Hammer,
   Home,
+  Info,
   LogOut,
   Route,
   ScrollText,
@@ -33,31 +33,43 @@ import {
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
+import { ConfirmationDialog } from "@/features/app/confirmation-dialog";
+
+import { GameBoard, getPlayerTheme, getTargetMode, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
+import { TradeCenter } from "./trade-center";
 import type { RoomEventView } from "./types";
 import { getPhaseCopy } from "./view";
+
+type GameConfirmation =
+  | { kind: "leave" }
+  | { displayName: string; kind: "replace"; playerId: string };
 
 export function GameScreen({
   code,
   events,
   game,
   isHost,
+  botThinking,
+  nextActionAt,
   onLeave,
-  sessionId,
 }: {
   code: string;
   events: RoomEventView[];
   game: PlayerGameView;
   isHost: boolean;
+  botThinking: boolean;
+  nextActionAt?: number;
   onLeave(): Promise<void>;
-  sessionId: string;
 }) {
   const applyCommand = useMutation(api.mvp.command);
   const replacePlayerWithBot = useMutation(api.mvp.replacePlayerWithBot);
   const [buildMode, setBuildMode] = useState<BuildMode>(null);
   const [pendingCommand, setPendingCommand] = useState<GameCommand["kind"] | null>(null);
   const [pendingReplacementId, setPendingReplacementId] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<GameConfirmation | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [showGameInfo, setShowGameInfo] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
 
@@ -70,15 +82,7 @@ export function GameScreen({
   }, [game.actionNumber, game.phase.kind]);
 
   if (!me || !activePlayer) {
-    return (
-      <main className="centered-page notice-card" id="main-content">
-        <h1>Player View Unavailable</h1>
-        <p>Your private seat could not be matched to this game. Refresh to reconnect.</p>
-        <button className="button button-secondary" onClick={onLeave} type="button">
-          Leave Game
-        </button>
-      </main>
-    );
+    return <UnavailablePlayerView onLeave={onLeave} />;
   }
 
   const sendCommand = async (command: GameCommand, successMessage: string) => {
@@ -94,7 +98,6 @@ export function GameScreen({
         code,
         command,
         expectedActionNumber: game.actionNumber,
-        sessionId,
       });
       setAnnouncement(successMessage);
       setBuildMode(null);
@@ -112,7 +115,7 @@ export function GameScreen({
     setPendingReplacementId(playerId);
     setError("");
     try {
-      await replacePlayerWithBot({ code, sessionId, targetSeatId: playerId });
+      await replacePlayerWithBot({ code, targetSeatId: playerId });
       setAnnouncement("Player control transferred to a bot.");
     } catch {
       setError("That player could not be replaced. Refresh the room and try again.");
@@ -122,6 +125,23 @@ export function GameScreen({
   };
 
   const phaseCopy = getPhaseCopy(game.phase, activePlayer.id === me.id, activePlayer.displayName);
+
+  const runConfirmedAction = async () => {
+    if (!confirmation || confirming) {
+      return;
+    }
+    setConfirming(true);
+    try {
+      if (confirmation.kind === "leave") {
+        await onLeave();
+      } else {
+        await replaceWithBot(confirmation.playerId);
+      }
+      setConfirmation(null);
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
     <main className="game-page" id="main-content">
@@ -136,19 +156,45 @@ export function GameScreen({
           </span>
         </div>
         <div className="game-room-meta">
-          <span>Room {code}</span>
-          <span>Turn {game.turnNumber + 1}</span>
+          <span translate="no">Room {code}</span>
+          <span>Turn {game.turnNumber}</span>
           <span>First to {game.victoryPoints} VP</span>
         </div>
-        <button className="icon-button" onClick={onLeave} type="button" aria-label="Leave game">
-          <LogOut aria-hidden="true" />
-        </button>
+        <div className="game-header-actions">
+          <Button
+            aria-label="Open island supply and game log"
+            className="icon-button mobile-game-info-button"
+            isIconOnly
+            onPress={() => setShowGameInfo(true)}
+            variant="ghost"
+          >
+            <Info aria-hidden="true" />
+          </Button>
+          <Button
+            aria-label="Leave game"
+            className="icon-button"
+            isIconOnly
+            onPress={() => setConfirmation({ kind: "leave" })}
+            variant="ghost"
+          >
+            <LogOut aria-hidden="true" />
+          </Button>
+        </div>
       </header>
 
       <PlayerStrip
         activePlayerId={game.activePlayerId}
         isHost={isHost}
-        onReplacePlayer={(playerId) => void replaceWithBot(playerId)}
+        onReplacePlayer={(playerId) => {
+          const player = game.players.find((candidate) => candidate.id === playerId);
+          if (player) {
+            setConfirmation({
+              displayName: player.displayName,
+              kind: "replace",
+              playerId,
+            });
+          }
+        }}
         pendingReplacementId={pendingReplacementId}
         players={game.players}
       />
@@ -162,7 +208,10 @@ export function GameScreen({
           <h1 id="phase-title">{phaseCopy.title}</h1>
           <p>{phaseCopy.detail}</p>
         </div>
-        <DiceResult game={game} />
+        <div className="phase-status-tools">
+          <TurnClock botThinking={botThinking} nextActionAt={nextActionAt} />
+          <DiceResult game={game} />
+        </div>
       </section>
 
       <div className="game-workspace">
@@ -174,21 +223,48 @@ export function GameScreen({
         />
 
         <aside className="game-sidebar" aria-label="Game information">
-          <BankPanel />
+          <BankPanel bank={game.bank} />
           <EventLog events={events} />
         </aside>
       </div>
 
-      <ResourceHand me={me} />
+      <footer className="game-footer">
+        <ResourceHand me={me} />
 
-      <ActionDock
-        buildMode={buildMode}
-        game={game}
-        me={me}
-        onBuildMode={setBuildMode}
-        onCommand={(command, message) => void sendCommand(command, message)}
-        pending={pendingCommand !== null}
-      />
+        <ActionDock
+          buildMode={buildMode}
+          game={game}
+          me={me}
+          onBuildMode={setBuildMode}
+          onCommand={(command, message) => void sendCommand(command, message)}
+          pending={pendingCommand !== null}
+        />
+        <CompactBoardTargets
+          buildMode={buildMode}
+          game={game}
+          onCommand={(command, message) => void sendCommand(command, message)}
+          pending={pendingCommand !== null}
+        />
+      </footer>
+
+      {showGameInfo ? (
+        <MobileGameInfo bank={game.bank} events={events} onClose={() => setShowGameInfo(false)} />
+      ) : null}
+
+      {confirmation ? (
+        <ConfirmationDialog
+          busy={confirming || pendingReplacementId !== null}
+          confirmLabel={confirmation.kind === "leave" ? "Leave Game" : "Use Bot"}
+          description={
+            confirmation.kind === "leave"
+              ? "You cannot reclaim this seat after leaving. A bot will take over, or the game will close if no human players remain."
+              : `${confirmation.displayName} will immediately lose control of this seat, and a bot will finish the game for them.`
+          }
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => void runConfirmedAction()}
+          title={confirmation.kind === "leave" ? "Leave this game?" : "Replace this player?"}
+        />
+      ) : null}
 
       <div aria-atomic="true" aria-live="polite" className="game-live-region">
         {error || announcement}
@@ -236,23 +312,23 @@ function PlayerStrip({
               <strong>{player.displayName}</strong>
               <span>{player.isViewer ? "You" : player.isBot ? "Bot" : "Player"}</span>
             </div>
-            <span className="player-stat" title="Victory points">
+            <span aria-label={`${player.victoryPoints} victory points`} className="player-stat">
               <Crown aria-hidden="true" /> {player.victoryPoints}
             </span>
-            <span className="player-stat" title="Resource cards">
+            <span aria-label={`${player.resourceCount} resource cards`} className="player-stat">
               <BrickWall aria-hidden="true" /> {player.resourceCount}
             </span>
             {isHost && !player.isViewer && !player.isBot ? (
-              <button
+              <Button
                 aria-label={`Replace ${player.displayName} with a bot`}
                 className="player-replace"
-                disabled={pendingReplacementId !== null}
-                onClick={() => onReplacePlayer(player.id)}
-                type="button"
+                isDisabled={pendingReplacementId !== null}
+                onPress={() => onReplacePlayer(player.id)}
+                variant="secondary"
               >
                 <Bot aria-hidden="true" />
                 <span>{pendingReplacementId === player.id ? "Replacing…" : "Use Bot"}</span>
-              </button>
+              </Button>
             ) : null}
           </li>
         );
@@ -279,11 +355,12 @@ function DiceResult({ game }: { game: PlayerGameView }) {
   );
 }
 
-function BankPanel() {
+function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; idPrefix?: string }) {
+  const titleId = `${idPrefix}bank-title`;
   return (
-    <section className="side-card" aria-labelledby="bank-title">
+    <section className="side-card" aria-labelledby={titleId}>
       <div className="side-card-title">
-        <h2 id="bank-title">Island Supply</h2>
+        <h2 id={titleId}>Island Supply</h2>
         <ShieldCheck aria-hidden="true" />
       </div>
       <ul className="bank-grid">
@@ -291,6 +368,7 @@ function BankPanel() {
           <li key={resource}>
             <ResourceIcon decorative resource={resource} size={30} />
             <span>{RESOURCE_LABELS[resource]}</span>
+            <strong>{bank ? bank[resource] : "?"}</strong>
           </li>
         ))}
       </ul>
@@ -298,33 +376,80 @@ function BankPanel() {
   );
 }
 
-function EventLog({ events }: { events: RoomEventView[] }) {
+function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix?: string }) {
   const visibleEvents = events.slice(-30).reverse();
+  const titleId = `${idPrefix}events-title`;
 
   return (
-    <section className="side-card event-card" aria-labelledby="events-title">
+    <section className="side-card event-card" aria-labelledby={titleId}>
       <div className="side-card-title">
-        <h2 id="events-title">Game Log</h2>
+        <h2 id={titleId}>Game Log</h2>
         <ScrollText aria-hidden="true" />
       </div>
       <ol className="event-list" aria-live="polite">
-        {visibleEvents.map((event) => (
-          <li key={event.sequence}>
+        {visibleEvents.length > 0 ? (
+          visibleEvents.map((event) => (
+            <li key={event.sequence}>
+              <span aria-hidden="true" />
+              <p>{event.text}</p>
+            </li>
+          ))
+        ) : (
+          <li>
             <span aria-hidden="true" />
-            <p>{event.text}</p>
+            <p>No moves yet.</p>
           </li>
-        ))}
+        )}
       </ol>
     </section>
   );
 }
 
+function MobileGameInfo({
+  bank,
+  events,
+  onClose,
+}: {
+  bank: ResourceInventory | null;
+  events: RoomEventView[];
+  onClose(): void;
+}) {
+  return (
+    <Modal>
+      <Modal.Backdrop isOpen onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}>
+        <Modal.Container>
+          <Modal.Dialog aria-label="Game information" className="mobile-game-info-dialog">
+            <Modal.Header className="mobile-game-info-header">
+              <div>
+                <p className="eyebrow">Live Table</p>
+                <Modal.Heading>Game Information</Modal.Heading>
+              </div>
+              <Button
+                aria-label="Close game information"
+                isIconOnly
+                onPress={onClose}
+                variant="ghost"
+              >
+                ×
+              </Button>
+            </Modal.Header>
+            <Modal.Body className="mobile-game-info-body">
+              <BankPanel bank={bank} idPrefix="mobile-" />
+              <EventLog events={events} idPrefix="mobile-" />
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
+  );
+}
+
 function ResourceHand({ me }: { me: PrivatePlayerState }) {
   return (
-    <section className="resource-hand" aria-labelledby="hand-title">
+    <section aria-label="Your resources" className="resource-hand">
       <div className="hand-heading">
         <p className="eyebrow">Private Hand</p>
-        <h2 id="hand-title">Your Resources</h2>
+        <h2>Your Resources</h2>
       </div>
       <ul>
         {RESOURCE_ORDER.map((resource) => (
@@ -336,13 +461,13 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
         ))}
       </ul>
       <div className="piece-counts">
-        <span>
+        <span aria-label={`${me.piecesRemaining.roads} roads remaining`}>
           <Route aria-hidden="true" /> {me.piecesRemaining.roads}
         </span>
-        <span>
+        <span aria-label={`${me.piecesRemaining.settlements} settlements remaining`}>
           <Home aria-hidden="true" /> {me.piecesRemaining.settlements}
         </span>
-        <span>
+        <span aria-label={`${me.piecesRemaining.cities} cities remaining`}>
           <Castle aria-hidden="true" /> {me.piecesRemaining.cities}
         </span>
       </div>
@@ -395,17 +520,17 @@ function ActionDock({
           {legal.victimPlayerIds.map((playerId) => {
             const player = game.players.find((candidate) => candidate.id === playerId);
             return (
-              <button
+              <Button
                 className="action-button"
-                disabled={pending}
+                isDisabled={pending}
                 key={playerId}
-                onClick={() =>
+                onPress={() =>
                   onCommand({ kind: "steal", victimPlayerId: playerId }, "Resource stolen.")
                 }
-                type="button"
+                variant="secondary"
               >
                 <UserRound aria-hidden="true" /> {player?.displayName ?? "Neighbor"}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -416,14 +541,14 @@ function ActionDock({
   if (legal.canRoll) {
     return (
       <section className="action-dock action-dock-center" aria-label="Turn actions">
-        <button
+        <Button
           className="button button-primary dice-button"
-          disabled={pending}
-          onClick={() => onCommand({ kind: "roll" }, "Dice rolled.")}
-          type="button"
+          isDisabled={pending}
+          isPending={pending}
+          onPress={() => onCommand({ kind: "roll" }, "Dice rolled.")}
         >
           <Dices aria-hidden="true" /> {pending ? "Rolling…" : "Roll Dice"}
-        </button>
+        </Button>
       </section>
     );
   }
@@ -472,16 +597,123 @@ function ActionDock({
           onClick={() => onBuildMode(buildMode === "city" ? null : "city")}
         />
       </div>
-      <TradePanel disabled={pending} game={game} onCommand={onCommand} options={legal.bankTrades} />
-      <button
+      <TradeCenter disabled={pending} game={game} me={me} onCommand={onCommand} />
+      <Button
         className="button button-end-turn"
-        disabled={pending || !legal.canEndTurn}
-        onClick={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
-        type="button"
+        isDisabled={pending || !legal.canEndTurn}
+        onPress={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
+        variant="secondary"
       >
         End Turn <ChevronRight aria-hidden="true" />
-      </button>
+      </Button>
     </section>
+  );
+}
+
+function CompactBoardTargets({
+  buildMode = null,
+  game,
+  onCommand,
+  pending,
+}: {
+  buildMode?: BuildMode;
+  game: PlayerGameView;
+  onCommand(command: GameCommand, message: string): void;
+  pending: boolean;
+}) {
+  const targetMode = getTargetMode(game, buildMode);
+  const targets =
+    targetMode === "settlement"
+      ? game.legalActions.settlementVertexKeys.map((vertexKey, index) => ({
+          command: { kind: "place_settlement", vertexKey } as const,
+          label: `Settlement ${index + 1}`,
+          message: "Settlement placed.",
+        }))
+      : targetMode === "city"
+        ? game.legalActions.cityVertexKeys.map((vertexKey, index) => ({
+            command: { kind: "build_city", vertexKey } as const,
+            label: `City ${index + 1}`,
+            message: "City completed.",
+          }))
+        : targetMode === "road"
+          ? game.legalActions.roadEdgeKeys.map((edgeKey, index) => ({
+              command: { edgeKey, kind: "place_road" } as const,
+              label: `Road ${index + 1}`,
+              message: "Road placed.",
+            }))
+          : targetMode === "robber"
+            ? game.legalActions.robberTileIds.map((tileId, index) => ({
+                command: { kind: "move_robber", tileId } as const,
+                label: `Tile ${index + 1}`,
+                message: "Robber moved.",
+              }))
+            : [];
+
+  if (targets.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="compact-board-targets" role="group" aria-label="Safe board placement choices">
+      <strong>Choose:</strong>
+      <div>
+        {targets.map((target) => (
+          <Button
+            className="compact-target-button"
+            isDisabled={pending}
+            key={target.label}
+            onPress={() => onCommand(target.command, target.message)}
+            variant="secondary"
+          >
+            {target.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UnavailablePlayerView({ onLeave }: { onLeave(): Promise<void> }) {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  const leave = async () => {
+    if (leaving) {
+      return;
+    }
+    setLeaving(true);
+    try {
+      await onLeave();
+      setShowConfirmation(false);
+    } finally {
+      setLeaving(false);
+    }
+  };
+
+  return (
+    <>
+      <main className="centered-page notice-card" id="main-content">
+        <h1>Player View Unavailable</h1>
+        <p>Your private seat could not be matched to this game. Refresh to reconnect.</p>
+        <Button
+          className="button button-secondary"
+          onPress={() => setShowConfirmation(true)}
+          variant="secondary"
+        >
+          Leave Game
+        </Button>
+      </main>
+      {showConfirmation ? (
+        <ConfirmationDialog
+          busy={leaving}
+          confirmLabel="Leave Game"
+          description="You cannot reclaim this seat after leaving. A bot will take over, or the game will close if no human players remain."
+          onCancel={() => setShowConfirmation(false)}
+          onConfirm={() => void leave()}
+          title="Leave this game?"
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -501,90 +733,56 @@ function BuildAction({
   onClick(): void;
 }) {
   return (
-    <button
+    <Button
       aria-pressed={active}
       className={active ? "action-button is-selected" : "action-button"}
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
+      isDisabled={disabled}
+      onPress={onClick}
+      variant="secondary"
     >
       {icon}
       <strong>{label}</strong>
       <span className="mini-cost">
-        {RESOURCE_ORDER.flatMap((resource) =>
-          cost[resource] > 0 ? (
-            <span key={resource} title={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}>
-              <ResourceIcon decorative resource={resource} size={20} /> {cost[resource]}
-            </span>
-          ) : (
-            []
-          ),
-        )}
+        {RESOURCE_ORDER.filter((resource) => cost[resource] > 0).map((resource) => (
+          <span
+            aria-label={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
+            key={resource}
+            title={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
+          >
+            <ResourceIcon decorative resource={resource} size={20} /> {cost[resource]}
+          </span>
+        ))}
       </span>
-    </button>
+    </Button>
   );
 }
 
-function TradePanel({
-  disabled,
-  game,
-  onCommand,
-  options,
-}: {
-  disabled: boolean;
-  game: PlayerGameView;
-  onCommand(command: GameCommand, message: string): void;
-  options: PlayerGameView["legalActions"]["bankTrades"];
-}) {
-  const [give, setGive] = useState<ResourceType>("tree");
-  const [receive, setReceive] = useState<ResourceType>("brick");
-  const selectedTrade = options.find(
-    (option) => option.give === give && option.receive === receive,
-  );
-  const ratio = getBankTradeRatio(game, game.viewerPlayerId, give);
+function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {
+  const [now, setNow] = useState(() => Date.now());
 
+  useEffect(() => {
+    if (!nextActionAt) {
+      return;
+    }
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [nextActionAt]);
+
+  if (!nextActionAt) {
+    return null;
+  }
+
+  const seconds = Math.max(0, Math.ceil((nextActionAt - now) / 1_000));
   return (
-    <div className="trade-control">
-      <ArrowRightLeft aria-hidden="true" />
-      <label>
-        <span>Give {ratio}</span>
-        <select
-          aria-label="Resource to give"
-          disabled={disabled}
-          onChange={(event) => setGive(event.target.value as ResourceType)}
-          value={give}
-        >
-          {RESOURCE_ORDER.map((resource) => (
-            <option key={resource} value={resource}>
-              {RESOURCE_LABELS[resource]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <ChevronRight aria-hidden="true" />
-      <label>
-        <span>Receive 1</span>
-        <select
-          aria-label="Resource to receive"
-          disabled={disabled}
-          onChange={(event) => setReceive(event.target.value as ResourceType)}
-          value={receive}
-        >
-          {RESOURCE_ORDER.map((resource) => (
-            <option key={resource} value={resource}>
-              {RESOURCE_LABELS[resource]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button
-        className="button button-trade"
-        disabled={disabled || !selectedTrade}
-        onClick={() => onCommand({ give, kind: "trade_bank", receive }, "Bank trade completed.")}
-        type="button"
-      >
-        Trade
-      </button>
+    <div
+      aria-label={`${botThinking ? "Bot thinking" : "Turn time"}, ${seconds} seconds remaining`}
+      aria-live="off"
+      className={botThinking ? "turn-clock is-bot" : "turn-clock"}
+      role="timer"
+    >
+      {botThinking ? <Bot aria-hidden="true" /> : null}
+      <span>{botThinking ? "Bot thinking" : "Turn time"}</span>
+      <strong>{seconds}s</strong>
     </div>
   );
 }
@@ -621,36 +819,37 @@ function DiscardPanel({
           <div key={resource}>
             <ResourceIcon decorative resource={resource} size={32} />
             <span>{RESOURCE_LABELS[resource]}</span>
-            <button
-              aria-label={`Remove one ${resource}`}
-              disabled={pending || selection[resource] === 0}
-              onClick={() => update(resource, -1)}
-              type="button"
+            <Button
+              aria-label={`Remove one ${RESOURCE_LABELS[resource]}`}
+              isDisabled={pending || selection[resource] === 0}
+              isIconOnly
+              onPress={() => update(resource, -1)}
+              variant="ghost"
             >
               −
-            </button>
+            </Button>
             <strong>{selection[resource]}</strong>
-            <button
-              aria-label={`Add one ${resource}`}
-              disabled={
+            <Button
+              aria-label={`Add one ${RESOURCE_LABELS[resource]}`}
+              isDisabled={
                 pending || selectedCount >= count || selection[resource] >= me.resources[resource]
               }
-              onClick={() => update(resource, 1)}
-              type="button"
+              isIconOnly
+              onPress={() => update(resource, 1)}
+              variant="ghost"
             >
               +
-            </button>
+            </Button>
           </div>
         ))}
       </div>
-      <button
+      <Button
         className="button button-primary"
-        disabled={pending || selectedCount !== count}
-        onClick={() => onCommand({ kind: "discard", resources: selection }, "Resources returned.")}
-        type="button"
+        isDisabled={pending || selectedCount !== count}
+        onPress={() => onCommand({ kind: "discard", resources: selection }, "Resources returned.")}
       >
         Confirm Discard
-      </button>
+      </Button>
     </section>
   );
 }
@@ -667,31 +866,46 @@ function WinOverlay({
   winnerName?: string;
 }) {
   return (
-    <div className="win-overlay" role="dialog" aria-modal="true" aria-labelledby="win-title">
-      <div className="win-card">
-        <span className="win-crown" aria-hidden="true">
-          <Crown />
-        </span>
-        <p className="eyebrow">Game Complete</p>
-        <h2 id="win-title">
-          {isDraw
-            ? "The Island Rests in a Draw"
-            : isViewer
-              ? "You Rule the Island!"
-              : `${winnerName ?? "A Player"} Wins!`}
-        </h2>
-        <p>
-          {isDraw
-            ? "No player reached the victory target before the final turn."
-            : isViewer
-              ? "Your settlements became a thriving island realm."
-              : "A new saga begins with the next game."}
-        </p>
-        <button className="button button-primary" onClick={onLeave} type="button">
-          Return Home
-        </button>
-      </div>
-    </div>
+    <Modal>
+      <Modal.Backdrop
+        className="win-overlay"
+        isDismissable={false}
+        isKeyboardDismissDisabled
+        isOpen
+      >
+        <Modal.Container>
+          <Modal.Dialog className="win-card">
+            <Modal.Header className="win-card-header">
+              <span className="win-crown" aria-hidden="true">
+                <Crown />
+              </span>
+              <div>
+                <p className="eyebrow">Game Complete</p>
+                <Modal.Heading id="win-title">
+                  {isDraw
+                    ? "The Island Rests in a Draw"
+                    : isViewer
+                      ? "You Rule the Island!"
+                      : `${winnerName ?? "A Player"} Wins!`}
+                </Modal.Heading>
+              </div>
+            </Modal.Header>
+            <Modal.Body className="win-card-body" id="win-description">
+              {isDraw
+                ? "No player reached the victory target before the final turn."
+                : isViewer
+                  ? "Your settlements became a thriving island realm."
+                  : "A new saga begins with the next game."}
+            </Modal.Body>
+            <Modal.Footer className="win-card-footer">
+              <Button className="button button-primary" onPress={onLeave}>
+                Return Home
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
 
@@ -700,6 +914,9 @@ function toGameError(cause: unknown): string {
   const normalizedMessage = rawMessage.toLowerCase();
   if (normalizedMessage.includes("action number") || normalizedMessage.includes("stale")) {
     return "The game moved ahead before this action arrived. Review the refreshed board and try again.";
+  }
+  if (normalizedMessage.includes("deadline")) {
+    return "That action arrived after the timer expired. The game is advancing automatically.";
   }
   if (normalizedMessage.includes("resources")) {
     return "You do not have the resources required for that action. Review your hand and try again.";

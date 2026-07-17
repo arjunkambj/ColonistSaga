@@ -1,3 +1,5 @@
+import type { DiceRoll } from "./types";
+
 interface RandomValue {
   nextIndex: number;
   value: number;
@@ -33,4 +35,32 @@ export function deterministicInteger(
     nextIndex: randomIndex + 1,
     value: hash32(`${seed}:${randomIndex}`) % maximum,
   };
+}
+
+export function createBalancedDiceBag(seed: string, randomIndex: number) {
+  const bag: DiceRoll[] = Array.from({ length: 6 }, (_, firstIndex) =>
+    Array.from({ length: 6 }, (_, secondIndex) => ({
+      first: firstIndex + 1,
+      second: secondIndex + 1,
+      sum: firstIndex + secondIndex + 2,
+    })),
+  ).flat();
+  let nextIndex = randomIndex;
+
+  for (let index = bag.length - 1; index > 0; index -= 1) {
+    const draw = deterministicInteger(seed, nextIndex, index + 1);
+    nextIndex = draw.nextIndex;
+    const target = draw.value;
+    const currentRoll = bag[index];
+    const targetRoll = bag[target];
+
+    if (!currentRoll || !targetRoll) {
+      throw new Error("Balanced dice bag could not be shuffled");
+    }
+
+    bag[index] = targetRoll;
+    bag[target] = currentRoll;
+  }
+
+  return { bag, nextIndex };
 }

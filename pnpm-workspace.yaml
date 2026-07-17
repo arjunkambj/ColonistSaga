@@ -4,7 +4,6 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
-  workerd: true
 catalog:
   dotenv: ^17.4.2
   zod: ^4.4.3
@@ -12,5 +11,4 @@ catalog:
   tailwindcss: ^4.3.2
   convex: ^1.42.1
   "@types/react-dom": ^19.2.3
-  alchemy: ^0.93.12
   tailwind-merge: ^3.6.0

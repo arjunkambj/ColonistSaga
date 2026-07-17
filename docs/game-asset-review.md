@@ -1,8 +1,9 @@
-# Catansaga default Base asset review
+# Catansaga detailed V7 Base asset review
 
 ## Verdict
 
-**PASS — all 15 gameplay assets are approved for the default layout.**
+**PASS — all 15 regenerated gameplay assets meet the default-layout file and
+geometry contract.**
 
 The pack contains six terrain tiles, exactly five resource icons, and four
 board pieces. The sixth terrain is the non-producing desert robber hex; it is
@@ -11,7 +12,7 @@ not a resource and is absent from the resource inventory and type union.
 ## Review method
 
 - Inspected every final PNG over transparency at native size.
-- Compared terrain at 160 px in color and grayscale with one shared hex mask.
+- Compared terrain at 160 px with one shared hex footprint.
 - Compared resources at 64 px in color and grayscale.
 - Compared pieces at 64 px and 96 px, including a representative player tint.
 - Checked dimensions, RGBA mode, transparent corners, alpha edges, padding,
@@ -23,20 +24,19 @@ not a resource and is absent from the resource inventory and type union.
 
 | Asset                   | Result   | Finding                                                         |
 | ----------------------- | -------- | --------------------------------------------------------------- |
-| `terrain/desert.png`    | **PASS** | Pale sand, cactus, and dune marks stay distinct from fields.    |
-| `terrain/fields.png`    | **PASS** | Gold surface and upper wheat motifs remain clear at 160 px.     |
-| `terrain/forest.png`    | **PASS** | Dark emerald surface and three trees remain clear in grayscale. |
-| `terrain/hills.png`     | **PASS** | Coral clay, shallow ridges, and brick stack identify hills.     |
-| `terrain/mountains.png` | **PASS** | Slate surface and upper boulder group identify stone terrain.   |
-| `terrain/pasture.png`   | **PASS** | Light green surface and two sheep stay distinct from forest.    |
+| `terrain/desert.png`    | **PASS** | Layered dunes, scrub, cacti, and stones frame a clear center.   |
+| `terrain/fields.png`    | **PASS** | Terraced furrows and varied wheat clusters read at 160 px.      |
+| `terrain/forest.png`    | **PASS** | A varied woodland edge frames the green central clearing.       |
+| `terrain/hills.png`     | **PASS** | Eroded coral shelves and natural outcrops identify clay hills.  |
+| `terrain/mountains.png` | **PASS** | Layered crags, boulders, and pale seams identify stone terrain. |
+| `terrain/pasture.png`   | **PASS** | Three sheep, flowers, and clover stay distinct from forest.     |
 
-All six terrain images are 512×512 RGBA PNGs. Their shared flat-top
-silhouette, shallow base, three-quarter camera, lighting, and central quiet
-area allow one render scale and one interaction mask for the default board.
-All six use one canonical alpha mask with the exact visible bounds
-`x=50–461`, `y=89–419`. The minimum alpha inside each 85 px-radius center
-token area is 255. A 3–4–5–4–3 default-board placement preview confirmed that
-the tiles require no per-image scale or offset adjustments.
+All six terrain images are 512×512 RGBA PNGs. Their shared flat-top silhouette,
+slim honey-gold rim, camera, lighting, and central quiet area allow one render
+scale and one interaction mask. Every file has the exact visible bounds
+`x=50–461`, `y=77–434`. At the configured render size, the art extends about
+3 px beyond the mathematical hex width and height; that deliberate overlap
+hides antialiased seams without changing topology or interaction points.
 
 An independent reviewer also passed all six tiles at 160 px in color and
 grayscale, including the desert/fields and forest/pasture distinction. No
@@ -60,9 +60,9 @@ Superseded `lumber`, `grain`, `wool`, and `ore` files were deleted.
 
 | Asset                   | Result   | Finding                                                  |
 | ----------------------- | -------- | -------------------------------------------------------- |
-| `pieces/road.png`       | **PASS** | Simple board-scale silhouette supports player tinting.   |
-| `pieces/settlement.png` | **PASS** | Cottage remains clear at 64 px and after tinting.        |
-| `pieces/city.png`       | **PASS** | Larger tower form stays distinct from the settlement.    |
+| `pieces/road.png`       | **PASS** | Bowed carved path keeps endpoints aligned for rotation.  |
+| `pieces/settlement.png` | **PASS** | Island outpost silhouette stays clear after tinting.     |
+| `pieces/city.png`       | **PASS** | Guild-hall cluster is distinct from the settlement.      |
 | `pieces/robber.png`     | **PASS** | Dark pawn silhouette is clear and separate from players. |
 
 ## Integration guidance
@@ -74,8 +74,23 @@ Superseded `lumber`, `grain`, `wool`, and `ore` files were deleted.
   brick, pasture → sheep, fields → wheat, and mountains → stone.
 - Desert produces nothing and only hosts the robber at game start.
 
-## Live board integration QA
+## Live board integration contract
 
-The final pack was also reviewed inside the running Next.js game, rather than only in contact sheets. A live Quick Play session completed both setup rounds, a seven/robber/steal sequence, a paid road build, a bot round, reconnect after refresh, and desktop/mobile responsive checks.
+The renderer uses one placement scale for all terrain, one icon scale for all
+resources, and one player-tint pipeline for road, settlement, and city. Road
+rotation is the topology edge angle directly. The light UI palette, white
+panels, pastel ocean, ports, tokens, and action dock are code-rendered so they
+stay crisp, localizable, and accessible.
 
-The live review confirmed that all terrain tiles use one placement scale, all resource icons use one inventory scale, and all four piece files use the same renderer. The independent screenshot reviewer passed the terrain and resource art direction without requesting regeneration. Renderer follow-ups were applied to add mobile board padding, keep every port inside the frame, reduce legal-marker visual size while preserving 44 px hit areas, strengthen player-piece separation, and remove the debug board caption.
+## Rendered QA
+
+The V7 assets were reviewed together at board scale in
+`docs/game-asset-previews/detailed-board-v3.png`. That composite verifies shared
+hex bounds, central token clearance, player-tinted piece silhouettes, curved
+road proportions, and the cream medallion direction. The production web build
+and setup interface also render successfully.
+
+The generated transparent trade caravan is used only as decorative modal art;
+resource quantities, recipients, response status, and actions remain readable
+HTML controls. Live Quick Match QA now runs against the deployed bot and table
+settings contract.

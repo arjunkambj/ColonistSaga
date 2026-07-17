@@ -61,7 +61,7 @@ describe("deterministic bot simulation", () => {
 
   it("finishes an accelerated game through the public reducer", () => {
     const state = advanceBots(
-      createDefaultGame(createTestPlayers(true), "accelerated-finish", 3),
+      createDefaultGame(createTestPlayers(true), "accelerated-finish", { victoryPoints: 3 }),
       20_000,
     );
 

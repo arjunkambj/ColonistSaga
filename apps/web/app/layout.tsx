@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-
-import { AppProviders } from "@/components/app-providers";
+import Link from "next/link";
 
 import "./styles.css";
 
@@ -16,14 +15,16 @@ export const viewport: Viewport = {
   width: "device-width",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
       <body>
-        <a className="skip-link" href="#main-content">
+        <Link className="skip-link" href="#main-content">
           Skip to Game
-        </a>
-        <AppProviders convexUrl={process.env.NEXT_PUBLIC_CONVEX_URL}>{children}</AppProviders>
+        </Link>
+        {children}
       </body>
     </html>
   );

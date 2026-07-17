@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { SETUP_SEAT_ORDER, TERRAIN_RESOURCE } from "./constants";
+import { SETUP_SEAT_ORDER, TERRAIN_RESOURCE, getSetupSeatOrder } from "./constants";
 import { totalResources } from "./resources";
 import { applyCommand, getLegalActions } from "./rules";
 import { DEFAULT_TOPOLOGY } from "./topology";
-import { createTestGame } from "./test-helpers";
+import { createDefaultGame } from "./state";
+import { createTestGame, createTestPlayers } from "./test-helpers";
 
 describe("snake setup", () => {
   it("places two free settlement-road pairs per player in snake order", () => {
@@ -93,5 +94,45 @@ describe("snake setup", () => {
       ),
     ).toThrowError(expect.objectContaining({ code: "DISTANCE_RULE" }));
     expect(state.board.buildings).toEqual([]);
+  });
+
+  it("uses a dynamic snake order for three players", () => {
+    let state = createDefaultGame(createTestPlayers().slice(0, 3), "three-player-setup", {
+      balancedDice: false,
+      friendlyRobber: false,
+      maxPlayers: 3,
+    });
+    const settlementOrder: string[] = [];
+
+    while (state.phase.kind === "setup_settlement" || state.phase.kind === "setup_road") {
+      const playerId = state.activePlayerId;
+      const legal = getLegalActions(state, playerId);
+
+      if (state.phase.kind === "setup_settlement") {
+        settlementOrder.push(playerId);
+        state = applyCommand(state, playerId, {
+          kind: "place_settlement",
+          vertexKey: legal.settlementVertexKeys[0]!,
+        });
+      } else {
+        state = applyCommand(state, playerId, {
+          edgeKey: legal.roadEdgeKeys[0]!,
+          kind: "place_road",
+        });
+      }
+    }
+
+    expect(getSetupSeatOrder(3)).toEqual([0, 1, 2, 2, 1, 0]);
+    expect(settlementOrder).toEqual([
+      "player-1",
+      "player-2",
+      "player-3",
+      "player-3",
+      "player-2",
+      "player-1",
+    ]);
+    expect(state.phase.kind).toBe("roll");
+    expect(state.activePlayerId).toBe("player-1");
+    expect(state.players.map((player) => player.victoryPoints)).toEqual([2, 2, 2]);
   });
 });

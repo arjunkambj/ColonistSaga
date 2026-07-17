@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./web": "./src/web.ts",
-    "./native": "./src/native.ts"
+    "./web": "./src/web.ts"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.11",
@@ -14,7 +13,6 @@
   },
   "devDependencies": {
     "@catansaga/config": "workspace:*",
-    "@catansaga/infra": "workspace:*",
     "@types/node": "^22.13.14",
     "typescript": "^6"
   }

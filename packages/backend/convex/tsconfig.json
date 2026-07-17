@@ -6,6 +6,7 @@
   "compilerOptions": {
     /* These settings are not required by Convex and can be modified. */
     "allowJs": true,
+    "allowImportingTsExtensions": true,
     "strict": true,
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
@@ -21,6 +22,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*"],
+  "include": ["./**/*", "../lib/**/*"],
   "exclude": ["./_generated"]
 }

@@ -40,8 +40,7 @@ lerna-debug.log*
 .turbo
 .nx
 
-# Better-T-Stack
-.alchemy
+# Vercel
 .vercel
 
 # Testing

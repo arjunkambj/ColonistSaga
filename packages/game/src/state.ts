@@ -1,20 +1,97 @@
 import { createDefaultBoard } from "./board";
-import { BANK_RESOURCE_COUNT, INITIAL_PIECES } from "./constants";
+import { BANK_RESOURCE_COUNT, DEFAULT_BASE_GAME_SETTINGS, INITIAL_PIECES } from "./constants";
 import { emptyInventory, filledInventory } from "./resources";
 import { GameRuleError } from "./types";
-import type { GamePlayerInput, GameState } from "./types";
+import type { BaseGameSettings, BotDifficulty, GamePlayerInput, GameState } from "./types";
 
 const MINIMUM_VICTORY_POINTS = 3;
 const MAXIMUM_BUILDING_VICTORY_POINTS = 13;
+const MINIMUM_DISCARD_LIMIT = 5;
+const MAXIMUM_DISCARD_LIMIT = 20;
+const BOT_DIFFICULTIES: readonly BotDifficulty[] = ["easy", "medium", "hard"];
+const TURN_TIMERS = [0, 30, 60, 90, 120] as const;
+
+function createSettings(
+  playerCount: 3 | 4,
+  input: Partial<BaseGameSettings> | undefined,
+): BaseGameSettings {
+  const overrides = input ?? {};
+  const settings: BaseGameSettings = {
+    balancedDice: overrides.balancedDice ?? DEFAULT_BASE_GAME_SETTINGS.balancedDice,
+    discardLimit: overrides.discardLimit ?? DEFAULT_BASE_GAME_SETTINGS.discardLimit,
+    friendlyRobber: overrides.friendlyRobber ?? DEFAULT_BASE_GAME_SETTINGS.friendlyRobber,
+    hideBankCards: overrides.hideBankCards ?? DEFAULT_BASE_GAME_SETTINGS.hideBankCards,
+    maxPlayers: overrides.maxPlayers ?? playerCount,
+    turnTimerSeconds: overrides.turnTimerSeconds ?? DEFAULT_BASE_GAME_SETTINGS.turnTimerSeconds,
+    victoryPoints: overrides.victoryPoints ?? DEFAULT_BASE_GAME_SETTINGS.victoryPoints,
+  };
+
+  if (
+    !Number.isInteger(settings.victoryPoints) ||
+    settings.victoryPoints < MINIMUM_VICTORY_POINTS ||
+    settings.victoryPoints > MAXIMUM_BUILDING_VICTORY_POINTS
+  ) {
+    throw new GameRuleError(
+      "INVALID_COMMAND",
+      `Victory points must be an integer from ${MINIMUM_VICTORY_POINTS} to ${MAXIMUM_BUILDING_VICTORY_POINTS}`,
+    );
+  }
+
+  if (
+    !Number.isInteger(settings.discardLimit) ||
+    settings.discardLimit < MINIMUM_DISCARD_LIMIT ||
+    settings.discardLimit > MAXIMUM_DISCARD_LIMIT
+  ) {
+    throw new GameRuleError(
+      "INVALID_COMMAND",
+      `Discard limit must be an integer from ${MINIMUM_DISCARD_LIMIT} to ${MAXIMUM_DISCARD_LIMIT}`,
+    );
+  }
+
+  if (!TURN_TIMERS.includes(settings.turnTimerSeconds)) {
+    throw new GameRuleError("INVALID_COMMAND", "Turn timer is not supported");
+  }
+
+  if (settings.maxPlayers !== playerCount) {
+    throw new GameRuleError(
+      "INVALID_COMMAND",
+      `Expected ${settings.maxPlayers} players, received ${playerCount}`,
+    );
+  }
+
+  for (const field of ["balancedDice", "friendlyRobber", "hideBankCards"] as const) {
+    if (typeof settings[field] !== "boolean") {
+      throw new GameRuleError("INVALID_COMMAND", `${field} must be a boolean`);
+    }
+  }
+
+  return settings;
+}
+
+function botDifficultyFor(player: GamePlayerInput): BotDifficulty | undefined {
+  if (!player.isBot) {
+    return undefined;
+  }
+
+  const difficulty = player.botDifficulty ?? "medium";
+  if (!BOT_DIFFICULTIES.includes(difficulty)) {
+    throw new GameRuleError("INVALID_COMMAND", `Unknown bot difficulty: ${difficulty}`);
+  }
+
+  return difficulty;
+}
 
 export function createDefaultGame(
   players: readonly GamePlayerInput[],
   seed: string,
-  victoryPoints = 10,
+  settingsInput?: Partial<BaseGameSettings>,
 ): GameState {
-  if (players.length !== 4) {
-    throw new GameRuleError("INVALID_COMMAND", "A default game requires exactly four players");
+  if (players.length !== 3 && players.length !== 4) {
+    throw new GameRuleError("INVALID_COMMAND", "A base game requires three or four players");
   }
+
+  const playerCount = players.length;
+  const settings = createSettings(playerCount, settingsInput);
 
   if (new Set(players.map((player) => player.id)).size !== players.length) {
     throw new GameRuleError("INVALID_COMMAND", "Player IDs must be unique");
@@ -22,17 +99,6 @@ export function createDefaultGame(
 
   if (!seed) {
     throw new GameRuleError("INVALID_COMMAND", "A game seed is required");
-  }
-
-  if (
-    !Number.isInteger(victoryPoints) ||
-    victoryPoints < MINIMUM_VICTORY_POINTS ||
-    victoryPoints > MAXIMUM_BUILDING_VICTORY_POINTS
-  ) {
-    throw new GameRuleError(
-      "INVALID_COMMAND",
-      `Victory points must be an integer from ${MINIMUM_VICTORY_POINTS} to ${MAXIMUM_BUILDING_VICTORY_POINTS}`,
-    );
   }
 
   const [firstPlayer] = players;
@@ -44,24 +110,33 @@ export function createDefaultGame(
   return {
     actionNumber: 0,
     activePlayerId: firstPlayer.id,
+    balancedDiceBag: [],
     bank: filledInventory(BANK_RESOURCE_COUNT),
     board: createDefaultBoard(),
     lastDiceRoll: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
-    players: players.map((player, seatIndex) => ({
-      ...player,
-      piecesRemaining: { ...INITIAL_PIECES },
-      resources: emptyInventory(),
-      seatIndex,
-      victoryPoints: 0,
-    })),
+    players: players.map((player, seatIndex) => {
+      const botDifficulty = botDifficultyFor(player);
+      return {
+        displayName: player.displayName,
+        ...(botDifficulty ? { botDifficulty } : {}),
+        id: player.id,
+        isBot: player.isBot,
+        piecesRemaining: { ...INITIAL_PIECES },
+        resources: emptyInventory(),
+        seatIndex,
+        victoryPoints: 0,
+      };
+    }),
     randomIndex: 0,
     seed,
+    settings: { ...settings },
     status: "active",
+    tradeOffer: null,
     turnNumber: 0,
     turnOrder: players.map((player) => player.id),
     version: 1,
-    victoryPoints,
+    victoryPoints: settings.victoryPoints,
     winnerPlayerId: null,
   };
 }
