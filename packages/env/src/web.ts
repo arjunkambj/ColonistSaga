@@ -7,11 +7,13 @@ const convexUrlSchema = (exampleHost: string) =>
   });
 
 export const env = createEnv({
-  clientPrefix: "VITE_",
+  clientPrefix: "NEXT_PUBLIC_",
   client: {
-    VITE_CONVEX_URL: convexUrlSchema("example.convex.cloud"),
+    NEXT_PUBLIC_CONVEX_URL: convexUrlSchema("example.convex.cloud"),
   },
-  runtimeEnv: (import.meta as any).env,
+  runtimeEnv: {
+    NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
+  },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
 });

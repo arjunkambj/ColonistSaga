@@ -1,0 +1,242 @@
+export const RESOURCE_TYPES = ["brick", "sheep", "stone", "tree", "wheat"] as const;
+
+export type ResourceType = (typeof RESOURCE_TYPES)[number];
+
+export type ResourceInventory = Record<ResourceType, number>;
+
+export const TERRAIN_TYPES = [
+  "desert",
+  "fields",
+  "forest",
+  "hills",
+  "mountains",
+  "pasture",
+] as const;
+
+export type TerrainType = (typeof TERRAIN_TYPES)[number];
+export type PlayerId = string;
+export type BuildingKind = "city" | "settlement";
+
+export interface AxialCoordinate {
+  q: number;
+  r: number;
+}
+
+export interface PixelCoordinate {
+  x: number;
+  y: number;
+}
+
+export interface GamePlayerInput {
+  id: PlayerId;
+  displayName: string;
+  isBot: boolean;
+}
+
+export interface PlayerPieces {
+  cities: number;
+  roads: number;
+  settlements: number;
+}
+
+export interface PlayerState extends GamePlayerInput {
+  piecesRemaining: PlayerPieces;
+  resources: ResourceInventory;
+  seatIndex: number;
+  victoryPoints: number;
+}
+
+export interface TileState extends AxialCoordinate {
+  id: string;
+  numberToken: number | null;
+  terrain: TerrainType;
+}
+
+export interface PortDescriptor {
+  edgeKey: string;
+  id: string;
+  trade: "any" | ResourceType;
+}
+
+export interface BuildingState {
+  kind: BuildingKind;
+  playerId: PlayerId;
+  vertexKey: string;
+}
+
+export interface RoadState {
+  edgeKey: string;
+  playerId: PlayerId;
+}
+
+export interface BoardState {
+  buildings: BuildingState[];
+  ports: PortDescriptor[];
+  roads: RoadState[];
+  robberTileId: string;
+  tiles: TileState[];
+}
+
+export interface SetupSettlementPhase {
+  kind: "setup_settlement";
+  setupIndex: number;
+}
+
+export interface SetupRoadPhase {
+  kind: "setup_road";
+  settlementVertexKey: string;
+  setupIndex: number;
+}
+
+export interface RollPhase {
+  kind: "roll";
+}
+
+export interface DiscardRequirement {
+  count: number;
+  playerId: PlayerId;
+}
+
+export interface DiscardPhase {
+  kind: "discard";
+  pending: DiscardRequirement[];
+  rollerPlayerId: PlayerId;
+}
+
+export interface MoveRobberPhase {
+  kind: "move_robber";
+  rollerPlayerId: PlayerId;
+}
+
+export interface StealPhase {
+  eligibleVictimIds: PlayerId[];
+  kind: "steal";
+  rollerPlayerId: PlayerId;
+}
+
+export interface BuildAndTradePhase {
+  kind: "build_and_trade";
+}
+
+export interface FinishedPhase {
+  kind: "finished";
+}
+
+export type GamePhase =
+  | SetupSettlementPhase
+  | SetupRoadPhase
+  | RollPhase
+  | DiscardPhase
+  | MoveRobberPhase
+  | StealPhase
+  | BuildAndTradePhase
+  | FinishedPhase;
+
+export interface DiceRoll {
+  first: number;
+  second: number;
+  sum: number;
+}
+
+export interface GameState {
+  actionNumber: number;
+  activePlayerId: PlayerId;
+  bank: ResourceInventory;
+  board: BoardState;
+  lastDiceRoll: DiceRoll | null;
+  phase: GamePhase;
+  players: PlayerState[];
+  randomIndex: number;
+  seed: string;
+  status: "active" | "completed";
+  turnNumber: number;
+  turnOrder: PlayerId[];
+  version: 1;
+  victoryPoints: number;
+  winnerPlayerId: PlayerId | null;
+}
+
+export type GameCommand =
+  | { kind: "place_settlement"; vertexKey: string }
+  | { edgeKey: string; kind: "place_road" }
+  | { kind: "roll" }
+  | { kind: "discard"; resources: ResourceInventory }
+  | { kind: "move_robber"; tileId: string }
+  | { kind: "steal"; victimPlayerId: PlayerId }
+  | { kind: "build_city"; vertexKey: string }
+  | {
+      give: ResourceType;
+      kind: "trade_bank";
+      receive: ResourceType;
+    }
+  | { kind: "end_turn" };
+
+export interface BankTradeOption {
+  give: ResourceType;
+  ratio: number;
+  receive: ResourceType;
+}
+
+export interface LegalActions {
+  bankTrades: BankTradeOption[];
+  canEndTurn: boolean;
+  canRoll: boolean;
+  cityVertexKeys: string[];
+  discardCount: number | null;
+  isRequiredActor: boolean;
+  phase: GamePhase["kind"];
+  roadEdgeKeys: string[];
+  robberTileIds: string[];
+  settlementVertexKeys: string[];
+  victimPlayerIds: PlayerId[];
+}
+
+export interface PublicPlayerState extends Omit<PlayerState, "resources"> {
+  isViewer: false;
+  resourceCount: number;
+}
+
+export interface PrivatePlayerState extends PlayerState {
+  isViewer: true;
+  resourceCount: number;
+}
+
+export type PlayerViewState = PublicPlayerState | PrivatePlayerState;
+
+export interface PlayerGameView extends Omit<
+  GameState,
+  "bank" | "players" | "randomIndex" | "seed"
+> {
+  legalActions: LegalActions;
+  players: PlayerViewState[];
+  viewerPlayerId: PlayerId;
+}
+
+export type GameRuleErrorCode =
+  | "BANK_OUT_OF_RESOURCE"
+  | "DISTANCE_RULE"
+  | "GAME_FINISHED"
+  | "INSUFFICIENT_RESOURCES"
+  | "INVALID_COMMAND"
+  | "INVALID_DISCARD"
+  | "INVALID_LOCATION"
+  | "INVALID_PHASE"
+  | "INVALID_ROBBER_TILE"
+  | "INVALID_TRADE"
+  | "INVALID_VICTIM"
+  | "LOCATION_OCCUPIED"
+  | "NO_PIECE_AVAILABLE"
+  | "NOT_REQUIRED_ACTOR"
+  | "ROAD_NOT_CONNECTED"
+  | "ROBBER_TILE_UNCHANGED"
+  | "UNKNOWN_PLAYER";
+
+export class GameRuleError extends Error {
+  readonly code: GameRuleErrorCode;
+
+  constructor(code: GameRuleErrorCode, message: string) {
+    super(message);
+    this.name = "GameRuleError";
+    this.code = code;
+  }
+}

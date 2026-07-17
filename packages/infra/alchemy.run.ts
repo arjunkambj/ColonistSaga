@@ -1,16 +1,21 @@
 import alchemy from "alchemy";
-import { TanStackStart } from "alchemy/cloudflare";
+import { Nextjs } from "alchemy/cloudflare";
 import { config } from "dotenv";
 
 config({ path: "./.env" });
-config({ path: "../../apps/web/.env" });
+config({ path: "../../apps/web/.env.local" });
 
 const app = await alchemy("catansaga");
 
-export const web = await TanStackStart("web", {
+export const web = await Nextjs("web", {
   cwd: "../../apps/web",
   bindings: {
-    VITE_CONVEX_URL: alchemy.env.VITE_CONVEX_URL!,
+    NEXT_PUBLIC_CONVEX_URL: alchemy.env.NEXT_PUBLIC_CONVEX_URL!,
+  },
+  build: {
+    env: {
+      NEXT_PUBLIC_CONVEX_URL: alchemy.env.NEXT_PUBLIC_CONVEX_URL!,
+    },
   },
 });
 

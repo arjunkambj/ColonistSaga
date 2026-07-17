@@ -1,109 +1,68 @@
-# catansaga
+# Catansaga
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Convex, and more.
+Catansaga is a real-time, reconnect-safe four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current MVP intentionally supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
 
-## Features
+## MVP features
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **React Native** - Build mobile apps using React
-- **Expo** - Tools for React Native development
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **App-local UI** - Each app owns its components and styles
-- **Convex** - Reactive backend-as-a-service platform
-- **Turborepo** - Optimized monorepo build system
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Electrobun** - Lightweight desktop shell for web frontends
+- Quick Play against three deterministic bots.
+- Private rooms for up to four human players, with bot-filled empty seats.
+- Canonical 19-tile board, nine port-aware trade ratios, snake setup, production, robber/discard/steal, construction, and a 10-point victory target.
+- Server-authoritative, revisioned commands with idempotent retries.
+- Stable guest sessions and reactive reconnect through Convex.
+- Private player hands and server-only random state.
+- Responsive, keyboard-accessible board controls using the generated terrain, resource, and piece pack.
 
-## Getting Started
+The implemented state model and command contract are documented in [docs/mvp-game-schema.md](docs/mvp-game-schema.md). The complete art inventory is in [docs/game-asset-manifest.md](docs/game-asset-manifest.md).
 
-First, install the dependencies:
+## Local setup
+
+Install dependencies and configure a Convex development deployment:
 
 ```bash
 pnpm install
+pnpm dev:setup
 ```
 
-## Convex Setup
+Convex writes its local deployment values to `packages/backend/.env.local`. Add the same public deployment URL to the ignored file `apps/web/.env.local`:
 
-This project uses Convex as a backend. You'll need to set up Convex before running the app:
+```dotenv
+NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+```
+
+Run the backend and web app together:
 
 ```bash
-pnpm run dev:setup
+pnpm dev
 ```
 
-Follow the prompts to create a new Convex project and connect it to your application.
+Open [http://localhost:3001](http://localhost:3001). To run only the web client against an already-running Convex deployment, use `pnpm dev:web`.
 
-Copy environment variables from `packages/backend/.env.local` to `apps/*/.env`.
-
-Then, run the development server:
+## Verification
 
 ```bash
-pnpm run dev
+pnpm test
+pnpm check-types
+pnpm build
+pnpm check
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-Use the Expo Go app to run the mobile application.
-Your app will connect to the Convex cloud backend automatically.
-
-## UI Customization
-
-Each app owns its UI components, design tokens, and global styles. For the web app:
-
-- Change global styles in `apps/web/src/index.css`
-- Keep primitives in `apps/web/src/components/ui/*`
-- Adjust shadcn aliases or style config in `apps/web/components.json`
-
-### Add web components
-
-Run the shadcn CLI from the web app so generated components remain app-local:
+The web package can also be built and served directly:
 
 ```bash
-cd apps/web
-pnpm dlx shadcn@latest add accordion dialog popover sheet table
+pnpm --filter web build
+pnpm --filter web start
 ```
 
-Import app-local components like this:
+## Workspace
 
-```tsx
-import { Button } from "@/components/ui/button";
+```text
+apps/web                    Next.js App Router client
+apps/desktop                Electrobun shell for the static web export
+packages/game               Pure deterministic game engine and tests
+packages/backend/convex     Convex schema, rooms, state, and commands
+packages/env                Environment validation
+packages/infra              Alchemy deployment entrypoint
+docs                        Game study, schema, assets, and QA notes
 ```
 
-## Deployment
-
-### Cloudflare via Alchemy
-
-- Target: web
-- Dev: pnpm run dev
-- Deploy: pnpm run deploy
-- Destroy: pnpm run destroy
-
-For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
-
-## Git Hooks and Formatting
-
-- Run checks: `pnpm run check`
-
-## Project Structure
-
-```
-catansaga/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
-│   ├── native/      # Mobile application (React Native, Expo)
-├── packages/
-│   ├── backend/     # Convex backend functions and schema
-```
-
-## Available Scripts
-
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:web`: Start only the web application
-- `pnpm run dev:setup`: Setup and configure your Convex project
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run dev:native`: Start the React Native/Expo development server
-- `pnpm run check`: Run Oxlint and Oxfmt
-- `pnpm run dev:desktop`: Start the Electrobun desktop app with HMR
-- `pnpm run build:desktop`: Build the stable Electrobun desktop app
-- `pnpm run build:desktop:canary`: Build the canary Electrobun desktop app
-- Note: Desktop builds package static web assets. TanStack Start needs a static/export build configuration before desktop packaging will work.
+Do not edit `packages/backend/convex/_generated` manually; regenerate it through Convex. Backend secrets belong in the Convex dashboard, while the web client receives only `NEXT_PUBLIC_CONVEX_URL`.

@@ -1,6 +1,6 @@
 import type { ElectrobunConfig } from "electrobun";
 
-const webBuildDir = "../web/dist/client";
+const webBuildDir = "../web/out";
 
 export default {
   app: {
