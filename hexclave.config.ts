@@ -20,9 +20,6 @@ export const config = defineHexclaveConfig({
         },
       },
     },
-    otp: {
-      allowSignIn: true,
-    },
     password: {
       allowSignIn: false,
     },

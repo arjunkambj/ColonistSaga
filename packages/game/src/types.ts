@@ -17,6 +17,8 @@ export type TerrainType = (typeof TERRAIN_TYPES)[number];
 export type PlayerId = string;
 export type BuildingKind = "city" | "settlement";
 export type BotDifficulty = "easy" | "medium" | "hard";
+export type GameMapId = "base";
+export type PlayerCount = 3 | 4;
 export type TurnTimerSeconds = 0 | 30 | 60 | 90 | 120;
 
 export interface BaseGameSettings {
@@ -24,7 +26,8 @@ export interface BaseGameSettings {
   discardLimit: number;
   friendlyRobber: boolean;
   hideBankCards: boolean;
-  maxPlayers: 3 | 4;
+  map: GameMapId;
+  maxPlayers: PlayerCount;
   turnTimerSeconds: TurnTimerSeconds;
   victoryPoints: number;
 }

@@ -1,6 +1,13 @@
 import { TERRAIN_RESOURCE } from "./constants";
 import { DEFAULT_TOPOLOGY, getTileId } from "./topology";
-import type { BoardState, PortDescriptor, ResourceType, TerrainType, TileState } from "./types";
+import type {
+  BoardState,
+  GameMapId,
+  PortDescriptor,
+  ResourceType,
+  TerrainType,
+  TileState,
+} from "./types";
 
 interface TileDefinition {
   numberToken: number | null;
@@ -93,4 +100,11 @@ export function createDefaultBoard(): BoardState {
     robberTileId: desert.id,
     tiles,
   };
+}
+
+export function createBoard(mapId: GameMapId): BoardState {
+  switch (mapId) {
+    case "base":
+      return createDefaultBoard();
+  }
 }

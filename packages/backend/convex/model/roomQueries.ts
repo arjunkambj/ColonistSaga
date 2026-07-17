@@ -30,7 +30,7 @@ export async function allocateRoomCode(
   for (let attempt = 0; attempt < 32; attempt += 1) {
     const code = roomCodeCandidate(authUserId, now, attempt);
     const existing = await ctx.db
-      .query("mvpRooms")
+      .query("rooms")
       .withIndex("by_code", (index) => index.eq("code", code))
       .unique();
     if (!existing) return code;
@@ -40,7 +40,7 @@ export async function allocateRoomCode(
 
 export async function findRoom(ctx: ReadCtx, code: string): Promise<RoomDoc | null> {
   return await ctx.db
-    .query("mvpRooms")
+    .query("rooms")
     .withIndex("by_code", (index) => index.eq("code", code))
     .unique();
 }
@@ -54,7 +54,7 @@ export async function requireRoom(ctx: ReadCtx, rawCode: string): Promise<RoomDo
 
 export async function listSeats(ctx: ReadCtx, roomId: RoomId): Promise<SeatDoc[]> {
   const seats = await ctx.db
-    .query("mvpSeats")
+    .query("seats")
     .withIndex("by_room", (index) => index.eq("roomId", roomId))
     .take(MAX_SEATS + 1);
   if (seats.length > MAX_SEATS) {
@@ -69,7 +69,7 @@ export async function findSeatByAuthUser(
   authUserId: string,
 ): Promise<SeatDoc | null> {
   return await ctx.db
-    .query("mvpSeats")
+    .query("seats")
     .withIndex("by_room_and_auth_user_id", (index) =>
       index.eq("roomId", roomId).eq("authUserId", authUserId),
     )

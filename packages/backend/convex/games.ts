@@ -2,17 +2,10 @@ import { DEFAULT_BASE_GAME_SETTINGS, applyCommand as applyGameCommand } from "@c
 import type { GameCommand } from "@catansaga/game";
 import { ConvexError, v } from "convex/values";
 
-import {
-  earliestActionDeadlineAt,
-  isActionDeadlineExpired,
-} from "../lib/mvp-scheduling";
+import { earliestActionDeadlineAt, isActionDeadlineExpired } from "../lib/game-scheduling";
 import { mutation } from "./_generated/server";
 import { requireCurrentHexclaveUser } from "./hexclave/auth";
-import {
-  commandText,
-  serializeCommand,
-  validateCommandBounds,
-} from "./model/commands";
+import { commandText, serializeCommand, validateCommandBounds } from "./model/commands";
 import { fail } from "./model/errors";
 import {
   createRoomRecord,
@@ -96,7 +89,7 @@ export const applyCommand = mutation({
     const seat = await requireHumanSeat(ctx, room._id, user.id);
     if (!room.gameId) fail("GAME_NOT_STARTED", "Game has not started.");
 
-    const game = await ctx.db.get("mvpGames", room.gameId);
+    const game = await ctx.db.get("games", room.gameId);
     if (!game) fail("GAME_NOT_STARTED", "Game has not started.");
     const clientActionId = validateClientActionId(args.clientActionId);
     const command = args.command as GameCommand;
@@ -104,7 +97,7 @@ export const applyCommand = mutation({
     const commandJson = serializeCommand(command);
 
     const existingAction = await ctx.db
-      .query("mvpGameActions")
+      .query("gameActions")
       .withIndex("by_game_and_client_action_id", (index) =>
         index.eq("gameId", game._id).eq("clientActionId", clientActionId),
       )

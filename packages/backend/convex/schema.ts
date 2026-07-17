@@ -22,6 +22,7 @@ export const baseGameSettingsValidator = v.object({
   discardLimit: v.number(),
   friendlyRobber: v.boolean(),
   hideBankCards: v.boolean(),
+  map: v.literal("base"),
   maxPlayers: v.union(v.literal(3), v.literal(4)),
   turnTimerSeconds: v.union(
     v.literal(0),
@@ -49,12 +50,12 @@ const seatKindValidator = v.union(v.literal("human"), v.literal("bot"));
 const gameStatusValidator = v.union(v.literal("active"), v.literal("finished"));
 
 export default defineSchema({
-  mvpRooms: defineTable({
+  rooms: defineTable({
     botDifficulty: botDifficultyValidator,
     code: v.string(),
     createdAt: v.number(),
-    gameId: v.optional(v.id("mvpGames")),
-    hostSeatId: v.optional(v.id("mvpSeats")),
+    gameId: v.optional(v.id("games")),
+    hostSeatId: v.optional(v.id("seats")),
     settings: baseGameSettingsValidator,
     status: roomStatusValidator,
     updatedAt: v.number(),
@@ -62,24 +63,24 @@ export default defineSchema({
     .index("by_code", ["code"])
     .index("by_status_and_updated_at", ["status", "updatedAt"]),
 
-  mvpSeats: defineTable({
+  seats: defineTable({
     authUserId: v.optional(v.string()),
     displayName: v.string(),
     joinedAt: v.number(),
     kind: seatKindValidator,
-    roomId: v.id("mvpRooms"),
+    roomId: v.id("rooms"),
     seatIndex: v.number(),
   })
     .index("by_room", ["roomId"])
     .index("by_room_and_seat_index", ["roomId", "seatIndex"])
     .index("by_room_and_auth_user_id", ["roomId", "authUserId"]),
 
-  mvpGames: defineTable({
+  games: defineTable({
     botDifficulty: botDifficultyValidator,
     createdAt: v.number(),
     nextActionAt: v.optional(v.number()),
     revision: v.number(),
-    roomId: v.id("mvpRooms"),
+    roomId: v.id("rooms"),
     settings: baseGameSettingsValidator,
     stateJson: v.string(),
     status: gameStatusValidator,
@@ -89,14 +90,14 @@ export default defineSchema({
     .index("by_room", ["roomId"])
     .index("by_status_and_updated_at", ["status", "updatedAt"]),
 
-  mvpGameActions: defineTable({
-    actorSeatId: v.id("mvpSeats"),
+  gameActions: defineTable({
+    actorSeatId: v.id("seats"),
     afterRevision: v.number(),
     beforeRevision: v.number(),
     clientActionId: v.string(),
     commandJson: v.string(),
     createdAt: v.number(),
-    gameId: v.id("mvpGames"),
+    gameId: v.id("games"),
     text: v.string(),
   })
     .index("by_game_and_before_revision", ["gameId", "beforeRevision"])

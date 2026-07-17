@@ -1,4 +1,5 @@
-import type { BaseGameSettings } from "@catansaga/game";
+import type { BaseGameSettings, GameMapId } from "@catansaga/game";
+import { getGameMapDefinition } from "@catansaga/game/maps";
 
 export type BotCount = 0 | 1 | 2 | 3;
 
@@ -9,8 +10,15 @@ export function getBotCapacity(
   return toBotCount(Math.max(0, maxPlayers - humanCount));
 }
 
-export function getMinimumPlayerCount(humanCount: number): BaseGameSettings["maxPlayers"] {
-  return humanCount > 3 ? 4 : 3;
+export function getMinimumPlayerCount(
+  mapId: GameMapId,
+  humanCount: number,
+): BaseGameSettings["maxPlayers"] {
+  const playerCounts = getGameMapDefinition(mapId).playerCounts;
+  return (
+    playerCounts.find((playerCount) => playerCount >= humanCount) ??
+    playerCounts[playerCounts.length - 1]!
+  );
 }
 
 export function toBotCount(value: number): BotCount {

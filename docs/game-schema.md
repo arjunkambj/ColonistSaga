@@ -1,8 +1,8 @@
-# Catansaga MVP game schema
+# Catansaga game schema
 
 ## Scope
 
-The MVP implements one configurable three- or four-player Base game on the canonical 19-hex board. Custom layouts, development cards, awards, chat, rankings, and expansions are intentionally deferred.
+The game currently implements one configurable three- or four-player Base game on the canonical 19-hex board. Custom layouts, development cards, awards, chat, rankings, and expansions are intentionally deferred.
 
 ## Authoritative game state
 
@@ -52,12 +52,12 @@ Bank trades use the best port owned by the player: 2:1 for a matching resource p
 
 ## Convex persistence
 
-| Table            | Purpose                                            | Important indexes                    |
-| ---------------- | -------------------------------------------------- | ------------------------------------ |
-| `mvpRooms`       | Invite code, host, lifecycle, linked game          | room code; status/update time        |
-| `mvpSeats`       | Stable guest seat or bot controller                | room; room/session; room/seat index  |
-| `mvpGames`       | Private serialized state and revision              | room; status/update time             |
-| `mvpGameActions` | Idempotency record and ordered player-facing event | game/revision; game/client action ID |
+| Table         | Purpose                                            | Important indexes                    |
+| ------------- | -------------------------------------------------- | ------------------------------------ |
+| `rooms`       | Invite code, host, lifecycle, linked game          | room code; status/update time        |
+| `seats`       | Stable guest seat or bot controller                | room; room/session; room/seat index  |
+| `games`       | Private serialized state and revision              | room; status/update time             |
+| `gameActions` | Idempotency record and ordered player-facing event | game/revision; game/client action ID |
 
 Public Convex operations create, join, configure, start, read or reconnect, leave, and command a room. Mutations validate membership and host authority. Gameplay commands include an expected action number and a unique client action ID, so stale writes are rejected and retries are safe. Convex schedules one bot command at a time with a visible delay and uses stale-safe scheduled mutations for optional human turn deadlines.
 

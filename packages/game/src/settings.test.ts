@@ -13,6 +13,7 @@ describe("base game settings", () => {
       discardLimit: 7,
       friendlyRobber: true,
       hideBankCards: false,
+      map: "base",
       maxPlayers: 4,
       turnTimerSeconds: 60,
       victoryPoints: 10,
@@ -30,6 +31,7 @@ describe("base game settings", () => {
     });
 
     expect(state.players).toHaveLength(3);
+    expect(state.board.tiles).toHaveLength(19);
     expect(state.settings).toEqual({
       ...DEFAULT_BASE_GAME_SETTINGS,
       discardLimit: 12,
@@ -43,6 +45,7 @@ describe("base game settings", () => {
     [{ victoryPoints: 14 }, "Victory points"],
     [{ discardLimit: 4 }, "Discard limit"],
     [{ discardLimit: 21 }, "Discard limit"],
+    [{ map: "unknown" as never }, "map does not support"],
     [{ maxPlayers: 3 as const }, "Expected 3 players"],
   ])("rejects invalid settings %#", (settings, message) => {
     expect(() => createDefaultGame(createTestPlayers(), "invalid-settings", settings)).toThrow(

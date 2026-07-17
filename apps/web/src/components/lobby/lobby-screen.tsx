@@ -69,6 +69,7 @@ export function LobbyScreen({
     room.settings.discardLimit,
     room.settings.friendlyRobber,
     room.settings.hideBankCards,
+    room.settings.map,
     room.settings.maxPlayers,
     room.settings.turnTimerSeconds,
     room.settings.victoryPoints,

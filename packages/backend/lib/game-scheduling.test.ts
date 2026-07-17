@@ -8,7 +8,7 @@ import {
   isScheduledActionDue,
   nextScheduledActionAt,
   nextTurnDeadlineAt,
-} from "./mvp-scheduling.ts";
+} from "./game-scheduling.ts";
 
 const NOW = 100_000;
 const SETTINGS = {
@@ -16,6 +16,7 @@ const SETTINGS = {
   discardLimit: 7,
   friendlyRobber: true,
   hideBankCards: false,
+  map: "base",
   maxPlayers: 4,
   turnTimerSeconds: 60,
   victoryPoints: 10,

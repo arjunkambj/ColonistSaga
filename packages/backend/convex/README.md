@@ -1,6 +1,6 @@
 # Catansaga Convex backend
 
-The MVP backend stores rooms, seats, private serialized game states, and idempotent action records. Public operations are implemented in `mvp.ts`; `schema.ts` contains only the tables used by that adapter.
+The backend stores rooms, seats, private serialized game states, and idempotent action records. Public operations are organized by domain in `rooms.ts`, `games.ts`, and `automation.ts`; `schema.ts` defines their persistent tables.
 
 Run Convex commands from the repository root:
 

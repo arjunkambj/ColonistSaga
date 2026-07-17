@@ -1,4 +1,5 @@
 import type { BaseGameSettings } from "@catansaga/game";
+import { mapSupportsPlayerCount } from "@catansaga/game/maps";
 
 import { ROOM_CODE_LENGTH } from "./constants";
 import { fail } from "./errors";
@@ -38,7 +39,7 @@ export function createPrivateGameSeed(): string {
   const randomParts = Array.from({ length: 4 }, () =>
     Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36),
   );
-  return `catansaga-mvp-v1:${randomParts.join(":")}`;
+  return `catansaga-game-v1:${randomParts.join(":")}`;
 }
 
 export function validateActionNumber(value: number): number {
@@ -74,8 +75,11 @@ export function validateGameSettings(settings: BaseGameSettings): BaseGameSettin
   if (![0, 30, 60, 90, 120].includes(settings.turnTimerSeconds)) {
     fail("INVALID_SETTINGS", "Turn timer must be 0, 30, 60, 90, or 120 seconds.");
   }
-  if (settings.maxPlayers !== 3 && settings.maxPlayers !== 4) {
-    fail("INVALID_SETTINGS", "Player count must be 3 or 4.");
+  if (settings.map !== "base") {
+    fail("INVALID_SETTINGS", "Map must be the Base Map.");
+  }
+  if (!mapSupportsPlayerCount(settings.map, settings.maxPlayers)) {
+    fail("INVALID_SETTINGS", "The Base Map supports three or four players.");
   }
   return { ...settings };
 }

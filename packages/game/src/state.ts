@@ -1,5 +1,6 @@
-import { createDefaultBoard } from "./board";
+import { createBoard } from "./board";
 import { BANK_RESOURCE_COUNT, DEFAULT_BASE_GAME_SETTINGS, INITIAL_PIECES } from "./constants";
+import { mapSupportsPlayerCount } from "./maps";
 import { emptyInventory, filledInventory } from "./resources";
 import { GameRuleError } from "./types";
 import type { BaseGameSettings, BotDifficulty, GamePlayerInput, GameState } from "./types";
@@ -21,6 +22,7 @@ function createSettings(
     discardLimit: overrides.discardLimit ?? DEFAULT_BASE_GAME_SETTINGS.discardLimit,
     friendlyRobber: overrides.friendlyRobber ?? DEFAULT_BASE_GAME_SETTINGS.friendlyRobber,
     hideBankCards: overrides.hideBankCards ?? DEFAULT_BASE_GAME_SETTINGS.hideBankCards,
+    map: overrides.map ?? DEFAULT_BASE_GAME_SETTINGS.map,
     maxPlayers: overrides.maxPlayers ?? playerCount,
     turnTimerSeconds: overrides.turnTimerSeconds ?? DEFAULT_BASE_GAME_SETTINGS.turnTimerSeconds,
     victoryPoints: overrides.victoryPoints ?? DEFAULT_BASE_GAME_SETTINGS.victoryPoints,
@@ -56,6 +58,13 @@ function createSettings(
     throw new GameRuleError(
       "INVALID_COMMAND",
       `Expected ${settings.maxPlayers} players, received ${playerCount}`,
+    );
+  }
+
+  if (!mapSupportsPlayerCount(settings.map, playerCount)) {
+    throw new GameRuleError(
+      "INVALID_COMMAND",
+      `The ${settings.map} map does not support ${playerCount} players`,
     );
   }
 
@@ -112,7 +121,7 @@ export function createDefaultGame(
     activePlayerId: firstPlayer.id,
     balancedDiceBag: [],
     bank: filledInventory(BANK_RESOURCE_COUNT),
-    board: createDefaultBoard(),
+    board: createBoard(settings.map),
     lastDiceRoll: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
     players: players.map((player, seatIndex) => {

@@ -1,6 +1,7 @@
 export * from "./board";
 export * from "./bots";
 export * from "./constants";
+export * from "./maps";
 export * from "./random";
 export * from "./resources";
 export * from "./rules";

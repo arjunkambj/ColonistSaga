@@ -19,6 +19,7 @@ export const DEFAULT_BASE_GAME_SETTINGS: Readonly<BaseGameSettings> = Object.fre
   discardLimit: DEFAULT_DISCARD_LIMIT,
   friendlyRobber: true,
   hideBankCards: false,
+  map: "base",
   maxPlayers: 4,
   turnTimerSeconds: 60,
   victoryPoints: 10,

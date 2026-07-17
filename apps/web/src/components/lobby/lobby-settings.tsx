@@ -1,6 +1,7 @@
 "use client";
 
-import type { BaseGameSettings, BotDifficulty } from "@catansaga/game";
+import type { BaseGameSettings, BotDifficulty, GameMapId } from "@catansaga/game";
+import { AVAILABLE_GAME_MAPS, getGameMapDefinition } from "@catansaga/game/maps";
 import { Description, Label, ListBox, NumberField, Select, Switch } from "@heroui/react";
 import { useId } from "react";
 import type { CSSProperties } from "react";
@@ -15,7 +16,6 @@ import {
 export type { BotCount } from "@/lib/lobby/lobby-settings-model";
 
 const TURN_TIMER_OPTIONS = [0, 30, 60, 90, 120] as const;
-const MAX_PLAYER_OPTIONS = [3, 4] as const;
 const BOT_DIFFICULTY_OPTIONS = [
   {
     description: "Builds legal moves quickly without planning far ahead.",
@@ -67,7 +67,8 @@ export function LobbySettings({
   const id = useId();
   const botLimit = getBotCapacity(settings.maxPlayers, humanCount);
   const botFloor = toBotCount(Math.min(minBotCount, botLimit));
-  const minPlayerCount = getMinimumPlayerCount(humanCount);
+  const selectedMap = getGameMapDefinition(settings.map);
+  const minPlayerCount = getMinimumPlayerCount(settings.map, humanCount);
   const selectedDifficulty =
     BOT_DIFFICULTY_OPTIONS.find((option) => option.value === botDifficulty) ??
     BOT_DIFFICULTY_OPTIONS[0];
@@ -200,7 +201,7 @@ export function LobbySettings({
             </Description>
             <Select.Popover className="lobby-settings-popover">
               <ListBox>
-                {MAX_PLAYER_OPTIONS.map((playerCount) => (
+                {selectedMap.playerCounts.map((playerCount) => (
                   <ListBox.Item
                     id={String(playerCount)}
                     isDisabled={playerCount < minPlayerCount}
@@ -296,6 +297,36 @@ export function LobbySettings({
             <h2 id={`${id}-options-title`}>Table Options</h2>
             <p>Apply the same optional rules to every player.</p>
           </header>
+
+          <Select
+            className="lobby-settings-control"
+            isDisabled={disabled}
+            onChange={(value) => updateSetting("map", value as GameMapId)}
+            value={settings.map}
+          >
+            <Label className="lobby-settings-label">Map</Label>
+            <Select.Trigger
+              aria-describedby={`${id}-map-description`}
+              className="lobby-settings-select"
+              id={`${id}-map`}
+            >
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Description className="lobby-settings-description" id={`${id}-map-description`}>
+              {selectedMap.description}
+            </Description>
+            <Select.Popover className="lobby-settings-popover">
+              <ListBox>
+                {AVAILABLE_GAME_MAPS.map((map) => (
+                  <ListBox.Item id={map.id} key={map.id} textValue={map.label}>
+                    {map.label}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
 
           <RuleToggle
             checked={settings.friendlyRobber}

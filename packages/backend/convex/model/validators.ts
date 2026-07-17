@@ -34,7 +34,7 @@ export const roomViewValidator = v.object({
   botThinking: v.boolean(),
   code: v.string(),
   events: v.array(gameEventViewValidator),
-  gameId: v.optional(v.id("mvpGames")),
+  gameId: v.optional(v.id("games")),
   gameJson: v.optional(v.string()),
   isHost: v.boolean(),
   members: v.array(roomMemberViewValidator),

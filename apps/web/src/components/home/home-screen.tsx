@@ -2,7 +2,7 @@
 
 import { DEFAULT_BASE_GAME_SETTINGS } from "@catansaga/game";
 import { Button, Input, Label, Modal, TextField } from "@heroui/react";
-import { Bot, Gamepad2, LogOut, Sparkles, Users } from "lucide-react";
+import { Bot, Gamepad2, LogOut, Settings, Sparkles, Users, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -13,6 +13,7 @@ import {
 } from "@/components/lobby/lobby-settings";
 import { Brand } from "@/components/ui/brand";
 import { LiveMessage } from "@/components/ui/live-message";
+import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
 import { isRoomCode, normalizeRoomCode } from "@/lib/session";
 
@@ -41,12 +42,24 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const [joinCode, setJoinCode] = useState("");
   const [showBotSetup, setShowBotSetup] = useState(false);
+  const [showPlayerSettings, setShowPlayerSettings] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState(displayName);
   const [quickSettings, setQuickSettings] = useState<LobbySettingsValue>({
     botCount: 3,
     botDifficulty: "medium",
     settings: { ...DEFAULT_BASE_GAME_SETTINGS },
   });
   const isPending = pendingAction !== null;
+
+  const openPlayerSettings = () => {
+    setDisplayNameDraft(displayName);
+    setShowPlayerSettings(true);
+  };
+
+  const savePlayerSettings = () => {
+    onDisplayNameChange(cleanDisplayName(displayNameDraft));
+    setShowPlayerSettings(false);
+  };
 
   return (
     <main className="home-page" id="main-content">
@@ -57,7 +70,7 @@ export function HomeScreen({
           fill
           priority
           sizes="100vw"
-          src="/home-assets/island-bay-v1.webp"
+          src="/home-assets/blue-archipelago-v2.webp"
         />
       </div>
 
@@ -67,6 +80,19 @@ export function HomeScreen({
           <span className="status-pill">
             <span aria-hidden="true" className="status-dot" /> {accountLabel}
           </span>
+          <Button
+            aria-controls="player-settings-dialog"
+            aria-expanded={showPlayerSettings}
+            aria-haspopup="dialog"
+            aria-label="Open player settings"
+            className="icon-button home-settings-button"
+            isDisabled={isPending}
+            isIconOnly
+            onPress={openPlayerSettings}
+            variant="ghost"
+          >
+            <Settings aria-hidden="true" />
+          </Button>
           <Button
             className="button button-quiet home-sign-out"
             isPending={pendingAction === "signout"}
@@ -78,7 +104,7 @@ export function HomeScreen({
       </header>
 
       <section className="hero-panel">
-        <div className="hero-copy">
+        <div className="home-hero">
           <p className="eyebrow">
             <Sparkles size={16} aria-hidden="true" /> A New Island Every Game
           </p>
@@ -100,29 +126,12 @@ export function HomeScreen({
           </ul>
         </div>
 
-        <div className="play-card">
-          <div className="play-card-heading">
+        <div className="home-play">
+          <div className="home-play-heading">
             <p className="eyebrow">Your Seat</p>
             <h2>Choose Your Voyage</h2>
-            <p>Set your name, then pick how you want to reach the island.</p>
+            <p>Enter a friend code or choose how you want to reach the island.</p>
           </div>
-
-          <TextField
-            fullWidth
-            name="displayName"
-            onChange={onDisplayNameChange}
-            value={displayName}
-          >
-            <Label className="field-label">Display Name</Label>
-            <Input
-              autoComplete="off"
-              className="text-input"
-              id="display-name"
-              maxLength={24}
-              placeholder="Example: River Fox…"
-              spellCheck={false}
-            />
-          </TextField>
 
           <form
             className="join-code-form"
@@ -155,7 +164,7 @@ export function HomeScreen({
               aria-controls="bot-setup-dialog"
               aria-expanded={showBotSetup}
               aria-haspopup="dialog"
-              className="home-menu-tile home-menu-quick"
+              className="home-menu-tile"
               isDisabled={isPending || !displayName.trim()}
               onPress={() => setShowBotSetup(true)}
               variant="ghost"
@@ -174,7 +183,7 @@ export function HomeScreen({
             </Button>
 
             <Button
-              className="home-menu-tile home-menu-host"
+              className="home-menu-tile"
               isDisabled={isPending || !displayName.trim()}
               onPress={onCreateRoom}
               variant="ghost"
@@ -193,7 +202,7 @@ export function HomeScreen({
             </Button>
 
             <Button
-              className="home-menu-tile home-menu-join"
+              className="home-menu-tile"
               isDisabled={isPending || !isRoomCode(joinCode) || !displayName.trim()}
               form="join-room-form"
               type="submit"
@@ -216,6 +225,92 @@ export function HomeScreen({
           <LiveMessage message={error} />
         </div>
       </section>
+
+      <Modal>
+        <Modal.Backdrop
+          className="setup-backdrop"
+          isDismissable={!isPending}
+          isKeyboardDismissDisabled={isPending}
+          isOpen={showPlayerSettings}
+          onOpenChange={(isOpen) => {
+            if (!isOpen && !isPending) {
+              setShowPlayerSettings(false);
+            }
+          }}
+        >
+          <Modal.Container>
+            <Modal.Dialog
+              aria-describedby="player-settings-description"
+              className="setup-dialog player-settings-dialog"
+              id="player-settings-dialog"
+            >
+              <Modal.Header className="setup-dialog-header">
+                <div>
+                  <p className="eyebrow">Player Settings</p>
+                  <Modal.Heading>Your Island Name</Modal.Heading>
+                  <p id="player-settings-description">
+                    This is the name other players will see at the table.
+                  </p>
+                </div>
+                <Button
+                  aria-label="Close player settings"
+                  className="setup-close"
+                  isDisabled={isPending}
+                  isIconOnly
+                  onPress={() => setShowPlayerSettings(false)}
+                  variant="ghost"
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              </Modal.Header>
+              <Modal.Body>
+                <form
+                  className="player-settings-form"
+                  id="player-settings-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    savePlayerSettings();
+                  }}
+                >
+                  <TextField
+                    fullWidth
+                    name="displayName"
+                    onChange={setDisplayNameDraft}
+                    value={displayNameDraft}
+                  >
+                    <Label className="field-label">Display Name</Label>
+                    <Input
+                      autoComplete="off"
+                      className="text-input"
+                      maxLength={24}
+                      placeholder="Example: River Fox…"
+                      spellCheck={false}
+                    />
+                  </TextField>
+                </form>
+              </Modal.Body>
+              <Modal.Footer className="player-settings-actions">
+                <Button
+                  className="button button-quiet"
+                  isDisabled={isPending}
+                  onPress={() => setShowPlayerSettings(false)}
+                  variant="ghost"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="button button-primary"
+                  form="player-settings-form"
+                  isDisabled={isPending || !displayNameDraft.trim()}
+                  type="submit"
+                >
+                  Save Name
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       <Modal>
         <Modal.Backdrop
@@ -293,7 +388,7 @@ function normalizeQuickSettings(
   if (next.settings.maxPlayers !== current.settings.maxPlayers) {
     return {
       ...next,
-      botCount: next.settings.maxPlayers === 4 ? 3 : 2,
+      botCount: (next.settings.maxPlayers - 1) as BotCount,
     };
   }
 

@@ -11,7 +11,7 @@ import type { GameEventView, GameId, ReadCtx, RoomDoc, RoomView, SeatDoc } from 
 
 async function listGameEvents(ctx: ReadCtx, gameId: GameId): Promise<GameEventView[]> {
   const events = await ctx.db
-    .query("mvpGameActions")
+    .query("gameActions")
     .withIndex("by_game_and_after_revision", (index) => index.eq("gameId", gameId))
     .order("desc")
     .take(40);
@@ -46,7 +46,7 @@ export async function toRoomView(ctx: ReadCtx, room: RoomDoc, seat: SeatDoc): Pr
   };
   if (!room.gameId) return base;
 
-  const game = await ctx.db.get("mvpGames", room.gameId);
+  const game = await ctx.db.get("games", room.gameId);
   if (!game) fail("CORRUPT_GAME_STATE", "Room points to a missing game.");
   const state = parseGameState(game.stateJson);
   const events = await listGameEvents(ctx, game._id);

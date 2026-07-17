@@ -2,15 +2,11 @@ import { applyCommand, chooseAutomatedCommand } from "@catansaga/game";
 import type { GameCommand, GameState } from "@catansaga/game";
 import { v } from "convex/values";
 
-import { isScheduledActionDue } from "../lib/mvp-scheduling";
+import { isScheduledActionDue } from "../lib/game-scheduling";
 import { internalMutation } from "./_generated/server";
 import { commandText } from "./model/commands";
 import { fail } from "./model/errors";
-import {
-  parseGameState,
-  persistAppliedCommand,
-  requiredAutomatedActor,
-} from "./model/gameState";
+import { parseGameState, persistAppliedCommand, requiredAutomatedActor } from "./model/gameState";
 import { validateActionNumber } from "./model/normalize";
 import { listSeats } from "./model/roomQueries";
 
@@ -18,7 +14,7 @@ export const runAutomatedAction = internalMutation({
   args: {
     expectedActionNumber: v.number(),
     expectedActorPlayerId: v.optional(v.string()),
-    gameId: v.id("mvpGames"),
+    gameId: v.id("games"),
     scheduledFor: v.optional(v.number()),
   },
   returns: v.null(),
@@ -27,7 +23,7 @@ export const runAutomatedAction = internalMutation({
       return null;
     }
     const expectedActionNumber = validateActionNumber(args.expectedActionNumber);
-    const game = await ctx.db.get("mvpGames", args.gameId);
+    const game = await ctx.db.get("games", args.gameId);
     if (
       !game ||
       game.status !== "active" ||

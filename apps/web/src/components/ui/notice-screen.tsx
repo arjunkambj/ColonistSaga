@@ -43,17 +43,19 @@ export function NoticeScreen({
 
   return (
     <>
-      <main className="centered-page notice-card" id="main-content">
-        <Brand />
-        <h1>{title}</h1>
-        <p>{message}</p>
-        <Button
-          className="button button-primary"
-          isPending={runningAction}
-          onPress={() => (confirmation ? setShowConfirmation(true) : void runAction())}
-        >
-          {actionLabel}
-        </Button>
+      <main className="centered-page notice-page" id="main-content">
+        <section className="notice-card">
+          <Brand />
+          <h1>{title}</h1>
+          <p>{message}</p>
+          <Button
+            className="button button-primary"
+            isPending={runningAction}
+            onPress={() => (confirmation ? setShowConfirmation(true) : void runAction())}
+          >
+            {actionLabel}
+          </Button>
+        </section>
       </main>
       {confirmation && showConfirmation ? (
         <ConfirmationDialog

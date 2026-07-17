@@ -59,7 +59,7 @@ export const updateLobbyConfiguration = mutation({
     const settings = validateGameSettings(args.settings);
     await fitWaitingSeatsToSettings(ctx, room, settings);
     await setWaitingBotCount(ctx, { ...room, settings }, args.botCount);
-    await ctx.db.patch("mvpRooms", room._id, {
+    await ctx.db.patch("rooms", room._id, {
       botDifficulty: args.botDifficulty,
       settings,
       updatedAt: Date.now(),
@@ -86,7 +86,7 @@ export const joinRoom = mutation({
     const now = Date.now();
     if (seats.length < room.settings.maxPlayers) {
       const seatIndex = nextOpenSeatIndex(seats, room.settings.maxPlayers);
-      await ctx.db.insert("mvpSeats", {
+      await ctx.db.insert("seats", {
         authUserId: user.id,
         displayName,
         joinedAt: now,
@@ -99,14 +99,14 @@ export const joinRoom = mutation({
         .filter((seat) => seat.kind === "bot")
         .sort((left, right) => right.seatIndex - left.seatIndex)[0];
       if (!replaceableBot) fail("ROOM_FULL", "Room is full.");
-      await ctx.db.patch("mvpSeats", replaceableBot._id, {
+      await ctx.db.patch("seats", replaceableBot._id, {
         authUserId: user.id,
         displayName,
         joinedAt: now,
         kind: "human",
       });
     }
-    await ctx.db.patch("mvpRooms", room._id, { updatedAt: Date.now() });
+    await ctx.db.patch("rooms", room._id, { updatedAt: Date.now() });
     return { code: room.code };
   },
 });
@@ -124,13 +124,13 @@ export const leaveRoom = mutation({
     if (room.status === "waiting") {
       const seats = await listSeats(ctx, room._id);
       if (seat._id === room.hostSeatId) {
-        await Promise.all(seats.map((waitingSeat) => ctx.db.delete("mvpSeats", waitingSeat._id)));
-        await ctx.db.delete("mvpRooms", room._id);
+        await Promise.all(seats.map((waitingSeat) => ctx.db.delete("seats", waitingSeat._id)));
+        await ctx.db.delete("rooms", room._id);
         return null;
       }
 
-      await ctx.db.delete("mvpSeats", seat._id);
-      await ctx.db.patch("mvpRooms", room._id, { updatedAt: Date.now() });
+      await ctx.db.delete("seats", seat._id);
+      await ctx.db.patch("rooms", room._id, { updatedAt: Date.now() });
       return null;
     }
 
@@ -140,7 +140,7 @@ export const leaveRoom = mutation({
     );
     if (room.status === "active" && remainingHumans.length === 0) {
       if (!room.gameId) fail("CORRUPT_GAME_STATE", "Active room does not have a game.");
-      const game = await ctx.db.get("mvpGames", room.gameId);
+      const game = await ctx.db.get("games", room.gameId);
       if (!game) fail("CORRUPT_GAME_STATE", "Room points to a missing game.");
       const state = parseGameState(game.stateJson);
       if (game.revision !== state.actionNumber) {
@@ -154,23 +154,23 @@ export const leaveRoom = mutation({
         winnerPlayerId: null,
       };
       const now = Date.now();
-      await ctx.db.patch("mvpSeats", seat._id, {
+      await ctx.db.patch("seats", seat._id, {
         authUserId: undefined,
         displayName: `Bot ${seat.seatIndex + 1}`,
         kind: "bot",
       });
-      await ctx.db.patch("mvpGames", game._id, {
+      await ctx.db.patch("games", game._id, {
         nextActionAt: undefined,
         stateJson: serializeGameState(nextState),
         status: gameStatus(nextState),
         turnDeadlineAt: undefined,
         updatedAt: now,
       });
-      await ctx.db.patch("mvpRooms", room._id, {
+      await ctx.db.patch("rooms", room._id, {
         status: gameStatus(nextState),
         updatedAt: now,
       });
-      await ctx.db.insert("mvpGameActions", {
+      await ctx.db.insert("gameActions", {
         actorSeatId: seat._id,
         afterRevision: game.revision,
         beforeRevision: game.revision,
@@ -187,7 +187,7 @@ export const leaveRoom = mutation({
     if (room.status === "active" && seat._id === room.hostSeatId) {
       const nextHost = remainingHumans[0];
       if (nextHost) {
-        await ctx.db.patch("mvpRooms", room._id, { hostSeatId: nextHost._id });
+        await ctx.db.patch("rooms", room._id, { hostSeatId: nextHost._id });
         eventText = `${eventText} ${nextHost.displayName} is now the room host.`;
       }
     }
@@ -228,13 +228,13 @@ export const replacePlayerWithBot = mutation({
     }
 
     if (room.status === "waiting") {
-      await ctx.db.patch("mvpSeats", targetSeat._id, {
+      await ctx.db.patch("seats", targetSeat._id, {
         authUserId: undefined,
         displayName: `Bot ${targetSeat.seatIndex + 1}`,
         joinedAt: Date.now(),
         kind: "bot",
       });
-      await ctx.db.patch("mvpRooms", room._id, { updatedAt: Date.now() });
+      await ctx.db.patch("rooms", room._id, { updatedAt: Date.now() });
       return null;
     }
     if (room.status === "finished") {

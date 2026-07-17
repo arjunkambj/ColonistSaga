@@ -692,16 +692,18 @@ function UnavailablePlayerView({ onLeave }: { onLeave(): Promise<void> }) {
 
   return (
     <>
-      <main className="centered-page notice-card" id="main-content">
-        <h1>Player View Unavailable</h1>
-        <p>Your private seat could not be matched to this game. Refresh to reconnect.</p>
-        <Button
-          className="button button-secondary"
-          onPress={() => setShowConfirmation(true)}
-          variant="secondary"
-        >
-          Leave Game
-        </Button>
+      <main className="centered-page notice-page" id="main-content">
+        <section className="notice-card">
+          <h1>Player View Unavailable</h1>
+          <p>Your private seat could not be matched to this game. Refresh to reconnect.</p>
+          <Button
+            className="button button-secondary"
+            onPress={() => setShowConfirmation(true)}
+            variant="secondary"
+          >
+            Leave Game
+          </Button>
+        </section>
       </main>
       {showConfirmation ? (
         <ConfirmationDialog

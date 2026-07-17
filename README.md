@@ -1,8 +1,8 @@
 # Catansaga
 
-Catansaga is a real-time, reconnect-safe three- or four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current MVP intentionally supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
+Catansaga is a real-time, reconnect-safe three- or four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current game supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
 
-## MVP features
+## Features
 
 - Quick Play against two or three paced deterministic bots with Easy, Medium, and Hard strategies.
 - Private three- or four-seat rooms with atomic bot, timer, victory-target, discard, dice, robber, and bank-visibility settings.
@@ -12,7 +12,7 @@ Catansaga is a real-time, reconnect-safe three- or four-player island board game
 - Private player hands and server-only random state.
 - Full-viewport, keyboard-accessible game controls using the generated terrain, resource, piece, and trade art pack.
 
-The implemented state model and command contract are documented in [docs/mvp-game-schema.md](docs/mvp-game-schema.md). The complete art inventory is in [docs/game-asset-manifest.md](docs/game-asset-manifest.md).
+The implemented state model and command contract are documented in [docs/game-schema.md](docs/game-schema.md). The complete art inventory is in [docs/game-asset-manifest.md](docs/game-asset-manifest.md).
 
 ## Local setup
 

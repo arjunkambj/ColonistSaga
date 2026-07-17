@@ -6,12 +6,12 @@ import type { roomViewValidator } from "./validators";
 
 export type ReadCtx = Pick<QueryCtx, "db">;
 export type WriteCtx = MutationCtx;
-export type RoomDoc = Doc<"mvpRooms">;
-export type SeatDoc = Doc<"mvpSeats">;
-export type GameDoc = Doc<"mvpGames">;
-export type RoomId = Id<"mvpRooms">;
-export type GameId = Id<"mvpGames">;
-export type SeatId = Id<"mvpSeats">;
+export type RoomDoc = Doc<"rooms">;
+export type SeatDoc = Doc<"seats">;
+export type GameDoc = Doc<"games">;
+export type RoomId = Id<"rooms">;
+export type GameId = Id<"games">;
+export type SeatId = Id<"seats">;
 export type RoomView = Infer<typeof roomViewValidator>;
 export type GameEventView = {
   createdAt: number;
