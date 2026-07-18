@@ -1,8 +1,19 @@
 "use client";
 
 import { DEFAULT_BASE_GAME_SETTINGS } from "@catansaga/game";
-import { Button, Input, Label, Modal, TextField } from "@heroui/react";
-import { Bot, Gamepad2, LogOut, Settings, Sparkles, Users, X } from "lucide-react";
+import { Button, Input, Label, Modal, Slider, TextField } from "@heroui/react";
+import {
+  Bot,
+  CircleHelp,
+  Dices,
+  Gift,
+  House,
+  LogOut,
+  Settings,
+  UsersRound,
+  Volume2,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -12,7 +23,9 @@ import {
   type LobbySettingsValue,
 } from "@/components/lobby/lobby-settings";
 import { Brand } from "@/components/ui/brand";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { LiveMessage } from "@/components/ui/live-message";
+import { VoyageCard } from "@/components/ui/voyage-card";
 import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
 import { isRoomCode, normalizeRoomCode } from "@/lib/session";
@@ -21,29 +34,47 @@ export interface HomeScreenProps {
   accountLabel: string;
   displayName: string;
   error: string;
+  musicVolume: number;
   onCreateRoom(): Promise<void>;
   onDisplayNameChange(value: string): void;
   onJoinRoom(code: string): Promise<void>;
+  onMusicVolumeChange(value: number): void;
   onQuickPlay(value: LobbySettingsValue): Promise<void>;
   onSignOut(): Promise<void | null>;
   pendingAction: PendingAction;
+  profileImageUrl: string | null;
 }
+
+const HOME_DESTINATIONS = [
+  { icon: "store", label: "Store" },
+  { icon: "collection", label: "Collection" },
+  { icon: "leaderboard", label: "Leaderboard" },
+  { icon: "achievements", label: "Achievements" },
+  { icon: "news", label: "News" },
+] as const;
 
 export function HomeScreen({
   accountLabel,
   displayName,
   error,
+  musicVolume,
   onCreateRoom,
   onDisplayNameChange,
   onJoinRoom,
+  onMusicVolumeChange,
   onQuickPlay,
   onSignOut,
   pendingAction,
+  profileImageUrl,
 }: HomeScreenProps) {
   const [joinCode, setJoinCode] = useState("");
+  const [showJoinRoom, setShowJoinRoom] = useState(false);
   const [showBotSetup, setShowBotSetup] = useState(false);
   const [showPlayerSettings, setShowPlayerSettings] = useState(false);
+  const [homeNotice, setHomeNotice] = useState<{ description: string; title: string } | null>(null);
   const [displayNameDraft, setDisplayNameDraft] = useState(displayName);
+  const [musicVolumeDraft, setMusicVolumeDraft] = useState(musicVolume);
+  const [musicVolumeAtOpen, setMusicVolumeAtOpen] = useState(musicVolume);
   const [quickSettings, setQuickSettings] = useState<LobbySettingsValue>({
     botCount: 3,
     botDifficulty: "medium",
@@ -53,6 +84,8 @@ export function HomeScreen({
 
   const openPlayerSettings = () => {
     setDisplayNameDraft(displayName);
+    setMusicVolumeDraft(musicVolume);
+    setMusicVolumeAtOpen(musicVolume);
     setShowPlayerSettings(true);
   };
 
@@ -61,170 +94,329 @@ export function HomeScreen({
     setShowPlayerSettings(false);
   };
 
+  const cancelPlayerSettings = () => {
+    onMusicVolumeChange(musicVolumeAtOpen);
+    setShowPlayerSettings(false);
+  };
+
+  const updateMusicVolumeDraft = (value: number | number[]) => {
+    const nextVolume = Array.isArray(value) ? value[0] : value;
+    setMusicVolumeDraft(nextVolume);
+    onMusicVolumeChange(nextVolume);
+  };
+
   return (
-    <main className="home-page" id="main-content">
-      <div className="home-backdrop" aria-hidden="true">
+    <main className="home-page voyage-home" id="main-content">
+      <div className="home-backdrop voyage-home__backdrop" aria-hidden="true">
         <Image
           alt=""
-          className="home-scenery"
+          className="home-scenery voyage-home__scenery"
           fill
           priority
           sizes="100vw"
-          src="/home-assets/blue-archipelago-v2.webp"
+          src="/shared-assets/coastal-cove-day-v1.jpg"
         />
       </div>
 
-      <header className="site-header">
+      <header className="site-header voyage-header">
         <Brand />
-        <div className="home-header-actions">
-          <span className="status-pill">
-            <span aria-hidden="true" className="status-dot" /> {accountLabel}
-          </span>
-          <Button
-            aria-controls="player-settings-dialog"
-            aria-expanded={showPlayerSettings}
-            aria-haspopup="dialog"
-            aria-label="Open player settings"
-            className="icon-button home-settings-button"
-            isDisabled={isPending}
-            isIconOnly
-            onPress={openPlayerSettings}
-            variant="ghost"
+        <div className="voyage-header__tools">
+          <LiquidGlass
+            className="voyage-header__decoration voyage-header__decoration--gift"
+            kind="control"
+            radius="md"
           >
-            <Settings aria-hidden="true" />
-          </Button>
-          <Button
-            className="button button-quiet home-sign-out"
-            isPending={pendingAction === "signout"}
-            onPress={() => void onSignOut()}
+            <Button
+              aria-label="Open island rewards"
+              className="voyage-header__decorative-button"
+              isDisabled={isPending}
+              isIconOnly
+              onPress={() =>
+                setHomeNotice({
+                  description:
+                    "Daily island rewards are being prepared and will appear here in a future update.",
+                  title: "Island Rewards",
+                })
+              }
+              variant="ghost"
+            >
+              <span className="voyage-header__icon">
+                <Gift aria-hidden="true" />
+              </span>
+              <span className="voyage-header__notification">2</span>
+            </Button>
+          </LiquidGlass>
+
+          <LiquidGlass className="voyage-header__decoration" kind="control" radius="md">
+            <Button
+              aria-label="Open main menu help"
+              className="voyage-header__decorative-button"
+              isDisabled={isPending}
+              isIconOnly
+              onPress={() =>
+                setHomeNotice({
+                  description:
+                    "Quick Match starts a bot table, Host Island creates a private room, and Join Crew uses a friend's six-character code.",
+                  title: "Choose Your Voyage",
+                })
+              }
+              variant="ghost"
+            >
+              <span className="voyage-header__icon">
+                <CircleHelp aria-hidden="true" />
+              </span>
+            </Button>
+          </LiquidGlass>
+
+          <LiquidGlass className="voyage-header__control" kind="control" radius="md">
+            <Button
+              aria-controls="player-settings-dialog"
+              aria-expanded={showPlayerSettings}
+              aria-haspopup="dialog"
+              aria-label="Open player settings"
+              className="voyage-header__button"
+              isDisabled={isPending}
+              isIconOnly
+              onPress={openPlayerSettings}
+              variant="ghost"
+            >
+              <Settings aria-hidden="true" />
+            </Button>
+          </LiquidGlass>
+
+          <LiquidGlass
+            aria-label={`Player profile for ${displayName}`}
+            as="section"
+            className="voyage-profile"
+            kind="panel"
+            radius="md"
           >
-            <LogOut aria-hidden="true" /> Sign Out
-          </Button>
+            <span aria-hidden="true" className="voyage-profile__avatar">
+              <Image
+                alt=""
+                className="voyage-profile__avatar-image"
+                height={128}
+                src={profileImageUrl ?? "/game-assets/players/red-navigator-v1.png"}
+                width={128}
+              />
+            </span>
+            <span className="voyage-profile__copy">
+              <strong>{displayName}</strong>
+              <small>{accountLabel}</small>
+            </span>
+            <Button
+              aria-label="Sign out"
+              className="voyage-profile__sign-out"
+              isDisabled={isPending && pendingAction !== "signout"}
+              isIconOnly
+              isPending={pendingAction === "signout"}
+              onPress={() => void onSignOut()}
+              variant="ghost"
+            >
+              <LogOut aria-hidden="true" />
+            </Button>
+          </LiquidGlass>
         </div>
       </header>
 
-      <section className="hero-panel">
-        <div className="home-hero">
-          <p className="eyebrow">
-            <Sparkles size={16} aria-hidden="true" /> A New Island Every Game
-          </p>
-          <h1>Build Boldly. Trade Wisely. Rule the Island.</h1>
-          <p className="hero-description">
-            A polished three- or four-player strategy game with quick turns, friendly bots, and a
-            board made for every screen.
-          </p>
-          <ul className="feature-row" aria-label="Game features">
-            <li>
-              <Users aria-hidden="true" /> 3–4 Players
-            </li>
-            <li>
-              <Bot aria-hidden="true" /> Smart Bots
-            </li>
-            <li>
-              <Gamepad2 aria-hidden="true" /> 10-Point Game
-            </li>
-          </ul>
+      <section aria-labelledby="voyage-heading" className="voyage-stage">
+        <h1 className="sr-only" id="voyage-heading">
+          Choose your voyage
+        </h1>
+        <div aria-label="Ways to play" className="voyage-card-grid" role="group">
+          <VoyageCard
+            actionLabel="Set up a quick match"
+            badge={<Dices />}
+            description="Play instantly with bots or players"
+            disabled={isPending || !displayName.trim()}
+            imageSrc="/home-assets/menu/quick-match.png"
+            onPress={() => setShowBotSetup(true)}
+            pending={pendingAction === "quick"}
+            title="Quick Match"
+            tone="quick"
+          />
+          <VoyageCard
+            actionLabel="Create a private room"
+            badge={<House />}
+            description="Create a private room"
+            disabled={isPending || !displayName.trim()}
+            imageSrc="/home-assets/menu/host-island.png"
+            onPress={() => void onCreateRoom()}
+            pending={pendingAction === "create"}
+            title="Host Island"
+            tone="host"
+          />
+          <VoyageCard
+            actionLabel="Enter a friend room code"
+            badge={<UsersRound />}
+            description="Enter a friend code"
+            disabled={isPending || !displayName.trim()}
+            imageSrc="/home-assets/menu/join-crew.png"
+            onPress={() => setShowJoinRoom(true)}
+            pending={pendingAction === "join"}
+            title="Join Crew"
+            tone="join"
+          />
         </div>
-
-        <div className="home-play">
-          <div className="home-play-heading">
-            <p className="eyebrow">Your Seat</p>
-            <h2>Choose Your Voyage</h2>
-            <p>Enter a friend code or choose how you want to reach the island.</p>
-          </div>
-
-          <form
-            className="join-code-form"
-            id="join-room-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void onJoinRoom(joinCode);
-            }}
-          >
-            <TextField
-              name="roomCode"
-              onChange={(value) => setJoinCode(normalizeRoomCode(value))}
-              value={joinCode}
-            >
-              <Label className="field-label">Friend Room Code</Label>
-              <Input
-                autoComplete="off"
-                className="text-input code-input"
-                id="room-code"
-                inputMode="text"
-                maxLength={6}
-                placeholder="Room code…"
-                spellCheck={false}
-              />
-            </TextField>
-          </form>
-
-          <div aria-label="Ways to play" className="home-menu-grid" role="group">
-            <Button
-              aria-controls="bot-setup-dialog"
-              aria-expanded={showBotSetup}
-              aria-haspopup="dialog"
-              className="home-menu-tile"
-              isDisabled={isPending || !displayName.trim()}
-              onPress={() => setShowBotSetup(true)}
-              variant="ghost"
-            >
-              <span className="home-menu-art">
-                <Image
-                  alt=""
-                  aria-hidden="true"
-                  height={512}
-                  src="/home-assets/menu/quick-match.png"
-                  width={512}
-                />
-              </span>
-              <strong>{pendingAction === "quick" ? "Preparing…" : "Quick Match"}</strong>
-              <small>Customize 2–3 bots</small>
-            </Button>
-
-            <Button
-              className="home-menu-tile"
-              isDisabled={isPending || !displayName.trim()}
-              onPress={onCreateRoom}
-              variant="ghost"
-            >
-              <span className="home-menu-art">
-                <Image
-                  alt=""
-                  aria-hidden="true"
-                  height={512}
-                  src="/home-assets/menu/host-island.png"
-                  width={512}
-                />
-              </span>
-              <strong>{pendingAction === "create" ? "Opening…" : "Host Island"}</strong>
-              <small>Create a private room</small>
-            </Button>
-
-            <Button
-              className="home-menu-tile"
-              isDisabled={isPending || !isRoomCode(joinCode) || !displayName.trim()}
-              form="join-room-form"
-              type="submit"
-              variant="ghost"
-            >
-              <span className="home-menu-art">
-                <Image
-                  alt=""
-                  aria-hidden="true"
-                  height={512}
-                  src="/home-assets/menu/join-crew.png"
-                  width={512}
-                />
-              </span>
-              <strong>{pendingAction === "join" ? "Joining…" : "Join Crew"}</strong>
-              <small>Use a friend code</small>
-            </Button>
-          </div>
-
-          <LiveMessage message={error} />
-        </div>
+        <LiveMessage message={error} />
       </section>
+
+      <LiquidGlass
+        aria-label="Island destinations"
+        as="nav"
+        className="voyage-bottom-nav"
+        kind="panel"
+        radius="pill"
+      >
+        {HOME_DESTINATIONS.map((destination) => (
+          <Button
+            aria-label={`Open ${destination.label}`}
+            className="voyage-bottom-nav__item"
+            isDisabled={isPending}
+            key={destination.icon}
+            onPress={() =>
+              setHomeNotice({
+                description: `${destination.label} is charted for a future Catansaga voyage. The core multiplayer table is ready now.`,
+                title: `${destination.label} — Coming Soon`,
+              })
+            }
+            variant="ghost"
+          >
+            <span
+              aria-hidden="true"
+              className={`voyage-bottom-nav__icon voyage-bottom-nav__icon--${destination.icon}`}
+            />
+            <span>{destination.label}</span>
+          </Button>
+        ))}
+      </LiquidGlass>
+
+      <Modal>
+        <Modal.Backdrop
+          className="setup-backdrop"
+          isOpen={homeNotice !== null}
+          onOpenChange={(isOpen) => (isOpen ? undefined : setHomeNotice(null))}
+        >
+          <Modal.Container>
+            <Modal.Dialog
+              aria-describedby="home-notice-description"
+              className="setup-dialog home-notice-dialog"
+            >
+              <Modal.Header className="setup-dialog-header">
+                <div>
+                  <p className="eyebrow">Island Guide</p>
+                  <Modal.Heading>{homeNotice?.title ?? "Catansaga"}</Modal.Heading>
+                  <p id="home-notice-description">{homeNotice?.description}</p>
+                </div>
+                <Button
+                  aria-label="Close island guide"
+                  className="setup-close"
+                  isIconOnly
+                  onPress={() => setHomeNotice(null)}
+                  variant="ghost"
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              </Modal.Header>
+              <Modal.Footer>
+                <Button className="button button-primary" onPress={() => setHomeNotice(null)}>
+                  Got It
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+
+      <Modal>
+        <Modal.Backdrop
+          className="setup-backdrop"
+          isDismissable={!isPending}
+          isKeyboardDismissDisabled={isPending}
+          isOpen={showJoinRoom}
+          onOpenChange={(isOpen) => {
+            if (!isOpen && !isPending) {
+              setShowJoinRoom(false);
+            }
+          }}
+        >
+          <Modal.Container>
+            <Modal.Dialog
+              aria-describedby="join-room-description"
+              className="setup-dialog join-room-dialog"
+              id="join-room-dialog"
+            >
+              <Modal.Header className="setup-dialog-header">
+                <div>
+                  <p className="eyebrow">Join Crew</p>
+                  <Modal.Heading>Enter a Friend Code</Modal.Heading>
+                  <p id="join-room-description">
+                    Ask the host for their six-character room code, then meet them at the island.
+                  </p>
+                </div>
+                <Button
+                  aria-label="Close join room"
+                  className="setup-close"
+                  isDisabled={isPending}
+                  isIconOnly
+                  onPress={() => setShowJoinRoom(false)}
+                  variant="ghost"
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              </Modal.Header>
+              <Modal.Body>
+                <form
+                  className="join-code-form"
+                  id="join-room-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void onJoinRoom(joinCode);
+                  }}
+                >
+                  <TextField
+                    fullWidth
+                    name="roomCode"
+                    onChange={(value) => setJoinCode(normalizeRoomCode(value))}
+                    value={joinCode}
+                  >
+                    <Label className="field-label">Friend Room Code</Label>
+                    <Input
+                      autoComplete="off"
+                      autoFocus
+                      className="text-input code-input"
+                      id="room-code"
+                      inputMode="text"
+                      maxLength={6}
+                      placeholder="Room code…"
+                      spellCheck={false}
+                    />
+                  </TextField>
+                </form>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button
+                  className="button button-quiet"
+                  isDisabled={isPending}
+                  onPress={() => setShowJoinRoom(false)}
+                  variant="ghost"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="button button-primary"
+                  form="join-room-form"
+                  isDisabled={isPending || !isRoomCode(joinCode) || !displayName.trim()}
+                  isPending={pendingAction === "join"}
+                  type="submit"
+                >
+                  {pendingAction === "join" ? "Joining…" : "Join Crew"}
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       <Modal>
         <Modal.Backdrop
@@ -234,7 +426,7 @@ export function HomeScreen({
           isOpen={showPlayerSettings}
           onOpenChange={(isOpen) => {
             if (!isOpen && !isPending) {
-              setShowPlayerSettings(false);
+              cancelPlayerSettings();
             }
           }}
         >
@@ -257,7 +449,7 @@ export function HomeScreen({
                   className="setup-close"
                   isDisabled={isPending}
                   isIconOnly
-                  onPress={() => setShowPlayerSettings(false)}
+                  onPress={cancelPlayerSettings}
                   variant="ghost"
                 >
                   <X aria-hidden="true" />
@@ -287,13 +479,35 @@ export function HomeScreen({
                       spellCheck={false}
                     />
                   </TextField>
+
+                  <div className="music-volume-setting">
+                    <Slider
+                      className="music-volume-slider"
+                      formatOptions={{ style: "unit", unit: "percent" }}
+                      maxValue={100}
+                      minValue={0}
+                      onChange={updateMusicVolumeDraft}
+                      step={1}
+                      value={musicVolumeDraft}
+                    >
+                      <Label className="field-label music-volume-label">
+                        <Volume2 aria-hidden="true" /> Music Volume
+                      </Label>
+                      <Slider.Output className="music-volume-output" />
+                      <Slider.Track className="music-volume-track">
+                        <Slider.Fill className="music-volume-fill" />
+                        <Slider.Thumb className="music-volume-thumb" />
+                      </Slider.Track>
+                    </Slider>
+                    <p>Adjust the menu soundtrack volume.</p>
+                  </div>
                 </form>
               </Modal.Body>
               <Modal.Footer className="player-settings-actions">
                 <Button
                   className="button button-quiet"
                   isDisabled={isPending}
-                  onPress={() => setShowPlayerSettings(false)}
+                  onPress={cancelPlayerSettings}
                   variant="ghost"
                 >
                   Cancel
@@ -304,7 +518,7 @@ export function HomeScreen({
                   isDisabled={isPending || !displayNameDraft.trim()}
                   type="submit"
                 >
-                  Save Name
+                  Save Settings
                 </Button>
               </Modal.Footer>
             </Modal.Dialog>

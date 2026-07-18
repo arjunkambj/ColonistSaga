@@ -16,6 +16,13 @@ export interface EdgePlacement extends PixelCoordinate {
   angle: number;
 }
 
+export interface PortPlacement extends EdgePlacement {
+  docks: readonly [
+    { end: PixelCoordinate; start: PixelCoordinate },
+    { end: PixelCoordinate; start: PixelCoordinate },
+  ];
+}
+
 export function getTilePoint(coordinate: AxialCoordinate): PixelCoordinate {
   return toCanvasPoint(axialToPixel(coordinate, BOARD_CANVAS.tileRadius));
 }
@@ -48,21 +55,42 @@ export function getEdgePlacement(edgeKey: string): EdgePlacement | null {
   };
 }
 
-export function getPortPoint(edgeKey: string): EdgePlacement | null {
+export function getPortPlacement(edgeKey: string): PortPlacement | null {
   const edge = getEdgePlacement(edgeKey);
-  if (!edge) {
+  const [firstVertexKey, secondVertexKey] = DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? [];
+  const firstVertex = firstVertexKey ? getVertexPoint(firstVertexKey) : null;
+  const secondVertex = secondVertexKey ? getVertexPoint(secondVertexKey) : null;
+
+  if (!edge || !firstVertex || !secondVertex) {
     return null;
   }
 
   const relativeX = edge.x - BOARD_CANVAS.centerX;
   const relativeY = edge.y - BOARD_CANVAS.centerY;
   const length = Math.hypot(relativeX, relativeY) || 1;
-  const outwardDistance = 66;
+  const outward = { x: relativeX / length, y: relativeY / length };
+  const tangent = { x: -outward.y, y: outward.x };
+  const outwardDistance = 82;
+  const point = {
+    x: edge.x + outward.x * outwardDistance,
+    y: edge.y + outward.y * outwardDistance,
+  };
+  const dockHalfWidth = 20;
+  const dockInset = 12;
+  const firstSide =
+    (firstVertex.x - edge.x) * tangent.x + (firstVertex.y - edge.y) * tangent.y < 0 ? -1 : 1;
+  const getDockEnd = (side: number) => ({
+    x: point.x - outward.x * dockInset + tangent.x * dockHalfWidth * side,
+    y: point.y - outward.y * dockInset + tangent.y * dockHalfWidth * side,
+  });
 
   return {
     ...edge,
-    x: edge.x + (relativeX / length) * outwardDistance,
-    y: edge.y + (relativeY / length) * outwardDistance,
+    ...point,
+    docks: [
+      { end: getDockEnd(firstSide), start: firstVertex },
+      { end: getDockEnd(-firstSide), start: secondVertex },
+    ],
   };
 }
 

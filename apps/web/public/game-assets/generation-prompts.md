@@ -359,3 +359,126 @@ Composition/framing: isolated three-quarter view, cart facing right, complete si
 Scene/backdrop: perfectly flat #ff00ff chroma-key background for local alpha removal.
 Constraints: no words, numbers, logos, watermark, UI panels, characters, coins, gems, branded board-game imagery, or extra scenery.
 ```
+
+## ui/ocean-board-canvas-v1.webp
+
+Generated with OpenAI's built-in image generation tool. The two supplied board screenshots were style and composition references only, not edit targets.
+
+```text
+Use case: stylized-concept
+Asset type: Catansaga in-game board canvas background, wide responsive raster backdrop
+Input images: Image 1 is a style reference for the polished friendly clay-board warmth and turquoise water palette; Image 2 is a composition reference for a clear blue tabletop surrounding a centered game board. Neither image is an edit target.
+Primary request: Create an original premium illustrated ocean tabletop backdrop for a multiplayer hex-board game. The live board will be rendered in code over the center, so the middle 72% must stay visually quiet and unobstructed.
+Scene/backdrop: bright turquoise open water viewed directly top-down, with very subtle soft wavelets, tiny foam flecks, faint depth gradients, and restrained illustrated shoreline hints only at the extreme corners.
+Style/medium: polished casual strategy game environment art; soft 3D-clay/painterly hybrid; warm, tactile, friendly, clean enough for a production game UI.
+Composition/framing: 16:9 landscape; calm low-contrast center; slightly richer vignette and tiny decorative maritime details only near the far outer edges; seamless visual flow with no hard frame.
+Lighting/mood: bright soft daylight, inviting, calm, legible.
+Color palette: aqua, turquoise, sea-glass blue, tiny warm sand accents at distant corners.
+Constraints: no board tiles, no hexagons, no ports, no ships, no buildings, no characters, no cards, no buttons, no text, no logo, no watermark; avoid any important detail beneath the central board; no UI chrome.
+Avoid: flat solid blue, photorealism, high-frequency noise, dramatic waves, dark navy water, cluttered center, perspective horizon.
+```
+
+## ui/port-skiff-v1.png
+
+Generated with OpenAI's built-in image generation tool on a flat `#ff00ff` background, then converted to RGBA with the image-generation skill's chroma-removal helper using a soft matte, despill, and a one-pixel edge contraction.
+
+```text
+Use case: stylized-concept
+Asset type: reusable Catansaga board-game port marker cutout
+Input images: the supplied board UI with sailing port markers is a composition reference only; the polished clay board screenshot is a material/style reference; the newly generated turquoise ocean is a palette reference. None is an edit target.
+Primary request: Create one original tiny friendly island trading skiff used as a harbor marker around a hex board.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, water, or lighting variation.
+Subject: one compact front-three-quarter wooden skiff with a rounded warm-wood hull, tiny teal trim, one short mast, and one broad blank cream sail; the boat points upward and slightly right. Keep the middle of the sail quiet and empty because a live resource icon will be overlaid there in code.
+Style/medium: polished casual strategy-game 3D clay token; softly rounded handcrafted shapes; friendly, premium, high readability at 56 px.
+Composition/framing: centered isolated boat, complete silhouette, generous even padding, upright portrait footprint.
+Lighting/mood: bright soft upper-left studio light on subject only; restrained internal ambient occlusion.
+Color palette: honey wood, cream sail, teal trim, tiny golden accents; do not use #ff00ff in the subject.
+Constraints: single opaque boat only; blank sail; no letters, numbers, resource icons, anchor, flag text, logo, watermark, ocean, dock, rope extending outside silhouette, exterior cast shadow, or extra objects.
+Avoid: pirate ship, realistic ship rigging, thin fragile lines, photorealism, dark mood, cropped sail or hull.
+```
+
+## ui/market-trade-v1.png
+
+Generated with OpenAI's built-in image generation tool on a flat `#ff00ff` background, then converted to a normalized 256×256 RGBA PNG with the chroma-removal helper.
+
+```text
+Use case: stylized-concept
+Asset type: Catansaga action-dock game UI icon, transparent cutout source
+Input images: Image 1 is a resource-card hierarchy reference; Image 2 is an action-dock composition reference; Image 3 is a player-banner hierarchy reference; Image 4 is a turn-banner and dice reference. All are references only, not edit targets, and their artwork must not be copied.
+Primary request: Create one original compact MARKET TRADE action icon for a friendly multiplayer island strategy game.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, or lighting variation.
+Subject: a small teal-and-gold merchant satchel with a rolled cream map tucked inside and two bold curved exchange arrows crossing on the front; one cohesive fused icon silhouette.
+Style/medium: polished casual-game 3D clay icon matching Catansaga's rounded terrain and resource assets; tactile, cheerful, premium, immediately readable at 48–64 px.
+Composition/framing: centered isolated icon, front three-quarter view, square footprint, complete silhouette, 12% even padding.
+Lighting/mood: bright soft upper-left studio light on subject only; restrained internal ambient occlusion.
+Color palette: teal, sea-glass blue, honey gold, warm cream; do not use #ff00ff in the subject.
+Constraints: one icon only; no card frame, no button background, no hands, no characters, no letters, no numbers, no logo, no watermark, no island scenery, no exterior cast shadow, no extra objects.
+Avoid: copying reference icons, photorealism, thin arrows, dark colors, tiny detail, cropped silhouette.
+```
+
+## ui/end-turn-hourglass-v1.png
+
+Generated with OpenAI's built-in image generation tool on a flat `#ff00ff` background, then converted to a normalized 256×256 RGBA PNG with the chroma-removal helper.
+
+```text
+Use case: stylized-concept
+Asset type: Catansaga action-dock game UI icon, transparent cutout source
+Input images: the four supplied UI screenshots are hierarchy and action-dock references only; the newly generated market satchel is the authoritative style, material, camera, padding, lighting, and palette reference. None is an edit target.
+Primary request: Create one original compact END TURN icon for a friendly multiplayer island strategy game.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, or lighting variation.
+Subject: one chunky upright hourglass with a honey-gold rounded frame, teal glass chambers, and warm cream sand mostly collected in the bottom chamber; strong simple silhouette.
+Style/medium: same polished casual-game 3D clay icon as the market satchel; rounded handcrafted forms, tactile, cheerful, premium, immediately readable at 48–64 px.
+Composition/framing: centered isolated icon, front three-quarter view, square footprint, complete silhouette, 12% even padding.
+Lighting/mood: bright soft upper-left studio light on subject only; restrained internal ambient occlusion.
+Color palette: honey gold, teal, sea-glass blue, warm cream; do not use #ff00ff in the subject.
+Constraints: one icon only; no card frame, no button background, no hands, no characters, no letters, no numbers, no arrows, no logo, no watermark, no scenery, no exterior cast shadow, no extra objects.
+Avoid: copying reference icons, photorealism, thin fragile frame, dark colors, tiny detail, cropped silhouette.
+```
+
+## pieces/road-v2.png
+
+Generated with OpenAI's built-in image generation tool in `stylized-concept`
+mode on a pure `#ff00ff` chroma-key background. The selected source was
+converted to a transparent, tightly padded 512 × 512 PNG with the
+image-generation skill's soft-matte chroma removal helper.
+
+```text
+Create one ultra-minimal board-game ROAD token only: a single short, straight,
+horizontal wooden beam made from exactly three broad joined rectangular
+segments with gently rounded corners. Use a chunky physical-pawn silhouette,
+warm ivory wood, one amber side face, a thin dark navy-brown outline, flat
+polished 3D shading, and almost no texture. It must remain readable at 16 px.
+Center the complete object with 16% empty margin on a perfectly flat #ff00ff
+background. No curve, cobblestones, planks, grain, cracks, bolts, scenery,
+shadow, text, logo, watermark, or extra objects.
+```
+
+## pieces/settlement-v2.png
+
+Generated and normalized with the same `stylized-concept`, chroma-key, soft
+matte, padding, and 512 × 512 workflow as `road-v2.png`.
+
+```text
+Create one ultra-minimal board-game SETTLEMENT token only: exactly two primary
+shapes, a compact square body and one simple steep triangular roof, plus one
+small centered arched doorway. Use a chunky physical-pawn silhouette, warm
+ivory front, one amber side face, a thin dark navy-brown outline, flat polished
+3D shading, and no surface texture. Center the complete object on a perfectly
+flat #ff00ff background. No porch, windows, chimney, fence, steps, shingles,
+bricks, scenery, cast shadow, text, logo, watermark, or extra objects.
+```
+
+## pieces/city-v2.png
+
+Generated and normalized with the same `stylized-concept`, chroma-key, soft
+matte, padding, and 512 × 512 workflow as the other minimalist piece tokens.
+
+```text
+Create one ultra-minimal board-game CITY token only: exactly three simple fused
+blocks, one taller central house block with a triangular roof and two shorter
+side blocks. Use a compact upgraded-settlement silhouette, warm ivory fronts,
+amber side faces, a thin dark navy-brown outline, flat polished 3D shading, and
+almost no detail. Center the complete object on a perfectly flat #ff00ff
+background. No towers, spires, battlements, windows, chimney, bricks, scenery,
+cast shadow, text, logo, watermark, or extra objects.
+```

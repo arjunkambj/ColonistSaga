@@ -15,35 +15,61 @@ import { Button, Modal } from "@heroui/react";
 import { useMutation } from "convex/react";
 import {
   Bot,
-  BrickWall,
-  Castle,
-  ChevronRight,
+  CircleHelp,
   Crown,
   Dices,
   Flag,
   Hammer,
-  Home,
   Info,
-  LogOut,
-  Route,
+  Layers3,
+  Maximize2,
+  Minimize2,
   ScrollText,
+  Settings,
   ShieldCheck,
+  Trophy,
   UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { Brand } from "@/components/ui/brand";
+import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
+import { ActionTile } from "./action-tile";
 import { GameBoard, getPlayerTheme, getTargetMode, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
+import { PieceIcon, type PieceAsset, type PieceTheme } from "./piece-icon";
 import { TradeCenter } from "./trade-center";
 
 type GameConfirmation =
   | { kind: "leave" }
   | { displayName: string; kind: "replace"; playerId: string };
+
+type GameInfoView = "help" | "overview";
+
+const DIE_PIPS: Record<number, readonly number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+};
+
+const BOT_PORTRAITS = {
+  blue: "/game-assets/players/bot-blue-v2.png",
+  green: "/game-assets/players/bot-green-v2.png",
+  orange: "/game-assets/players/bot-orange-v2.png",
+  red: "/game-assets/players/bot-orange-v2.png",
+} as const;
+
+const EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+});
 
 export function GameScreen({
   code,
@@ -53,6 +79,7 @@ export function GameScreen({
   botThinking,
   nextActionAt,
   onLeave,
+  viewerProfileImageUrl,
 }: {
   code: string;
   events: RoomEventView[];
@@ -61,6 +88,7 @@ export function GameScreen({
   botThinking: boolean;
   nextActionAt?: number;
   onLeave(): Promise<void>;
+  viewerProfileImageUrl: string | null;
 }) {
   const applyCommand = useMutation(api.games.applyCommand);
   const replacePlayerWithBot = useMutation(api.rooms.replacePlayerWithBot);
@@ -69,7 +97,8 @@ export function GameScreen({
   const [pendingReplacementId, setPendingReplacementId] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<GameConfirmation | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [showGameInfo, setShowGameInfo] = useState(false);
+  const [gameInfoView, setGameInfoView] = useState<GameInfoView | null>(null);
+  const [isBoardFocused, setIsBoardFocused] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
 
@@ -144,67 +173,119 @@ export function GameScreen({
   };
 
   return (
-    <main className="game-page" id="main-content">
+    <main
+      className={`game-page reference-game${isBoardFocused ? " is-board-focused" : ""}`}
+      id="main-content"
+    >
       <header className="game-header">
-        <div className="brand compact-brand" translate="no">
-          <span className="brand-mark" aria-hidden="true">
-            C
-          </span>
-          <span>
-            <strong>CATAN</strong>
-            <small>SAGA</small>
-          </span>
-        </div>
+        <Brand className="compact-brand" />
         <div className="game-room-meta">
           <span translate="no">Room {code}</span>
           <span>Turn {game.turnNumber}</span>
-          <span>First to {game.victoryPoints} VP</span>
+          <span className="victory-target-pill">
+            <Trophy aria-hidden="true" /> First to {game.victoryPoints} VP
+          </span>
         </div>
         <div className="game-header-actions">
           <Button
+            aria-controls="game-info-dialog"
+            aria-expanded={gameInfoView === "overview"}
+            aria-haspopup="dialog"
+            aria-label="Open game information"
+            className="icon-button game-settings-button"
+            isIconOnly
+            onPress={() => setGameInfoView("overview")}
+            variant="ghost"
+          >
+            <Settings aria-hidden="true" />
+          </Button>
+          <Button
+            aria-controls="game-info-dialog"
+            aria-expanded={gameInfoView === "help"}
+            aria-haspopup="dialog"
+            aria-label="Open game help"
+            className="icon-button game-help-button"
+            isIconOnly
+            onPress={() => setGameInfoView("help")}
+            variant="ghost"
+          >
+            <CircleHelp aria-hidden="true" />
+          </Button>
+          <Button
+            aria-controls="game-sidebar-panels"
+            aria-label={isBoardFocused ? "Restore table panels" : "Focus on the game board"}
+            aria-pressed={isBoardFocused}
+            className="icon-button board-focus-button"
+            isIconOnly
+            onPress={() => {
+              setIsBoardFocused((current) => !current);
+              setGameInfoView(null);
+            }}
+            variant="ghost"
+          >
+            {isBoardFocused ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+          </Button>
+          <Button
+            aria-controls="game-info-dialog"
+            aria-expanded={gameInfoView === "overview"}
+            aria-haspopup="dialog"
             aria-label="Open island supply and game log"
             className="icon-button mobile-game-info-button"
             isIconOnly
-            onPress={() => setShowGameInfo(true)}
+            onPress={() => setGameInfoView("overview")}
             variant="ghost"
           >
             <Info aria-hidden="true" />
           </Button>
           <Button
             aria-label="Leave game"
-            className="icon-button"
+            className="icon-button player-menu-button"
             isIconOnly
             onPress={() => setConfirmation({ kind: "leave" })}
             variant="ghost"
           >
-            <LogOut aria-hidden="true" />
+            <span aria-hidden="true">{getPlayerInitials(me.displayName).slice(0, 1)}</span>
           </Button>
         </div>
       </header>
 
-      <PlayerStrip
-        activePlayerId={game.activePlayerId}
-        isHost={isHost}
-        onReplacePlayer={(playerId) => {
-          const player = game.players.find((candidate) => candidate.id === playerId);
-          if (player) {
-            setConfirmation({
-              displayName: player.displayName,
-              kind: "replace",
-              playerId,
-            });
-          }
-        }}
-        pendingReplacementId={pendingReplacementId}
-        players={game.players}
-      />
+      <aside className="game-sidebar" aria-label="Table status and game information">
+        <div
+          aria-hidden={isBoardFocused || undefined}
+          className="game-sidebar-panels"
+          id="game-sidebar-panels"
+          inert={isBoardFocused || undefined}
+        >
+          <EventLog events={events} />
+          <BankPanel bank={game.bank} />
+        </div>
 
-      <section className="phase-banner" aria-labelledby="phase-title">
+        <PlayerStrip
+          activePlayerId={game.activePlayerId}
+          isHost={isHost}
+          onReplacePlayer={(playerId) => {
+            const player = game.players.find((candidate) => candidate.id === playerId);
+            if (player) {
+              setConfirmation({
+                displayName: player.displayName,
+                kind: "replace",
+                playerId,
+              });
+            }
+          }}
+          pendingReplacementId={pendingReplacementId}
+          players={game.players}
+          viewerProfileImageUrl={viewerProfileImageUrl}
+          victoryTarget={game.victoryPoints}
+        />
+      </aside>
+
+      <section className="phase-banner phase-banner-overlay" aria-labelledby="phase-title">
         <div className="phase-icon" aria-hidden="true">
           {game.phase.kind === "roll" ? <Dices /> : <Flag />}
         </div>
-        <div>
-          <p className="eyebrow">Turn Status</p>
+        <div className="phase-copy">
+          <p className="eyebrow">Turn {game.turnNumber}</p>
           <h1 id="phase-title">{phaseCopy.title}</h1>
           <p>{phaseCopy.detail}</p>
         </div>
@@ -214,19 +295,13 @@ export function GameScreen({
         </div>
       </section>
 
-      <div className="game-workspace">
-        <GameBoard
-          buildMode={buildMode}
-          game={game}
-          onCommand={(command, message) => void sendCommand(command, message)}
-          pending={pendingCommand !== null}
-        />
-
-        <aside className="game-sidebar" aria-label="Game information">
-          <BankPanel bank={game.bank} />
-          <EventLog events={events} />
-        </aside>
-      </div>
+      <GameBoard
+        buildMode={buildMode}
+        game={game}
+        onCancelBuildMode={() => setBuildMode(null)}
+        onCommand={(command, message) => void sendCommand(command, message)}
+        pending={pendingCommand !== null}
+      />
 
       <footer className="game-footer">
         <ResourceHand me={me} />
@@ -247,8 +322,14 @@ export function GameScreen({
         />
       </footer>
 
-      {showGameInfo ? (
-        <MobileGameInfo bank={game.bank} events={events} onClose={() => setShowGameInfo(false)} />
+      {gameInfoView ? (
+        <MobileGameInfo
+          code={code}
+          events={events}
+          game={game}
+          onClose={() => setGameInfoView(null)}
+          view={gameInfoView}
+        />
       ) : null}
 
       {confirmation ? (
@@ -289,35 +370,103 @@ function PlayerStrip({
   onReplacePlayer,
   pendingReplacementId,
   players,
+  viewerProfileImageUrl,
+  victoryTarget,
 }: {
   activePlayerId: string;
   isHost: boolean;
   onReplacePlayer(playerId: string): void;
   pendingReplacementId: string | null;
   players: PlayerGameView["players"];
+  viewerProfileImageUrl: string | null;
+  victoryTarget: number;
 }) {
   return (
     <ol className="player-strip" aria-label="Players">
       {players.map((player) => {
         const theme = getPlayerTheme(player);
+        const isActive = player.id === activePlayerId;
+        const avatarSrc = player.isBot
+          ? BOT_PORTRAITS[theme]
+          : player.isViewer
+            ? viewerProfileImageUrl
+            : null;
+        const identityLabel = player.isViewer ? "You" : player.isBot ? "Bot" : null;
+        const turnLabel = player.isViewer ? "Your turn" : player.isBot ? "Thinking" : "Playing";
         return (
           <li
-            className={`player-summary player-${theme} ${player.id === activePlayerId ? "is-active" : ""}`}
+            aria-current={isActive ? "true" : undefined}
+            className={`player-summary player-${theme}${isActive ? " is-active" : ""}${player.isViewer ? " is-viewer" : ""}`}
             key={player.id}
           >
-            <span className="player-avatar" aria-hidden="true">
-              {player.isBot ? <Bot /> : <UserRound />}
+            <span
+              className={player.isBot ? "player-avatar is-bot" : "player-avatar is-human"}
+              aria-hidden="true"
+            >
+              <span className="player-avatar-fallback">
+                {getPlayerInitials(player.displayName)}
+              </span>
+              {avatarSrc ? (
+                <img
+                  alt=""
+                  className="player-avatar-image"
+                  draggable={false}
+                  height={512}
+                  onError={(event) => {
+                    event.currentTarget.hidden = true;
+                  }}
+                  src={avatarSrc}
+                  width={512}
+                />
+              ) : null}
             </span>
             <div className="player-name">
-              <strong>{player.displayName}</strong>
-              <span>{player.isViewer ? "You" : player.isBot ? "Bot" : "Player"}</span>
+              <div className="player-identity-line">
+                <strong title={player.displayName}>{player.displayName}</strong>
+                {identityLabel ? <em>{identityLabel}</em> : null}
+              </div>
+              {isActive ? (
+                <span className="player-turn-status">
+                  <i aria-hidden="true" /> {turnLabel}
+                </span>
+              ) : null}
             </div>
-            <span aria-label={`${player.victoryPoints} victory points`} className="player-stat">
-              <Crown aria-hidden="true" /> {player.victoryPoints}
-            </span>
-            <span aria-label={`${player.resourceCount} resource cards`} className="player-stat">
-              <BrickWall aria-hidden="true" /> {player.resourceCount}
-            </span>
+            <div className="player-victory-progress">
+              <span
+                aria-label={`${player.victoryPoints} of ${victoryTarget} victory points`}
+                className="player-stat player-victory-stat"
+              >
+                <Crown aria-hidden="true" />
+                <strong>{player.victoryPoints}</strong>
+                <small>VP</small>
+              </span>
+            </div>
+            <div className="player-table-supply">
+              <span
+                aria-label={`${player.resourceCount} resource cards`}
+                className="player-stat player-resource-stat"
+              >
+                <Layers3 aria-hidden="true" />
+                <strong>{player.resourceCount}</strong> <small>cards</small>
+              </span>
+              <div className="player-piece-stats" aria-label="Pieces remaining" role="group">
+                <span aria-label={`${player.piecesRemaining.roads} roads remaining`} role="img">
+                  <PieceIcon asset="road" theme={theme} />
+                  <strong>{player.piecesRemaining.roads}</strong>
+                </span>
+                <span
+                  aria-label={`${player.piecesRemaining.settlements} settlements remaining`}
+                  role="img"
+                >
+                  <PieceIcon asset="settlement" theme={theme} />
+                  <strong>{player.piecesRemaining.settlements}</strong>
+                </span>
+                <span aria-label={`${player.piecesRemaining.cities} cities remaining`} role="img">
+                  <PieceIcon asset="city" theme={theme} />
+                  <strong>{player.piecesRemaining.cities}</strong>
+                </span>
+              </div>
+            </div>
             {isHost && !player.isViewer && !player.isBot ? (
               <Button
                 aria-label={`Replace ${player.displayName} with a bot`}
@@ -340,18 +489,39 @@ function PlayerStrip({
 function DiceResult({ game }: { game: PlayerGameView }) {
   if (!game.lastDiceRoll) {
     return (
-      <div className="dice-result is-empty">
-        <Dices aria-hidden="true" />
-        <span>Not rolled</span>
+      <div className="dice-result is-empty" aria-label="No dice have been rolled yet" role="group">
+        <span className="dice-result-label">Last roll</span>
+        <span className="dice-result-empty">Not rolled</span>
       </div>
     );
   }
   return (
-    <div className="dice-result" aria-label={`Last roll ${game.lastDiceRoll.sum}`}>
-      <span>{game.lastDiceRoll.first}</span>
-      <span>{game.lastDiceRoll.second}</span>
-      <strong>{game.lastDiceRoll.sum}</strong>
+    <div
+      className="dice-result"
+      aria-label={`Last roll: ${game.lastDiceRoll.first} and ${game.lastDiceRoll.second}, total ${game.lastDiceRoll.sum}`}
+      role="group"
+    >
+      <span className="dice-result-label">Last roll</span>
+      <span className="dice-result-faces" aria-hidden="true">
+        <DieFace value={game.lastDiceRoll.first} />
+        <DieFace value={game.lastDiceRoll.second} />
+      </span>
+      <span className="dice-result-total" aria-hidden="true">
+        <small>Total</small>
+        <strong>{game.lastDiceRoll.sum}</strong>
+      </span>
     </div>
+  );
+}
+
+function DieFace({ value }: { value: number }) {
+  const visiblePips = DIE_PIPS[value] ?? [];
+  return (
+    <span aria-hidden="true" className="die-face">
+      {Array.from({ length: 9 }, (_, index) => (
+        <i className={visiblePips.includes(index) ? "is-visible" : ""} key={index} />
+      ))}
+    </span>
   );
 }
 
@@ -360,17 +530,29 @@ function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; id
   return (
     <section className="side-card" aria-labelledby={titleId}>
       <div className="side-card-title">
-        <h2 id={titleId}>Island Supply</h2>
+        <h2 id={titleId}>Resource Market</h2>
         <ShieldCheck aria-hidden="true" />
       </div>
       <ul className="bank-grid">
         {RESOURCE_ORDER.map((resource) => (
-          <li key={resource}>
+          <li
+            aria-label={`${RESOURCE_LABELS[resource]}: ${bank ? bank[resource] : "unknown"}`}
+            key={resource}
+          >
             <ResourceIcon decorative resource={resource} size={30} />
             <span>{RESOURCE_LABELS[resource]}</span>
             <strong>{bank ? bank[resource] : "?"}</strong>
           </li>
         ))}
+        <li
+          aria-disabled="true"
+          aria-label="Development card supply is not part of this ruleset"
+          className="bank-mystery"
+        >
+          <span aria-hidden="true" className="bank-mystery-icon">
+            ?
+          </span>
+        </li>
       </ul>
     </section>
   );
@@ -386,12 +568,20 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
         <h2 id={titleId}>Game Log</h2>
         <ScrollText aria-hidden="true" />
       </div>
-      <ol className="event-list" aria-live="polite">
+      <p aria-atomic="true" aria-live="polite" className="sr-only">
+        {visibleEvents[0]?.text ?? "No moves yet."}
+      </p>
+      <ol className="event-list">
         {visibleEvents.length > 0 ? (
           visibleEvents.map((event) => (
             <li key={event.sequence}>
               <span aria-hidden="true" />
-              <p>{event.text}</p>
+              <div className="event-copy">
+                <p>{event.text}</p>
+                <time dateTime={new Date(event.createdAt).toISOString()}>
+                  {EVENT_TIME_FORMATTER.format(event.createdAt)}
+                </time>
+              </div>
             </li>
           ))
         ) : (
@@ -406,23 +596,39 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
 }
 
 function MobileGameInfo({
-  bank,
+  code,
   events,
+  game,
   onClose,
+  view,
 }: {
-  bank: ResourceInventory | null;
+  code: string;
   events: RoomEventView[];
+  game: PlayerGameView;
   onClose(): void;
+  view: GameInfoView;
 }) {
+  const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
+  const isHelp = view === "help";
+
   return (
     <Modal>
       <Modal.Backdrop isOpen onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}>
         <Modal.Container>
-          <Modal.Dialog aria-label="Game information" className="mobile-game-info-dialog">
+          <Modal.Dialog
+            aria-label={isHelp ? "Game help" : "Game information"}
+            className={liquidGlassClassName({
+              className: "mobile-game-info-dialog game-info-reference-dialog",
+              kind: "panel",
+              radius: "md",
+              tone: "ocean",
+            })}
+            id="game-info-dialog"
+          >
             <Modal.Header className="mobile-game-info-header">
               <div>
-                <p className="eyebrow">Live Table</p>
-                <Modal.Heading>Game Information</Modal.Heading>
+                <p className="eyebrow">{isHelp ? "Player Guide" : "Live Table"}</p>
+                <Modal.Heading>{isHelp ? "How to Play" : "Game Information"}</Modal.Heading>
               </div>
               <Button
                 aria-label="Close game information"
@@ -434,8 +640,63 @@ function MobileGameInfo({
               </Button>
             </Modal.Header>
             <Modal.Body className="mobile-game-info-body">
-              <BankPanel bank={bank} idPrefix="mobile-" />
-              <EventLog events={events} idPrefix="mobile-" />
+              {isHelp ? (
+                <ol className="game-help-steps">
+                  <li>
+                    <strong>Roll</strong>
+                    <span>Start your turn by rolling both dice.</span>
+                  </li>
+                  <li>
+                    <strong>Trade and build</strong>
+                    <span>Exchange cards, then choose a piece and a glowing board target.</span>
+                  </li>
+                  <li>
+                    <strong>Resolve the robber</strong>
+                    <span>
+                      On a seven, discard if required, move the robber, and choose a neighbor.
+                    </span>
+                  </li>
+                  <li>
+                    <strong>End your turn</strong>
+                    <span>Pass play clockwise when you have finished every action.</span>
+                  </li>
+                </ol>
+              ) : (
+                <>
+                  <dl className="game-info-settings">
+                    <div>
+                      <dt>Room</dt>
+                      <dd translate="no">{code}</dd>
+                    </div>
+                    <div>
+                      <dt>Current turn</dt>
+                      <dd>{activePlayer?.displayName ?? "Unknown player"}</dd>
+                    </div>
+                    <div>
+                      <dt>Victory target</dt>
+                      <dd>{game.victoryPoints} VP</dd>
+                    </div>
+                    <div>
+                      <dt>Turn timer</dt>
+                      <dd>
+                        {game.settings.turnTimerSeconds === 0
+                          ? "Off"
+                          : `${game.settings.turnTimerSeconds} seconds`}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Friendly robber</dt>
+                      <dd>{game.settings.friendlyRobber ? "On" : "Off"}</dd>
+                    </div>
+                    <div>
+                      <dt>Balanced dice</dt>
+                      <dd>{game.settings.balancedDice ? "On" : "Off"}</dd>
+                    </div>
+                  </dl>
+                  <BankPanel bank={game.bank} idPrefix="mobile-" />
+                  <EventLog events={events} idPrefix="mobile-" />
+                </>
+              )}
             </Modal.Body>
           </Modal.Dialog>
         </Modal.Container>
@@ -445,31 +706,82 @@ function MobileGameInfo({
 }
 
 function ResourceHand({ me }: { me: PrivatePlayerState }) {
+  const theme = getPlayerTheme(me);
+
   return (
-    <section aria-label="Your resources" className="resource-hand">
+    <section aria-labelledby="resource-hand-title" className="resource-hand">
       <div className="hand-heading">
         <p className="eyebrow">Private Hand</p>
-        <h2>Your Resources</h2>
+        <h2 id="resource-hand-title">Your Resources</h2>
+        <span>{me.resourceCount} cards total</span>
       </div>
-      <ul>
+      <ul className="resource-card-list">
         {RESOURCE_ORDER.map((resource) => (
-          <li key={resource}>
-            <ResourceIcon decorative resource={resource} size={48} />
-            <span>{RESOURCE_LABELS[resource]}</span>
-            <strong>{me.resources[resource]}</strong>
+          <li
+            aria-label={`${RESOURCE_LABELS[resource]}: ${me.resources[resource]}`}
+            className={`resource-card resource-card-face resource-${resource}`}
+            key={resource}
+            tabIndex={0}
+          >
+            <span className="resource-card-art" aria-hidden="true">
+              <ResourceIcon decorative resource={resource} size={72} />
+            </span>
+            <span className="resource-card-copy">
+              <span className="resource-card-label">{RESOURCE_LABELS[resource]}</span>
+              <span className="resource-card-quantity">
+                <strong>{me.resources[resource]}</strong>
+                <small>{me.resources[resource] === 1 ? "card" : "cards"}</small>
+              </span>
+            </span>
           </li>
         ))}
+        <li
+          aria-label="Development cards are not available in this ruleset"
+          className="resource-card resource-card-face resource-mystery is-unavailable"
+          tabIndex={0}
+        >
+          <span className="resource-card-art resource-card-mystery-icon" aria-hidden="true">
+            ?
+          </span>
+          <span className="resource-card-copy">
+            <span className="resource-card-label">Dev cards</span>
+            <span className="resource-card-quantity">
+              <strong>—</strong>
+              <small>not in ruleset</small>
+            </span>
+          </span>
+        </li>
       </ul>
-      <div className="piece-counts">
-        <span aria-label={`${me.piecesRemaining.roads} roads remaining`}>
-          <Route aria-hidden="true" /> {me.piecesRemaining.roads}
+      <div className="piece-supply" aria-labelledby="piece-supply-title" role="group">
+        <span className="piece-supply-title" id="piece-supply-title">
+          Piece Supply
         </span>
-        <span aria-label={`${me.piecesRemaining.settlements} settlements remaining`}>
-          <Home aria-hidden="true" /> {me.piecesRemaining.settlements}
-        </span>
-        <span aria-label={`${me.piecesRemaining.cities} cities remaining`}>
-          <Castle aria-hidden="true" /> {me.piecesRemaining.cities}
-        </span>
+        <div className="piece-counts" role="list">
+          <span aria-label={`${me.piecesRemaining.roads} roads remaining`} role="listitem">
+            <PieceIcon asset="road" theme={theme} />
+            <span>
+              <strong>{me.piecesRemaining.roads}</strong>
+              <small>Roads</small>
+            </span>
+          </span>
+          <span
+            aria-label={`${me.piecesRemaining.settlements} settlements remaining`}
+            role="listitem"
+          >
+            <PieceIcon asset="settlement" theme={theme} />
+            <span>
+              <strong>{me.piecesRemaining.settlements}</strong>
+              <small>Settlements</small>
+            </span>
+          </span>
+          <span aria-label={`${me.piecesRemaining.cities} cities remaining`} role="listitem">
+            <PieceIcon asset="city" theme={theme} />
+            <span>
+              <strong>{me.piecesRemaining.cities}</strong>
+              <small>Cities</small>
+            </span>
+          </span>
+        </div>
       </div>
     </section>
   );
@@ -491,6 +803,7 @@ function ActionDock({
   pending: boolean;
 }) {
   const legal = game.legalActions;
+  const viewerTheme = getPlayerTheme(me);
   if (!legal.isRequiredActor) {
     return (
       <section className="action-dock is-waiting" aria-label="Turn actions">
@@ -540,15 +853,39 @@ function ActionDock({
 
   if (legal.canRoll) {
     return (
-      <section className="action-dock action-dock-center" aria-label="Turn actions">
+      <section className="action-dock action-dock-roll-layout" aria-label="Turn actions">
+        <div aria-label="Dice ready to roll" className="roll-preview-card" role="img">
+          <DieFace value={1} />
+          <DieFace value={5} />
+        </div>
         <Button
           className="button button-primary dice-button"
           isDisabled={pending}
           isPending={pending}
           onPress={() => onCommand({ kind: "roll" }, "Dice rolled.")}
         >
-          <Dices aria-hidden="true" /> {pending ? "Rolling…" : "Roll Dice"}
+          <Dices aria-hidden="true" />
+          <span>{pending ? "Rolling…" : "Roll Dice"}</span>
         </Button>
+        <ActionTile
+          ariaLabel="End turn unavailable until the dice are rolled"
+          art={
+            <img
+              alt=""
+              className="action-art"
+              draggable={false}
+              height={256}
+              src="/game-assets/ui/end-turn-hourglass-v1.png"
+              width={256}
+            />
+          }
+          caption={`Turn ${game.turnNumber}`}
+          className="button button-end-turn"
+          kind="end-turn"
+          onPress={() => undefined}
+          title="End Turn"
+          unavailable
+        />
       </section>
     );
   }
@@ -565,47 +902,118 @@ function ActionDock({
     );
   }
 
+  const roadDisabledReason = getBuildDisabledReason({
+    cost: BUILD_COSTS.road,
+    legalTargetCount: legal.roadEdgeKeys.length,
+    pending,
+    pieceLabel: "road",
+    piecePlural: "roads",
+    piecesRemaining: me.piecesRemaining.roads,
+    resources: me.resources,
+  });
+  const settlementDisabledReason = getBuildDisabledReason({
+    cost: BUILD_COSTS.settlement,
+    legalTargetCount: legal.settlementVertexKeys.length,
+    pending,
+    pieceLabel: "settlement",
+    piecePlural: "settlements",
+    piecesRemaining: me.piecesRemaining.settlements,
+    resources: me.resources,
+  });
+  const cityDisabledReason = getBuildDisabledReason({
+    cost: BUILD_COSTS.city,
+    legalTargetCount: legal.cityVertexKeys.length,
+    pending,
+    pieceLabel: "city",
+    piecePlural: "cities",
+    piecesRemaining: me.piecesRemaining.cities,
+    resources: me.resources,
+  });
+
   return (
-    <section className="action-dock" aria-label="Build and trade actions">
+    <section
+      aria-label="Build and trade actions"
+      className="action-dock action-dock-tile-layout"
+      data-action-layout="six-tile-reference"
+    >
       <div className="action-heading">
         <strong>Build & Trade</strong>
         <span>Select a piece, then choose a glowing target.</span>
       </div>
+      <TradeCenter disabled={pending} game={game} me={me} onCommand={onCommand} />
+      <ActionTile
+        ariaLabel="Development cards are not available in this ruleset"
+        art={
+          <img
+            alt=""
+            className="action-art"
+            draggable={false}
+            height={1254}
+            src="/game-assets/ui/development-deck-v1.avif"
+            width={1254}
+          />
+        }
+        caption="Not in ruleset"
+        count="—"
+        disabled
+        kind="development-deck"
+        onPress={() => undefined}
+        title="Dev Deck"
+        unavailable
+      />
       <div className="action-group build-actions">
         <BuildAction
           active={buildMode === "road"}
+          asset="road"
+          count={me.piecesRemaining.roads}
           cost={BUILD_COSTS.road}
-          disabled={pending || legal.roadEdgeKeys.length === 0}
-          icon={<Route aria-hidden="true" />}
+          disabledReason={roadDisabledReason}
           label="Road"
-          onClick={() => onBuildMode(buildMode === "road" ? null : "road")}
+          onPress={() => onBuildMode(buildMode === "road" ? null : "road")}
+          resources={me.resources}
+          theme={viewerTheme}
         />
         <BuildAction
           active={buildMode === "settlement"}
+          asset="settlement"
+          count={me.piecesRemaining.settlements}
           cost={BUILD_COSTS.settlement}
-          disabled={pending || legal.settlementVertexKeys.length === 0}
-          icon={<Home aria-hidden="true" />}
+          disabledReason={settlementDisabledReason}
           label="Settlement"
-          onClick={() => onBuildMode(buildMode === "settlement" ? null : "settlement")}
+          onPress={() => onBuildMode(buildMode === "settlement" ? null : "settlement")}
+          resources={me.resources}
+          theme={viewerTheme}
         />
         <BuildAction
           active={buildMode === "city"}
+          asset="city"
+          count={me.piecesRemaining.cities}
           cost={BUILD_COSTS.city}
-          disabled={pending || legal.cityVertexKeys.length === 0}
-          icon={<Castle aria-hidden="true" />}
+          disabledReason={cityDisabledReason}
           label="City"
-          onClick={() => onBuildMode(buildMode === "city" ? null : "city")}
+          onPress={() => onBuildMode(buildMode === "city" ? null : "city")}
+          resources={me.resources}
+          theme={viewerTheme}
         />
       </div>
-      <TradeCenter disabled={pending} game={game} me={me} onCommand={onCommand} />
-      <Button
+      <ActionTile
+        ariaLabel="End Turn"
+        art={
+          <img
+            alt=""
+            className="action-art"
+            draggable={false}
+            height={256}
+            src="/game-assets/ui/end-turn-hourglass-v1.png"
+            width={256}
+          />
+        }
         className="button button-end-turn"
-        isDisabled={pending || !legal.canEndTurn}
+        disabled={pending || !legal.canEndTurn}
+        kind="end-turn"
         onPress={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
-        variant="secondary"
-      >
-        End Turn <ChevronRight aria-hidden="true" />
-      </Button>
+        title="End Turn"
+      />
     </section>
   );
 }
@@ -721,42 +1129,149 @@ function UnavailablePlayerView({ onLeave }: { onLeave(): Promise<void> }) {
 
 function BuildAction({
   active,
+  asset,
+  count,
   cost,
-  disabled,
-  icon,
+  disabledReason,
   label,
-  onClick,
+  onPress,
+  resources,
+  theme,
 }: {
   active: boolean;
+  asset: PieceAsset;
+  count: number;
   cost: Readonly<ResourceInventory>;
-  disabled: boolean;
-  icon: ReactNode;
+  disabledReason: string | null;
   label: string;
-  onClick(): void;
+  onPress(): void;
+  resources: Readonly<ResourceInventory>;
+  theme: PieceTheme;
 }) {
+  const disabledReasonId = `build-${asset}-disabled-reason`;
+  const status =
+    disabledReason === "Action in progress…"
+      ? "Working…"
+      : active
+        ? "Pick a glowing spot"
+        : getBuildStatusLabel(disabledReason);
+  const costResources = RESOURCE_ORDER.filter((resource) => cost[resource] > 0);
+
   return (
-    <Button
-      aria-pressed={active}
-      className={active ? "action-button is-selected" : "action-button"}
-      isDisabled={disabled}
-      onPress={onClick}
-      variant="secondary"
-    >
-      {icon}
-      <strong>{label}</strong>
-      <span className="mini-cost">
-        {RESOURCE_ORDER.filter((resource) => cost[resource] > 0).map((resource) => (
+    <>
+      <ActionTile
+        ariaDescribedBy={disabledReason ? disabledReasonId : undefined}
+        ariaLabel={
+          disabledReason
+            ? `Build ${label} unavailable`
+            : active
+              ? `Cancel ${label.toLowerCase()} placement`
+              : `Build ${label}`
+        }
+        art={<PieceIcon asset={asset} className="action-piece" theme={theme} />}
+        caption={
           <span
-            aria-label={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
-            key={resource}
-            title={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
+            className={`build-action-status${disabledReason ? " is-blocked" : active ? " is-active" : ""}`}
           >
-            <ResourceIcon decorative resource={resource} size={20} /> {cost[resource]}
+            {status}
           </span>
-        ))}
-      </span>
-    </Button>
+        }
+        count={count}
+        kind={asset}
+        meta={
+          <span
+            aria-label={`Cost: ${costResources.map((resource) => `${cost[resource]} ${RESOURCE_LABELS[resource]}`).join(", ")}`}
+            className="mini-cost"
+          >
+            {costResources.map((resource) => (
+              <span
+                aria-hidden="true"
+                className={resources[resource] < cost[resource] ? "is-missing" : undefined}
+                key={resource}
+                title={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
+              >
+                <ResourceIcon decorative resource={resource} size={20} />
+                <b>{cost[resource]}</b>
+                <span>{RESOURCE_LABELS[resource]}</span>
+              </span>
+            ))}
+          </span>
+        }
+        onPress={disabledReason ? () => undefined : onPress}
+        pressed={active}
+        title={label}
+        unavailable={disabledReason !== null}
+      />
+      {disabledReason ? (
+        <span className="sr-only" id={disabledReasonId}>
+          {disabledReason}
+        </span>
+      ) : null}
+    </>
   );
+}
+
+function getBuildStatusLabel(disabledReason: string | null): string {
+  if (!disabledReason) {
+    return "Ready";
+  }
+  if (disabledReason.startsWith("Need ")) {
+    return "Missing cards";
+  }
+  if (disabledReason.startsWith("No legal ")) {
+    return "No space";
+  }
+  if (disabledReason.startsWith("No ") && disabledReason.endsWith(" remaining")) {
+    return "None left";
+  }
+  return "Working…";
+}
+
+function getPlayerInitials(displayName: string): string {
+  const words = displayName.trim().split(/\s+/).filter(Boolean);
+  return (
+    words
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
+}
+
+function getBuildDisabledReason({
+  cost,
+  legalTargetCount,
+  pending,
+  pieceLabel,
+  piecePlural,
+  piecesRemaining,
+  resources,
+}: {
+  cost: Readonly<ResourceInventory>;
+  legalTargetCount: number;
+  pending: boolean;
+  pieceLabel: string;
+  piecePlural: string;
+  piecesRemaining: number;
+  resources: Readonly<ResourceInventory>;
+}): string | null {
+  if (pending) {
+    return "Action in progress…";
+  }
+  if (piecesRemaining <= 0) {
+    return `No ${piecePlural} remaining`;
+  }
+
+  const missingResources = RESOURCE_ORDER.flatMap((resource) => {
+    const missingCount = Math.max(0, cost[resource] - resources[resource]);
+    return missingCount > 0 ? [`${missingCount} ${RESOURCE_LABELS[resource]}`] : [];
+  });
+  if (missingResources.length > 0) {
+    return `Need ${missingResources.join(", ")}`;
+  }
+  if (legalTargetCount === 0) {
+    return `No legal ${pieceLabel} location`;
+  }
+  return null;
 }
 
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {

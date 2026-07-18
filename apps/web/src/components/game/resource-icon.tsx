@@ -4,7 +4,7 @@ export const RESOURCE_LABELS: Readonly<Record<ResourceType, string>> = {
   brick: "Brick",
   sheep: "Sheep",
   stone: "Stone",
-  tree: "Tree",
+  tree: "Wood",
   wheat: "Wheat",
 };
 

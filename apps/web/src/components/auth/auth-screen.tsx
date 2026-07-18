@@ -5,6 +5,8 @@ import { Button, Spinner } from "@heroui/react";
 import Image from "next/image";
 import { useState } from "react";
 
+import { Brand } from "@/components/ui/brand";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { LiveMessage } from "@/components/ui/live-message";
 
 export function AuthScreen() {
@@ -21,43 +23,74 @@ export function AuthScreen() {
     setPending(true);
     try {
       await hexclave.signInWithOAuth("google");
-    } catch {
+    } catch (error) {
+      console.error("Failed to start Google sign-in", error);
       setError("Google sign-in could not be opened. Check your connection and try again.");
       setPending(false);
     }
   };
 
+  return <AuthScreenView error={error} onSignIn={signInWithGoogle} pending={pending} />;
+}
+
+export function AuthScreenView({
+  error = "",
+  onSignIn,
+  pending = false,
+}: {
+  error?: string;
+  onSignIn(): Promise<void>;
+  pending?: boolean;
+}) {
   return (
-    <main className="auth-page" id="main-content">
-      <div className="auth-backdrop" aria-hidden="true">
+    <main className="auth-page auth-reference-page" id="main-content">
+      <div className="auth-backdrop auth-reference-backdrop" aria-hidden="true">
         <Image
           alt=""
-          className="auth-scenery"
+          className="auth-scenery auth-reference-scenery"
           fill
           priority
           sizes="100vw"
-          src="/auth-assets/island-harbor-dusk-v1.webp"
+          src="/shared-assets/coastal-cove-day-v1.jpg"
         />
       </div>
 
-      <section className="auth-login" aria-labelledby="auth-title">
-        <h1 className="sr-only" id="auth-title">
-          Catansaga
-        </h1>
-        <Image
-          alt=""
-          className="auth-game-logo"
-          height={937}
-          priority
-          src="/auth-assets/catansaga-logo-v1.png"
-          width={1648}
-        />
-        <p className="auth-tagline">Build. Trade. Rule the Island.</p>
+      <LiquidGlass
+        as="section"
+        aria-labelledby="auth-title"
+        className="auth-login auth-reference-panel"
+        kind="card"
+        radius="lg"
+        tone="ocean"
+      >
+        <div className="auth-reference-brand">
+          <Brand />
+        </div>
+
+        <div className="auth-reference-island" aria-hidden="true">
+          <Image
+            alt=""
+            className="auth-reference-island-image"
+            height={1121}
+            priority
+            sizes="(max-width: 640px) 60vw, 376px"
+            src="/shared-assets/login-castle-island-v1.avif"
+            width={1403}
+          />
+        </div>
+
+        <div className="auth-reference-copy">
+          <h1 className="auth-reference-title" id="auth-title">
+            Welcome to Catansaga!
+          </h1>
+          <p className="auth-reference-subtitle">Play, build, and explore new worlds.</p>
+        </div>
+
         <Button
-          className="google-auth-button"
+          className="google-auth-button auth-reference-google-button"
           fullWidth
           isPending={pending}
-          onPress={() => void signInWithGoogle()}
+          onPress={() => void onSignIn()}
           size="lg"
         >
           {({ isPending }) => (
@@ -69,8 +102,17 @@ export function AuthScreen() {
             </>
           )}
         </Button>
-        <LiveMessage message={error} />
-      </section>
+
+        <div className="auth-reference-status">
+          <LiveMessage message={error} />
+        </div>
+
+        <p className="auth-reference-legal">
+          By continuing, you agree to our <strong>Terms of Service</strong>
+          <br />
+          and acknowledge our <strong>Privacy Policy</strong>.
+        </p>
+      </LiquidGlass>
     </main>
   );
 }

@@ -4,7 +4,7 @@ export function createHexclaveClientApp(projectId: string, publishableClientKey?
   return new HexclaveClientApp({
     projectId,
     publishableClientKey,
-    tokenStore: "nextjs-cookie",
+    tokenStore: "cookie",
     urls: {
       default: { type: "hosted" },
     },

@@ -1,8 +1,8 @@
-export function Brand() {
+export function Brand({ className = "" }: { className?: string }) {
   return (
-    <div aria-label="Catansaga" className="brand" translate="no">
+    <div aria-label="Catansaga" className={`brand ${className}`.trim()} translate="no">
       <span className="brand-mark" aria-hidden="true">
-        C
+        <span className="brand-mark-core" />
       </span>
       <span>
         <strong>CATAN</strong>

@@ -2,8 +2,11 @@
 
 import { HexclaveProvider, HexclaveTheme } from "@hexclave/next";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { useMemo, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { isUiPreviewMode, UiPreview } from "@/components/app/ui-preview";
+import { FullPageStatus } from "@/components/ui/full-page-status";
 import { createHexclaveClientApp } from "@/hexclave/client";
 
 export interface AppProvidersProps {
@@ -19,8 +22,21 @@ export function AppProviders({
   hexclaveProjectId,
   hexclavePublishableClientKey,
 }: AppProvidersProps) {
+  const searchParams = useSearchParams();
+  const [isBrowserReady, setIsBrowserReady] = useState(false);
+  const isConfigured = Boolean(convexUrl && hexclaveProjectId);
+  const previewMode = searchParams.get("preview");
+  const previewConvex = useMemo(
+    () => (convexUrl ? new ConvexReactClient(convexUrl) : null),
+    [convexUrl],
+  );
+
+  useEffect(() => {
+    setIsBrowserReady(true);
+  }, []);
+
   const clients = useMemo(() => {
-    if (!convexUrl || !hexclaveProjectId) {
+    if (!isBrowserReady || !convexUrl || !hexclaveProjectId) {
       return null;
     }
 
@@ -29,10 +45,26 @@ export function AppProviders({
     convex.setAuth(hexclave.getConvexClientAuth({}));
 
     return { convex, hexclave };
-  }, [convexUrl, hexclaveProjectId, hexclavePublishableClientKey]);
+  }, [convexUrl, hexclaveProjectId, hexclavePublishableClientKey, isBrowserReady]);
+
+  if (process.env.NODE_ENV === "development" && isUiPreviewMode(previewMode)) {
+    if ((previewMode === "game" || previewMode === "game-actions") && previewConvex) {
+      return (
+        <ConvexProvider client={previewConvex}>
+          <UiPreview mode={previewMode} />
+        </ConvexProvider>
+      );
+    }
+
+    return <UiPreview mode={previewMode} />;
+  }
+
+  if (!isConfigured) {
+    return <SetupRequired />;
+  }
 
   if (!clients) {
-    return <SetupRequired />;
+    return <FullPageStatus label="Loading…" />;
   }
 
   return (

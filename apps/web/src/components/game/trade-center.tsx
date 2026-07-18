@@ -15,6 +15,7 @@ import Image from "next/image";
 import { useState } from "react";
 
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
+import { ActionTile } from "./action-tile";
 
 export interface TradeCenterProps {
   disabled: boolean;
@@ -33,19 +34,28 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
 
   return (
     <Modal>
-      <Button
-        aria-controls="trade-dialog"
-        aria-expanded={showDialog}
-        aria-haspopup="dialog"
-        className="action-button trade-launch"
-        isDisabled={disabled}
+      <ActionTile
+        ariaControls="trade-dialog"
+        ariaExpanded={showDialog}
+        ariaHasPopup="dialog"
+        ariaLabel="Trade with the bank or players"
+        art={
+          <Image
+            alt=""
+            className="action-art"
+            draggable={false}
+            height={256}
+            src="/game-assets/ui/market-trade-v1.png"
+            width={256}
+          />
+        }
+        caption={game.tradeOffer ? "Offer open" : "Bank or players"}
+        className="trade-launch"
+        disabled={disabled}
+        kind="trade"
         onPress={() => setIsOpen(true)}
-        variant="secondary"
-      >
-        <Handshake aria-hidden="true" />
-        <strong>Trade</strong>
-        <span>{game.tradeOffer ? "Offer open" : "Bank or players"}</span>
-      </Button>
+        title="Trade"
+      />
 
       <Modal.Backdrop
         className="trade-backdrop"

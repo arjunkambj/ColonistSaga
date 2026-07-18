@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { MenuMusic } from "@/components/audio/menu-music";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { GameScreen } from "@/components/game/game-screen";
 import { HomeScreen } from "@/components/home/home-screen";
@@ -18,6 +19,12 @@ import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
 import { parsePlayerView } from "@/lib/game/types";
 import {
+  DEFAULT_MUSIC_VOLUME,
+  normalizeMusicVolume,
+  readMusicVolume,
+  writeMusicVolume,
+} from "@/lib/music-volume";
+import {
   type PlayerSession,
   isRoomCode,
   normalizeRoomCode,
@@ -29,6 +36,17 @@ export function CatansagaApp() {
   const hexclave = useHexclaveApp();
   const [user, setUser] = useState<CurrentUser | null>();
   const [userLoadFailed, setUserLoadFailed] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(DEFAULT_MUSIC_VOLUME);
+
+  useEffect(() => {
+    setMusicVolume(readMusicVolume(window.localStorage));
+  }, []);
+
+  const updateMusicVolume = (volume: number) => {
+    const nextVolume = normalizeMusicVolume(volume);
+    setMusicVolume(nextVolume);
+    writeMusicVolume(window.localStorage, nextVolume);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -81,7 +99,10 @@ export function CatansagaApp() {
     <AuthenticatedApp
       accountLabel={accountLabel}
       defaultDisplayName={defaultDisplayName}
+      musicVolume={musicVolume}
+      onMusicVolumeChange={updateMusicVolume}
       onSignOut={() => user.signOut({ redirectUrl: "/" })}
+      profileImageUrl={user.profileImageUrl}
       userId={user.id}
     />
   );
@@ -90,12 +111,18 @@ export function CatansagaApp() {
 function AuthenticatedApp({
   accountLabel,
   defaultDisplayName,
+  musicVolume,
+  onMusicVolumeChange,
   onSignOut,
+  profileImageUrl,
   userId,
 }: {
   accountLabel: string;
   defaultDisplayName: string;
+  musicVolume: number;
+  onMusicVolumeChange(value: number): void;
   onSignOut(): Promise<void>;
+  profileImageUrl: string | null;
   userId: string;
 }) {
   const router = useRouter();
@@ -274,17 +301,23 @@ function AuthenticatedApp({
 
   if (!session.activeCode) {
     return (
-      <HomeScreen
-        accountLabel={accountLabel}
-        displayName={session.displayName}
-        error={error}
-        onCreateRoom={handleCreateRoom}
-        onDisplayNameChange={updateDisplayName}
-        onJoinRoom={handleJoinRoom}
-        onQuickPlay={handleQuickPlay}
-        onSignOut={() => perform("signout", onSignOut)}
-        pendingAction={pendingAction}
-      />
+      <>
+        <MenuMusic volume={musicVolume} />
+        <HomeScreen
+          accountLabel={accountLabel}
+          displayName={session.displayName}
+          error={error}
+          onCreateRoom={handleCreateRoom}
+          onDisplayNameChange={updateDisplayName}
+          onJoinRoom={handleJoinRoom}
+          musicVolume={musicVolume}
+          onMusicVolumeChange={onMusicVolumeChange}
+          onQuickPlay={handleQuickPlay}
+          onSignOut={() => perform("signout", onSignOut)}
+          pendingAction={pendingAction}
+          profileImageUrl={profileImageUrl}
+        />
+      </>
     );
   }
 
@@ -344,6 +377,7 @@ function AuthenticatedApp({
       isHost={room.isHost}
       nextActionAt={room.nextActionAt}
       onLeave={leaveRoom}
+      viewerProfileImageUrl={profileImageUrl}
     />
   );
 }

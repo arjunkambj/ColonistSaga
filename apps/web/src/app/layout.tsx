@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import "./styles.css";
+import "./liquid-glass.css";
+import "./reference-screens.css";
 
 export const metadata: Metadata = {
   description: "A friendly real-time island-building board game.",
