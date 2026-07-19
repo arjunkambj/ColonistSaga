@@ -30,6 +30,9 @@ import type { PendingAction } from "@/lib/app/pending-action";
 import { toBotCount } from "@/lib/lobby/lobby-settings-model";
 import { isRoomCode, normalizeRoomCode } from "@/lib/session";
 
+import botSetupStyles from "./bot-game-setup.module.css";
+import joinRoomStyles from "./join-room.module.css";
+
 export interface HomeScreenProps {
   accountLabel: string;
   displayName: string;
@@ -292,7 +295,7 @@ export function HomeScreen({
 
       <Modal>
         <Modal.Backdrop
-          className="setup-backdrop"
+          className={`setup-backdrop ${joinRoomStyles.backdrop}`}
           isDismissable={!isPending}
           isKeyboardDismissDisabled={isPending}
           isOpen={showJoinRoom}
@@ -305,10 +308,13 @@ export function HomeScreen({
           <Modal.Container>
             <Modal.Dialog
               aria-describedby="join-room-description"
-              className="setup-dialog join-room-dialog"
+              className={`setup-dialog join-room-dialog ${joinRoomStyles.dialog}`}
               id="join-room-dialog"
             >
-              <Modal.Header className="setup-dialog-header">
+              <Modal.Header className={`setup-dialog-header ${joinRoomStyles.header}`}>
+                <span className={joinRoomStyles.icon} aria-hidden="true">
+                  <Icon icon={usersIcon} />
+                </span>
                 <div>
                   <p className="eyebrow">Join Crew</p>
                   <Modal.Heading>Enter a Friend Code</Modal.Heading>
@@ -318,7 +324,7 @@ export function HomeScreen({
                 </div>
                 <Button
                   aria-label="Close join room"
-                  className="setup-close"
+                  className={`setup-close ${joinRoomStyles.close}`}
                   isDisabled={isPending}
                   isIconOnly
                   onPress={() => setShowJoinRoom(false)}
@@ -327,9 +333,9 @@ export function HomeScreen({
                   <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
-              <Modal.Body>
+              <Modal.Body className={joinRoomStyles.body}>
                 <form
-                  className="join-code-form"
+                  className={`join-code-form ${joinRoomStyles.form}`}
                   id="join-room-form"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -337,28 +343,48 @@ export function HomeScreen({
                   }}
                 >
                   <TextField
+                    aria-describedby="room-code-help"
+                    className={joinRoomStyles.field}
                     fullWidth
                     name="roomCode"
                     onChange={(value) => setJoinCode(normalizeRoomCode(value))}
                     value={joinCode}
                   >
-                    <Label className="field-label">Friend Room Code</Label>
+                    <Label className={`field-label ${joinRoomStyles.label}`}>
+                      Friend room code
+                    </Label>
                     <Input
                       autoComplete="off"
+                      autoCapitalize="characters"
                       autoFocus
-                      className="text-input code-input"
+                      className={`text-input code-input ${joinRoomStyles.input}`}
                       id="room-code"
                       inputMode="text"
                       maxLength={6}
-                      placeholder="Room code…"
+                      placeholder="ABC123"
                       spellCheck={false}
                     />
+                    <div className={joinRoomStyles.codeProgress} aria-hidden="true">
+                      {Array.from({ length: 6 }, (_, index) => (
+                        <span
+                          className={index < joinCode.length ? joinRoomStyles.filledCharacter : ""}
+                          key={index}
+                        />
+                      ))}
+                    </div>
+                    <p className={joinRoomStyles.help} id="room-code-help">
+                      {joinCode.length === 0
+                        ? "Codes contain six letters or numbers."
+                        : isRoomCode(joinCode)
+                          ? "Code ready — you can join the crew."
+                          : `${6 - joinCode.length} ${6 - joinCode.length === 1 ? "character" : "characters"} remaining.`}
+                    </p>
                   </TextField>
                 </form>
               </Modal.Body>
-              <Modal.Footer>
+              <Modal.Footer className={joinRoomStyles.footer}>
                 <Button
-                  className="button button-quiet"
+                  className={`button button-quiet ${joinRoomStyles.cancel}`}
                   isDisabled={isPending}
                   onPress={() => setShowJoinRoom(false)}
                   variant="ghost"
@@ -366,7 +392,7 @@ export function HomeScreen({
                   Cancel
                 </Button>
                 <Button
-                  className="button button-primary"
+                  className={`button button-primary ${joinRoomStyles.join}`}
                   form="join-room-form"
                   isDisabled={isPending || !isRoomCode(joinCode) || !displayName.trim()}
                   isPending={pendingAction === "join"}
@@ -490,7 +516,7 @@ export function HomeScreen({
 
       <Modal>
         <Modal.Backdrop
-          className="setup-backdrop"
+          className={`setup-backdrop ${botSetupStyles.backdrop}`}
           isDismissable={!isPending}
           isKeyboardDismissDisabled={isPending}
           isOpen={showBotSetup}
@@ -501,8 +527,8 @@ export function HomeScreen({
           }}
         >
           <Modal.Container>
-            <Modal.Dialog className="setup-dialog" id="bot-setup-dialog">
-              <Modal.Header className="setup-dialog-header">
+            <Modal.Dialog className={`setup-dialog ${botSetupStyles.dialog}`} id="bot-setup-dialog">
+              <Modal.Header className={`setup-dialog-header ${botSetupStyles.header}`}>
                 <div>
                   <p className="eyebrow">Bot Game</p>
                   <Modal.Heading id="bot-setup-title">Set Up Your Table</Modal.Heading>
@@ -512,7 +538,7 @@ export function HomeScreen({
                 </div>
                 <Button
                   aria-label="Close bot game setup"
-                  className="setup-close"
+                  className={`setup-close ${botSetupStyles.close}`}
                   isDisabled={isPending}
                   isIconOnly
                   onPress={() => setShowBotSetup(false)}
@@ -521,7 +547,7 @@ export function HomeScreen({
                   ×
                 </Button>
               </Modal.Header>
-              <Modal.Body className="setup-dialog-body">
+              <Modal.Body className={`setup-dialog-body ${botSetupStyles.body}`}>
                 <LobbySettings
                   botCount={quickSettings.botCount}
                   botDifficulty={quickSettings.botDifficulty}
@@ -534,12 +560,12 @@ export function HomeScreen({
                   settings={quickSettings.settings}
                 />
               </Modal.Body>
-              <p className="setup-note">
+              <p className={`setup-note ${botSetupStyles.note}`}>
                 Bot games fill every open seat. Choose two to seven bots for a 3–8 player table.
               </p>
-              <Modal.Footer>
+              <Modal.Footer className={botSetupStyles.footer}>
                 <Button
-                  className="button button-primary button-large setup-start"
+                  className={`button button-primary button-large setup-start ${botSetupStyles.start}`}
                   isDisabled={isPending}
                   isPending={pendingAction === "quick"}
                   onPress={() => void onQuickPlay(quickSettings)}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 import Link from "next/link";
 
@@ -17,6 +18,12 @@ export const viewport: Viewport = {
   width: "device-width",
 };
 
+const dmSans = DM_Sans({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+});
+
 const themeInitializationScript = `try {
   const theme = localStorage.getItem("${THEME_STORAGE_KEY}") === "dark" ? "dark" : "${DEFAULT_THEME}";
   const root = document.documentElement;
@@ -27,7 +34,12 @@ const themeInitializationScript = `try {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html className="light" data-theme="light" lang="en" suppressHydrationWarning>
+    <html
+      className={`${dmSans.variable} light`}
+      data-theme="light"
+      lang="en"
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
       </head>

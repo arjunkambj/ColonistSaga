@@ -8,20 +8,29 @@ import gamepadIcon from "@iconify-icons/game-icons/gamepad";
 import checkIcon from "@iconify-icons/solar/check-circle-outline";
 import copyIcon from "@iconify-icons/solar/copy-outline";
 import logoutIcon from "@iconify-icons/solar/logout-outline";
+import sendIcon from "@iconify-icons/solar/plain-2-outline";
+import usersIcon from "@iconify-icons/solar/users-group-two-rounded-outline";
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { LiveMessage } from "@/components/ui/live-message";
 import type { PendingAction } from "@/lib/app/pending-action";
 import type { RoomView } from "@/lib/game/types";
+import { getBotCapacity, toBotCount } from "@/lib/lobby/lobby-settings-model";
 
 import { LobbySettings, type BotCount, type LobbySettingsValue } from "./lobby-settings";
+import styles from "./lobby-screen.module.css";
 
 type LobbyConfirmation =
   | { kind: "leave" }
   | { displayName: string; kind: "replace"; targetSeatId: string };
+
+interface ChatMessage {
+  readonly id: number;
+  readonly text: string;
+}
 
 export interface LobbyScreenProps {
   error: string;
@@ -44,6 +53,8 @@ export function LobbyScreen({
 }: LobbyScreenProps) {
   const [copied, setCopied] = useState(false);
   const [confirmation, setConfirmation] = useState<LobbyConfirmation | null>(null);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatMessages, setChatMessages] = useState<readonly ChatMessage[]>([]);
   const botCount = room.members.filter((member) => member.controller === "bot").length as BotCount;
   const [settingsDraft, setSettingsDraft] = useState<LobbySettingsValue>(() => ({
     botCount,
@@ -54,12 +65,13 @@ export function LobbyScreen({
     room.members.find((member) => member.seatIndex === index),
   );
   const humanCount = room.members.length - botCount;
+  const botCapacity = getBotCapacity(settingsDraft.settings.maxPlayers, humanCount);
   const settingsAreSaved = sameLobbySettings(settingsDraft, room);
   const tableIsFull = room.members.length === room.settings.maxPlayers;
   const startHint = !settingsAreSaved
     ? "Save game settings before starting."
     : !tableIsFull
-      ? `Fill all ${room.settings.maxPlayers} seats with players or bots before starting.`
+      ? `Fill all ${room.settings.maxPlayers} seats before starting.`
       : "";
 
   useEffect(() => {
@@ -82,9 +94,7 @@ export function LobbyScreen({
   ]);
 
   const runConfirmedAction = async () => {
-    if (!confirmation) {
-      return;
-    }
+    if (!confirmation) return;
     if (confirmation.kind === "leave") {
       await onLeave();
     } else {
@@ -93,9 +103,9 @@ export function LobbyScreen({
     setConfirmation(null);
   };
 
-  const copyCode = async () => {
+  const copyInvite = async () => {
     try {
-      await navigator.clipboard.writeText(room.code);
+      await navigator.clipboard.writeText(`${window.location.origin}/?room=${room.code}`);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -103,128 +113,259 @@ export function LobbyScreen({
     }
   };
 
+  const addBot = () => {
+    setSettingsDraft((current) => ({
+      ...current,
+      botCount: toBotCount(Math.min(current.botCount + 1, botCapacity)),
+    }));
+  };
+
+  const submitChatMessage = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const text = chatDraft.trim();
+    if (!text) return;
+    setChatMessages((messages) => [...messages, { id: Date.now(), text }]);
+    setChatDraft("");
+  };
+
   return (
-    <main className="lobby-page" id="main-content">
-      <header className="site-header lobby-header">
-        <Brand />
+    <main className={styles.page} id="main-content">
+      <header className={styles.header}>
+        <Brand className={styles.brand} />
+        <div className={styles.headerRoom}>
+          <span>Private room</span>
+          <strong translate="no">{room.code}</strong>
+        </div>
         <Button
-          className="button button-quiet"
+          className={styles.leaveButton}
           isDisabled={pendingAction !== null}
           onPress={() => setConfirmation({ kind: "leave" })}
           variant="ghost"
         >
           <Icon aria-hidden="true" icon={logoutIcon} />
-          {pendingAction === "leave" ? "Leaving…" : "Leave Room"}
+          {pendingAction === "leave" ? "Leaving…" : "Leave"}
         </Button>
       </header>
 
-      <section className="lobby-card" aria-labelledby="lobby-title">
-        <p className="eyebrow">Private Base Game</p>
-        <h1 id="lobby-title">Gather Your Crew</h1>
-        <p>Share this room code, then configure every open seat before starting.</p>
+      <div className={styles.roomLayout}>
+        <aside className={`${styles.panel} ${styles.playersPanel}`}>
+          <div className={styles.panelTitle}>
+            <span>
+              <Icon aria-hidden="true" icon={usersIcon} /> Players
+            </span>
+            <small>
+              {room.members.length}/{room.settings.maxPlayers}
+            </small>
+          </div>
 
-        <Button
-          aria-label={`Copy room code ${room.code}`}
-          className="invite-code"
-          onPress={copyCode}
-          variant="ghost"
+          <ol className={styles.seatList} aria-label="Player seats">
+            {seats.map((member, index) => (
+              <li
+                className={`${styles.seat} ${member ? styles.occupiedSeat : styles.openSeat}`}
+                key={member?.id ?? `open-seat-${index}`}
+                style={
+                  member
+                    ? ({ "--seat-color": member.playerColor } as React.CSSProperties)
+                    : undefined
+                }
+              >
+                {member ? (
+                  <>
+                    <span className={styles.avatar} aria-hidden="true">
+                      {member.controller === "bot" ? (
+                        <Icon icon={botIcon} />
+                      ) : (
+                        member.displayName.slice(0, 1).toUpperCase()
+                      )}
+                    </span>
+                    <span className={styles.playerInfo}>
+                      <strong>{member.displayName}</strong>
+                      <small>
+                        {member.role === "host" ? (
+                          <>
+                            <Icon aria-hidden="true" icon={crownIcon} /> Host
+                          </>
+                        ) : member.controller === "bot" ? (
+                          "Bot player"
+                        ) : (
+                          "Ready"
+                        )}
+                      </small>
+                    </span>
+                    <span className={styles.ready}>Ready</span>
+                    {room.isHost && member.controller === "player" && member.role !== "host" ? (
+                      <Button
+                        aria-label={`Replace ${member.displayName} with a bot`}
+                        className={styles.replaceButton}
+                        isDisabled={pendingAction !== null}
+                        onPress={() =>
+                          setConfirmation({
+                            displayName: member.displayName,
+                            kind: "replace",
+                            targetSeatId: member.id,
+                          })
+                        }
+                        variant="ghost"
+                      >
+                        <Icon aria-hidden="true" icon={botIcon} />
+                      </Button>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <span className={styles.emptySeatNumber}>{index + 1}</span>
+                    <span className={styles.playerInfo}>
+                      <strong>Open seat</strong>
+                      <small>Waiting for a player</small>
+                    </span>
+                    {room.isHost ? (
+                      <Button
+                        className={styles.addBotButton}
+                        isDisabled={pendingAction !== null || settingsDraft.botCount >= botCapacity}
+                        onPress={addBot}
+                        variant="secondary"
+                      >
+                        <Icon aria-hidden="true" icon={botIcon} /> Add bot
+                      </Button>
+                    ) : null}
+                  </>
+                )}
+              </li>
+            ))}
+          </ol>
+
+          <div className={styles.inviteFriends}>
+            <strong>Invite your crew</strong>
+            <p>Share the room link to fill open seats.</p>
+            <Button onPress={copyInvite} variant="secondary">
+              <Icon aria-hidden="true" icon={copied ? checkIcon : copyIcon} />
+              {copied ? "Invite copied" : "Copy invite link"}
+            </Button>
+          </div>
+        </aside>
+
+        <section
+          className={`${styles.panel} ${styles.settingsPanel}`}
+          aria-labelledby="lobby-title"
         >
-          <span translate="no">{room.code}</span>
-          <Icon aria-hidden="true" icon={copied ? checkIcon : copyIcon} />
-          <small aria-live="polite">{copied ? "Copied" : "Copy Code"}</small>
-        </Button>
-
-        <ol className="seat-grid" aria-label="Player seats">
-          {seats.map((member, index) => (
-            <li
-              className={`seat-card ${member ? `player-${member.playerColor}` : "seat-empty"}`}
-              key={member?.id ?? `open-seat-${index}`}
+          <div className={styles.roomHeading}>
+            <div>
+              <p>Room ID</p>
+              <h1 id="lobby-title" translate="no">
+                {room.code}
+              </h1>
+            </div>
+            <Button
+              aria-label={`Copy invite link for room ${room.code}`}
+              className={styles.copyButton}
+              onPress={copyInvite}
+              variant="secondary"
             >
-              <span className="seat-avatar" aria-hidden="true">
-                {member ? member.displayName.slice(0, 1).toUpperCase() : index + 1}
-              </span>
+              <Icon aria-hidden="true" icon={copied ? checkIcon : copyIcon} />
+              {copied ? "Copied" : "Copy invite"}
+            </Button>
+          </div>
+
+          <div className={styles.settingsScroll}>
+            <div className={styles.modeSummary}>
               <div>
-                <strong>{member?.displayName ?? "Open Seat"}</strong>
-                <span>
-                  {member?.role === "host" ? (
-                    <>
-                      <Icon aria-hidden="true" icon={crownIcon} /> Host
-                    </>
-                  ) : member ? (
-                    "Ready"
-                  ) : (
-                    "Configure a player or bot seat"
-                  )}
-                </span>
+                <small>Game mode</small>
+                <strong>Base Game</strong>
               </div>
-              {room.isHost && member?.controller === "player" && member.role !== "host" ? (
+              <div>
+                <small>Map</small>
+                <strong>{settingsDraft.settings.map.replaceAll("-", " ")}</strong>
+              </div>
+              <div>
+                <small>Victory</small>
+                <strong>{settingsDraft.settings.victoryPoints} points</strong>
+              </div>
+            </div>
+
+            <LobbySettings
+              botCount={settingsDraft.botCount}
+              botDifficulty={settingsDraft.botDifficulty}
+              disabled={!room.isHost || pendingAction !== null}
+              humanCount={humanCount}
+              onChange={setSettingsDraft}
+              settings={settingsDraft.settings}
+            />
+          </div>
+
+          <footer className={styles.settingsFooter}>
+            <div>
+              <LiveMessage message={error} />
+              {startHint ? <p id="start-game-hint">{startHint}</p> : null}
+            </div>
+            {room.isHost ? (
+              <div className={styles.hostActions}>
                 <Button
-                  aria-label={`Replace ${member.displayName} with a bot`}
-                  className="seat-kick"
-                  isDisabled={pendingAction !== null}
-                  onPress={() =>
-                    setConfirmation({
-                      displayName: member.displayName,
-                      kind: "replace",
-                      targetSeatId: member.id,
-                    })
-                  }
+                  isDisabled={pendingAction !== null || settingsAreSaved}
+                  isPending={pendingAction === "settings"}
+                  onPress={() => void onSaveSettings(settingsDraft)}
                   variant="secondary"
                 >
-                  <Icon aria-hidden="true" icon={botIcon} />
-                  {pendingAction === "replace" ? "Replacing…" : "Use Bot"}
+                  {pendingAction === "settings" ? "Saving…" : "Save settings"}
                 </Button>
-              ) : null}
-            </li>
-          ))}
-        </ol>
+                <Button
+                  aria-describedby={startHint ? "start-game-hint" : undefined}
+                  className={styles.startButton}
+                  isDisabled={pendingAction !== null || Boolean(startHint)}
+                  isPending={pendingAction === "start"}
+                  onPress={onStart}
+                >
+                  <Icon aria-hidden="true" icon={gamepadIcon} />
+                  {pendingAction === "start" ? "Building island…" : "Start game"}
+                </Button>
+              </div>
+            ) : (
+              <p className={styles.waiting}>Waiting for the host to start…</p>
+            )}
+          </footer>
+        </section>
 
-        <LobbySettings
-          botCount={settingsDraft.botCount}
-          botDifficulty={settingsDraft.botDifficulty}
-          disabled={!room.isHost || pendingAction !== null}
-          humanCount={humanCount}
-          onChange={setSettingsDraft}
-          settings={settingsDraft.settings}
-        />
-
-        {room.isHost ? (
-          <Button
-            className="button button-secondary lobby-save-settings"
-            isDisabled={pendingAction !== null || settingsAreSaved}
-            isPending={pendingAction === "settings"}
-            onPress={() => void onSaveSettings(settingsDraft)}
-            variant="secondary"
-          >
-            {pendingAction === "settings" ? "Saving Settings…" : "Save Game Settings"}
-          </Button>
-        ) : null}
-
-        {room.isHost ? (
-          <>
-            {startHint ? (
-              <p className="lobby-start-hint" id="start-game-hint">
-                {startHint}
+        <aside className={`${styles.panel} ${styles.chatPanel}`} aria-label="Room chat">
+          <div className={styles.panelTitle}>
+            <span>Chat</span>
+            <small>Room</small>
+          </div>
+          <div className={styles.chatMessages} aria-live="polite">
+            <div className={styles.systemMessage}>
+              <Icon aria-hidden="true" icon={usersIcon} />
+              <p>
+                <strong>Room created</strong>Say hello while everyone gets ready.
               </p>
-            ) : null}
+            </div>
+            {chatMessages.map((message) => (
+              <div className={styles.chatMessage} key={message.id}>
+                <span>You</span>
+                <p>{message.text}</p>
+              </div>
+            ))}
+          </div>
+          <form className={styles.chatForm} onSubmit={submitChatMessage}>
+            <label className="sr-only" htmlFor="room-chat-message">
+              Send a message
+            </label>
+            <input
+              id="room-chat-message"
+              maxLength={240}
+              onChange={(event) => setChatDraft(event.target.value)}
+              placeholder="Send a message…"
+              value={chatDraft}
+            />
             <Button
-              aria-describedby={startHint ? "start-game-hint" : undefined}
-              className="button button-primary button-large"
-              isDisabled={pendingAction !== null || Boolean(startHint)}
-              isPending={pendingAction === "start"}
-              onPress={onStart}
+              aria-label="Send message"
+              isDisabled={!chatDraft.trim()}
+              isIconOnly
+              type="submit"
             >
-              <Icon aria-hidden="true" icon={gamepadIcon} />
-              {pendingAction === "start" ? "Building the Island…" : "Start Game"}
+              <Icon aria-hidden="true" icon={sendIcon} />
             </Button>
-          </>
-        ) : (
-          <p className="waiting-callout" role="status">
-            Waiting for the host to start…
-          </p>
-        )}
-        <LiveMessage message={error} />
-      </section>
+          </form>
+        </aside>
+      </div>
+
       {confirmation ? (
         <ConfirmationDialog
           busy={pendingAction !== null}
@@ -234,7 +375,7 @@ export function LobbyScreen({
               ? room.isHost
                 ? "Leaving now closes this waiting room for everyone in it."
                 : "Leaving now frees your seat for another player or bot."
-              : `${confirmation.displayName} will immediately lose control of this seat, and a bot will take over.`
+              : `${confirmation.displayName} will lose control of this seat, and a bot will take over.`
           }
           onCancel={() => setConfirmation(null)}
           onConfirm={() => void runConfirmedAction()}

@@ -73,7 +73,7 @@
 
 .header h1 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: clamp(2.15rem, 5vw, 4.5rem);
   letter-spacing: -0.04em;
   line-height: 0.98;
@@ -158,7 +158,7 @@
 }
 
 .summaryItem strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: 1.3rem;
   line-height: 1;
 }
@@ -199,7 +199,7 @@
 
 .categoryHeader h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.3rem, 2vw, 1.7rem);
   letter-spacing: -0.02em;
 }
@@ -390,7 +390,7 @@
   place-items: center;
   padding: 1rem;
   color: var(--foreground);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: clamp(1.1rem, 2vw, 1.55rem);
   letter-spacing: -0.02em;
   text-align: center;
@@ -433,7 +433,7 @@
 .cardBody h3 {
   margin: 0.7rem 0 0;
   color: var(--foreground);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: 1.05rem;
   line-height: 1.2;
 }

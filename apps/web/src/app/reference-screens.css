@@ -31,7 +31,7 @@
 
 .brand strong {
   color: #f8fbff;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-ui);
   font-size: 1.42rem;
   letter-spacing: 0.035em;
   line-height: 0.9;
@@ -883,16 +883,16 @@
 }
 
 .reference-game .number-token {
-  width: clamp(40px, 27%, 70px);
-  border: 3px solid rgba(126, 79, 30, 0.38);
+  width: clamp(38px, 24%, 62px);
+  border: 2px solid #d6bc88;
   border-radius: 50%;
-  background: linear-gradient(145deg, #fff8dc, #ead6ae);
+  background: linear-gradient(145deg, #fffdf2, #f2e3bf);
   clip-path: none;
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.86),
-    inset 0 -3px 0 rgba(126, 79, 30, 0.18),
-    0 4px 8px rgba(47, 39, 27, 0.28);
-  color: #272523;
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -2px 0 rgba(126, 79, 30, 0.13),
+    0 3px 5px rgba(47, 39, 27, 0.22);
+  color: #23521d;
   filter: none;
 }
 
@@ -901,13 +901,18 @@
 }
 
 .reference-game .number-token.is-hot {
-  border-color: rgba(180, 58, 39, 0.44);
-  background: linear-gradient(145deg, #fff7de, #f0d9ae);
-  color: #d42d24;
+  border-color: #dc6a54;
+  background: linear-gradient(145deg, #fffdf1, #f3e0b8);
+  color: #c92f25;
 }
 
 .reference-game .number-token span {
-  color: #9c6847;
+  color: #2b611f;
+  letter-spacing: 0.02em;
+}
+
+.reference-game .number-token.is-hot span {
+  color: #c92f25;
 }
 
 .reference-game .icon-button,
@@ -1068,7 +1073,7 @@
 .reference-game .bank-grid .bank-mystery-icon {
   display: grid;
   color: rgba(218, 235, 247, 0.56);
-  font-family: Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 1.75rem;
   font-weight: 900;
 }
@@ -1173,7 +1178,7 @@
 
 .reference-game .resource-card-mystery-icon {
   color: rgba(232, 215, 255, 0.76);
-  font-family: Georgia, serif;
+  font-family: var(--font-ui);
   font-size: clamp(2rem, 5vh, 3.25rem);
   font-weight: 800;
   line-height: 1;
@@ -1576,8 +1581,7 @@
     top: -2rem;
     width: min(59vw, 72vh);
     margin-left: 8.5vw;
-    transform: translate3d(var(--board-x, 0), var(--board-y, 0), 0) scale(var(--board-scale, 1))
-      scale(1.09, 0.9);
+    transform: translate3d(var(--board-x, 0), var(--board-y, 0), 0) scale(var(--board-scale, 1));
   }
 
   .reference-game .ocean-glow {
@@ -2068,7 +2072,7 @@
   .reference-game .player-menu-button {
     border-color: rgba(218, 240, 255, 0.42);
     background: rgba(3, 43, 96, 0.58);
-    font-family: Georgia, serif;
+    font-family: var(--font-ui);
     font-size: 1rem;
     font-weight: 800;
   }

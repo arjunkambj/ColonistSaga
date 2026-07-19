@@ -8,6 +8,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { LiquidGlass } from "@/components/ui/liquid-glass";
+import { getTerrainAssetPath } from "@/constants/game/board-assets";
 
 import { AssetCard, type AssetCardItem } from "./asset-card";
 import styles from "./asset-sheet.module.css";
@@ -154,12 +155,36 @@ const ASSET_CATEGORIES = [
     name: "Terrain tiles",
     description: "The six top-down hex illustrations in the base board pack.",
     assets: [
-      ["Fields", "Wheat-producing farmland hex.", "/game-assets/terrain/fields.png"],
-      ["Forest", "Tree-producing woodland hex.", "/game-assets/terrain/forest.png"],
-      ["Hills", "Brick-producing clay hills hex.", "/game-assets/terrain/hills.png"],
-      ["Mountains", "Stone-producing mountain hex.", "/game-assets/terrain/mountains.png"],
-      ["Pasture", "Sheep-producing grassland hex.", "/game-assets/terrain/pasture.png"],
-      ["Desert", "Non-producing robber hex.", "/game-assets/terrain/desert.png"],
+      [
+        "Fields",
+        "Wheat-producing farmland hex.",
+        getTerrainAssetPath("fields"),
+      ],
+      [
+        "Forest",
+        "Tree-producing woodland hex.",
+        getTerrainAssetPath("forest"),
+      ],
+      [
+        "Hills",
+        "Brick-producing clay hills hex.",
+        getTerrainAssetPath("hills"),
+      ],
+      [
+        "Mountains",
+        "Stone-producing mountain hex.",
+        getTerrainAssetPath("mountains"),
+      ],
+      [
+        "Pasture",
+        "Sheep-producing grassland hex.",
+        getTerrainAssetPath("pasture"),
+      ],
+      [
+        "Desert",
+        "Non-producing robber hex.",
+        getTerrainAssetPath("desert"),
+      ],
     ].map(([name, description, path]) => ({
       name,
       description,
@@ -448,8 +473,8 @@ const ASSET_CATEGORIES = [
       {
         name: "Display typography",
         description:
-          "Georgia anchors game titles, the logo lockup, and card headings with a warm, tabletop-editorial voice.",
-        format: "Georgia · 700–900 · system serif",
+          "DM Sans gives game titles, the logo lockup, and card headings a clean, friendly voice.",
+        format: "DM Sans · 700–900 · sans serif",
         kind: "brand",
         previewText: "Build your island",
         status: "generated",
@@ -457,8 +482,8 @@ const ASSET_CATEGORIES = [
       {
         name: "Interface typography",
         description:
-          "Inter is the legible workhorse for rules, room status, resources, and quick in-turn decisions; system sans fallbacks keep it resilient.",
-        format: "Inter · 400–900 · system sans fallback",
+          "DM Sans keeps rules, room status, resources, and quick in-turn decisions clear and consistent.",
+        format: "DM Sans · 400–900 · system sans fallback",
         kind: "brand",
         previewText: "Roll dice · Trade · Build",
         status: "generated",

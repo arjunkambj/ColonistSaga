@@ -39,7 +39,11 @@ import {
   zoomBoardViewport,
   type BoardViewportState,
 } from "@/lib/game/board-viewport";
-import { ROAD_ASSET_ROTATION_OFFSET, TERRAIN_ASSET } from "@/constants/game/board-assets";
+import {
+  getTerrainAssetPath,
+  ROAD_ASSET_ROTATION_OFFSET,
+  TERRAIN_ASSET,
+} from "@/constants/game/board-assets";
 import { getPieceAssetPath } from "./piece-icon";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 
@@ -429,7 +433,7 @@ export function GameBoard({
                 className="terrain-tile"
                 draggable={false}
                 height={TERRAIN_ASSET.size}
-                src={`/game-assets/terrain/${tile.terrain}.png`}
+                src={getTerrainAssetPath(tile.terrain)}
                 width={TERRAIN_ASSET.size}
               />
               {tile.numberToken === null ? null : (
