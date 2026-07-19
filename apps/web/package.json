@@ -15,8 +15,10 @@
     "@heroui/react": "^3.2.2",
     "@heroui/styles": "^3.2.2",
     "@hexclave/next": "^1.0.51",
+    "@iconify-icons/game-icons": "^1.2.1",
+    "@iconify-icons/solar": "^1.2.3",
+    "@iconify/react": "^6.0.2",
     "convex": "catalog:",
-    "lucide-react": "catalog:",
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

@@ -1,11 +1,20 @@
 import { Card, Chip } from "@heroui/react";
-import { ArrowLeft, CheckCircle2, Clock3, ImageIcon, Music2, Sparkles } from "lucide-react";
+import arrowLeftIcon from "@iconify-icons/solar/arrow-left-outline";
+import checkIcon from "@iconify-icons/solar/check-circle-outline";
+import clockIcon from "@iconify-icons/solar/clock-circle-outline";
+import imageIcon from "@iconify-icons/solar/gallery-outline";
+import musicIcon from "@iconify-icons/solar/music-note-2-outline";
+import sparkleIcon from "@iconify-icons/solar/stars-outline";
+import { Icon } from "@iconify/react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { LiquidGlass } from "@/components/ui/liquid-glass";
+
+import { AudioPlayButton } from "./audio-play-button";
 import styles from "./asset-sheet.module.css";
-import { MusicTrackTester, type MusicTrack } from "./music-track-tester";
+import { ThemeToggle } from "./theme-toggle";
 
 export const metadata: Metadata = {
   description: "A category-by-category inventory of Catansaga's generated and planned assets.",
@@ -28,19 +37,19 @@ interface AssetItem {
 interface AssetCategory {
   assets: readonly AssetItem[];
   description: string;
-  musicTracks?: readonly MusicTrack[];
   name: string;
 }
 
-const MUSIC_TRACKS = [
+const MUSIC_ASSETS = [
   {
     description: "Looping maritime menu soundtrack.",
     format: "MP3 · 256 kbps",
-    id: "main-lobby-v1",
+    kind: "audio",
     name: "Main lobby music",
     path: "/music/main-loby-music.mp3",
+    status: "generated",
   },
-] satisfies readonly MusicTrack[];
+] satisfies readonly AssetItem[];
 
 const ASSET_CATEGORIES = [
   {
@@ -126,14 +135,6 @@ const ASSET_CATEGORIES = [
         description: "Map and compass illustration for joining a room.",
         format: "PNG · 512×512",
         path: "/home-assets/menu/join-crew.png",
-        status: "generated",
-      },
-      {
-        name: "Destination icons",
-        description: "Five-cell navigation strip for secondary destinations.",
-        fit: "cover",
-        format: "JPG · 1774×887",
-        path: "/shared-assets/destination-icons-v1.jpg",
         status: "generated",
       },
     ],
@@ -391,19 +392,8 @@ const ASSET_CATEGORIES = [
     name: "Audio",
     description:
       "Compare available music tracks and track the gameplay sound set still to produce.",
-    musicTracks: MUSIC_TRACKS,
     assets: [
-      ...MUSIC_TRACKS.map(
-        (track) =>
-          ({
-            name: track.name,
-            description: track.description,
-            format: track.format,
-            kind: "audio",
-            path: track.path,
-            status: "generated",
-          }) as const,
-      ),
+      ...MUSIC_ASSETS,
       {
         name: "Alternate lobby theme",
         description: "A second menu direction for side-by-side music testing.",
@@ -452,10 +442,11 @@ export default function AssetSheetPage() {
   return (
     <main className={styles.page} id="main-content">
       <div className={styles.shell}>
+        <ThemeToggle />
         <header className={styles.header}>
           <div className={styles.headerCopy}>
             <Link className={styles.backLink} href="/">
-              <ArrowLeft aria-hidden="true" size={16} />
+              <Icon aria-hidden="true" icon={arrowLeftIcon} width={16} />
               Back to game
             </Link>
             <img
@@ -470,42 +461,29 @@ export default function AssetSheetPage() {
             />
             <p className={styles.eyebrow}>Production inventory</p>
             <h1>Game asset sheet</h1>
-            <p className={styles.intro}>
-              Every current visual and audio asset, grouped by category, with the remaining
-              generation work shown in the same rows.
-            </p>
           </div>
 
           <div className={styles.summary} aria-label="Asset totals">
             <SummaryItem
-              icon={<CheckCircle2 aria-hidden="true" />}
+              icon={<Icon aria-hidden="true" icon={checkIcon} />}
               label="Generated"
               tone="ready"
               value={assetTotals.generated}
             />
             <SummaryItem
-              icon={<Clock3 aria-hidden="true" />}
+              icon={<Icon aria-hidden="true" icon={clockIcon} />}
               label="Need to generate"
               tone="needed"
               value={assetTotals.needed}
             />
             <SummaryItem
-              icon={<ImageIcon aria-hidden="true" />}
+              icon={<Icon aria-hidden="true" icon={imageIcon} />}
               label="Categories"
               tone="neutral"
               value={ASSET_CATEGORIES.length}
             />
           </div>
         </header>
-
-        <aside className={styles.note}>
-          <Sparkles aria-hidden="true" size={18} />
-          <p>
-            CSS and SVG-native items such as number tokens, dice faces, borders, buttons, and
-            legal-action glows are intentionally excluded because they do not require generated
-            artwork.
-          </p>
-        </aside>
 
         <div className={styles.categories}>
           {ASSET_CATEGORIES.map((category) => (
@@ -529,13 +507,13 @@ function SummaryItem({
   value: number;
 }) {
   return (
-    <div className={styles.summaryItem} data-tone={tone}>
+    <LiquidGlass className={styles.summaryItem} data-tone={tone} kind="control" radius="md">
       <span className={styles.summaryIcon}>{icon}</span>
       <span>
         <strong>{value}</strong>
         <small>{label}</small>
       </span>
-    </div>
+    </LiquidGlass>
   );
 }
 
@@ -554,9 +532,7 @@ function AssetCategoryRow({ category }: { category: AssetCategory }) {
         </span>
       </div>
 
-      {category.musicTracks ? <MusicTrackTester tracks={category.musicTracks} /> : null}
-
-      <div className={styles.assetRow} tabIndex={0}>
+      <div className={styles.assetRow}>
         {category.assets.map((asset) => (
           <AssetCard asset={asset} key={`${category.name}-${asset.name}`} />
         ))}
@@ -580,12 +556,17 @@ function AssetCard({ asset }: { asset: AssetItem }) {
               loading="lazy"
               src={asset.path}
             />
+          ) : asset.path && asset.kind === "audio" ? (
+            <div className={styles.audioPreview}>
+              <Icon aria-hidden="true" icon={musicIcon} />
+              <AudioPlayButton name={asset.name} src={asset.path} />
+            </div>
           ) : (
             <div className={styles.placeholder}>
               {asset.kind === "audio" ? (
-                <Music2 aria-hidden="true" />
+                <Icon aria-hidden="true" icon={musicIcon} />
               ) : (
-                <Sparkles aria-hidden="true" />
+                <Icon aria-hidden="true" icon={sparkleIcon} />
               )}
               <span>{isGenerated ? "Audio asset" : "Generation needed"}</span>
             </div>
@@ -595,16 +576,13 @@ function AssetCard({ asset }: { asset: AssetItem }) {
         <div className={styles.cardBody}>
           <Chip color={isGenerated ? "success" : "warning"} size="sm" variant="soft">
             {isGenerated ? (
-              <CheckCircle2 aria-hidden="true" size={12} />
+              <Icon aria-hidden="true" icon={checkIcon} width={12} />
             ) : (
-              <Clock3 aria-hidden="true" size={12} />
+              <Icon aria-hidden="true" icon={clockIcon} width={12} />
             )}
             <Chip.Label>{isGenerated ? "Generated" : "Need to generate"}</Chip.Label>
           </Chip>
           <h3>{asset.name}</h3>
-          <p>{asset.description}</p>
-          <span className={styles.format}>{asset.format}</span>
-          {asset.path ? <code>{asset.path}</code> : null}
         </div>
       </Card.Content>
     </Card>

@@ -2,18 +2,17 @@
 
 import { DEFAULT_BASE_GAME_SETTINGS } from "@catansaga/game";
 import { Button, Input, Label, Modal, Slider, TextField } from "@heroui/react";
-import {
-  Bot,
-  CircleHelp,
-  Dices,
-  Gift,
-  House,
-  LogOut,
-  Settings,
-  UsersRound,
-  Volume2,
-  X,
-} from "lucide-react";
+import botIcon from "@iconify-icons/game-icons/robot-golem";
+import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
+import houseIcon from "@iconify-icons/game-icons/house";
+import closeIcon from "@iconify-icons/solar/close-circle-outline";
+import giftIcon from "@iconify-icons/solar/gift-outline";
+import helpIcon from "@iconify-icons/solar/question-circle-outline";
+import logoutIcon from "@iconify-icons/solar/logout-outline";
+import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
+import usersIcon from "@iconify-icons/solar/users-group-rounded-outline";
+import volumeIcon from "@iconify-icons/solar/volume-loud-outline";
+import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -44,14 +43,6 @@ export interface HomeScreenProps {
   pendingAction: PendingAction;
   profileImageUrl: string | null;
 }
-
-const HOME_DESTINATIONS = [
-  { icon: "store", label: "Store" },
-  { icon: "collection", label: "Collection" },
-  { icon: "leaderboard", label: "Leaderboard" },
-  { icon: "achievements", label: "Achievements" },
-  { icon: "news", label: "News" },
-] as const;
 
 export function HomeScreen({
   accountLabel,
@@ -141,7 +132,7 @@ export function HomeScreen({
               variant="ghost"
             >
               <span className="voyage-header__icon">
-                <Gift aria-hidden="true" />
+                <Icon aria-hidden="true" icon={giftIcon} />
               </span>
               <span className="voyage-header__notification">2</span>
             </Button>
@@ -163,7 +154,7 @@ export function HomeScreen({
               variant="ghost"
             >
               <span className="voyage-header__icon">
-                <CircleHelp aria-hidden="true" />
+                <Icon aria-hidden="true" icon={helpIcon} />
               </span>
             </Button>
           </LiquidGlass>
@@ -180,7 +171,7 @@ export function HomeScreen({
               onPress={openPlayerSettings}
               variant="ghost"
             >
-              <Settings aria-hidden="true" />
+              <Icon aria-hidden="true" icon={settingsIcon} />
             </Button>
           </LiquidGlass>
 
@@ -213,7 +204,7 @@ export function HomeScreen({
               onPress={() => void onSignOut()}
               variant="ghost"
             >
-              <LogOut aria-hidden="true" />
+              <Icon aria-hidden="true" icon={logoutIcon} />
             </Button>
           </LiquidGlass>
         </div>
@@ -226,7 +217,7 @@ export function HomeScreen({
         <div aria-label="Ways to play" className="voyage-card-grid" role="group">
           <VoyageCard
             actionLabel="Set up a quick match"
-            badge={<Dices />}
+            badge={<Icon icon={diceIcon} />}
             description="Play instantly with bots or players"
             disabled={isPending || !displayName.trim()}
             imageSrc="/home-assets/menu/quick-match.png"
@@ -237,7 +228,7 @@ export function HomeScreen({
           />
           <VoyageCard
             actionLabel="Create a private room"
-            badge={<House />}
+            badge={<Icon icon={houseIcon} />}
             description="Create a private room"
             disabled={isPending || !displayName.trim()}
             imageSrc="/home-assets/menu/host-island.png"
@@ -248,7 +239,7 @@ export function HomeScreen({
           />
           <VoyageCard
             actionLabel="Enter a friend room code"
-            badge={<UsersRound />}
+            badge={<Icon icon={usersIcon} />}
             description="Enter a friend code"
             disabled={isPending || !displayName.trim()}
             imageSrc="/home-assets/menu/join-crew.png"
@@ -260,36 +251,6 @@ export function HomeScreen({
         </div>
         <LiveMessage message={error} />
       </section>
-
-      <LiquidGlass
-        aria-label="Island destinations"
-        as="nav"
-        className="voyage-bottom-nav"
-        kind="panel"
-        radius="pill"
-      >
-        {HOME_DESTINATIONS.map((destination) => (
-          <Button
-            aria-label={`Open ${destination.label}`}
-            className="voyage-bottom-nav__item"
-            isDisabled={isPending}
-            key={destination.icon}
-            onPress={() =>
-              setHomeNotice({
-                description: `${destination.label} is charted for a future Catansaga voyage. The core multiplayer table is ready now.`,
-                title: `${destination.label} — Coming Soon`,
-              })
-            }
-            variant="ghost"
-          >
-            <span
-              aria-hidden="true"
-              className={`voyage-bottom-nav__icon voyage-bottom-nav__icon--${destination.icon}`}
-            />
-            <span>{destination.label}</span>
-          </Button>
-        ))}
-      </LiquidGlass>
 
       <Modal>
         <Modal.Backdrop
@@ -315,7 +276,7 @@ export function HomeScreen({
                   onPress={() => setHomeNotice(null)}
                   variant="ghost"
                 >
-                  <X aria-hidden="true" />
+                  <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
               <Modal.Footer>
@@ -362,7 +323,7 @@ export function HomeScreen({
                   onPress={() => setShowJoinRoom(false)}
                   variant="ghost"
                 >
-                  <X aria-hidden="true" />
+                  <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
               <Modal.Body>
@@ -452,7 +413,7 @@ export function HomeScreen({
                   onPress={cancelPlayerSettings}
                   variant="ghost"
                 >
-                  <X aria-hidden="true" />
+                  <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
               <Modal.Body>
@@ -491,7 +452,7 @@ export function HomeScreen({
                       value={musicVolumeDraft}
                     >
                       <Label className="field-label music-volume-label">
-                        <Volume2 aria-hidden="true" /> Music Volume
+                        <Icon aria-hidden="true" icon={volumeIcon} /> Music Volume
                       </Label>
                       <Slider.Output className="music-volume-output" />
                       <Slider.Track className="music-volume-track">
@@ -583,7 +544,7 @@ export function HomeScreen({
                   isPending={pendingAction === "quick"}
                   onPress={() => void onQuickPlay(quickSettings)}
                 >
-                  <Bot aria-hidden="true" />
+                  <Icon aria-hidden="true" icon={botIcon} />
                   {pendingAction === "quick" ? "Building the Island…" : "Start Bot Game"}
                 </Button>
               </Modal.Footer>

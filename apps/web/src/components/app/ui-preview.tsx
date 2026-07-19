@@ -83,7 +83,6 @@ function ActionPresetPreview() {
         className="action-preset-preview__panel"
         kind="panel"
         radius="lg"
-        tone="ocean"
       >
         <header className="action-preset-preview__heading">
           <p>Reusable UI preset</p>

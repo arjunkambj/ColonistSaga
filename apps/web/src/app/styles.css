@@ -2,18 +2,6 @@
 @import "@heroui/styles";
 
 :root {
-  color-scheme: dark;
-  --ink: #f8f3df;
-  --muted: #a9bdbe;
-  --panel: rgba(15, 45, 55, 0.92);
-  --panel-strong: #123b46;
-  --panel-soft: rgba(26, 70, 77, 0.78);
-  --line: rgba(226, 240, 222, 0.14);
-  --gold: #f4bb4f;
-  --gold-dark: #c58027;
-  --teal: #61d1bb;
-  --danger: #ff8d78;
-  --shadow: 0 24px 60px rgba(2, 16, 21, 0.34);
   --player-color: #ee695d;
   font-family:
     Inter,
@@ -33,7 +21,7 @@ html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0b2b35;
+  background: var(--background);
 }
 
 body {
@@ -43,11 +31,9 @@ body {
   min-height: 0;
   margin: 0;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 15% 5%, rgba(80, 174, 168, 0.18), transparent 34rem),
-    linear-gradient(145deg, #113c46 0%, #0a2731 70%);
-  color: var(--ink);
-  -webkit-tap-highlight-color: rgba(244, 187, 79, 0.22);
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-tap-highlight-color: color-mix(in oklch, var(--accent) 22%, transparent);
 }
 
 button,
@@ -71,7 +57,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #f9d889;
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 
@@ -115,7 +101,7 @@ p {
   left: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  background: var(--ink);
+  background: var(--foreground);
   color: #0b2b35;
   font-weight: 800;
   transform: translateY(-160%);
@@ -147,7 +133,7 @@ p {
 
 .setup-page code,
 .setup-page pre {
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.7rem;
   background: rgba(0, 0, 0, 0.24);
   color: #ccebe3;
@@ -168,7 +154,7 @@ p {
   width: 2.5rem;
   height: 2.5rem;
   border: 0.25rem solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--gold);
+  border-top-color: var(--warning);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
@@ -210,7 +196,7 @@ p {
 }
 
 .button-primary {
-  background: linear-gradient(180deg, #ffd573, var(--gold));
+  background: linear-gradient(180deg, #ffd573, var(--warning));
   box-shadow: 0 8px 24px rgba(218, 147, 39, 0.25);
   color: #3a2813;
 }
@@ -243,7 +229,7 @@ p {
 }
 
 .button-quiet {
-  border-color: var(--line);
+  border-color: var(--border);
   background: transparent;
 }
 
@@ -258,7 +244,7 @@ p {
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.55rem;
-  color: var(--gold);
+  color: var(--warning);
   font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -297,7 +283,7 @@ p {
 }
 
 .brand small {
-  color: var(--gold);
+  color: var(--warning);
   font-size: 0.66rem;
   font-weight: 900;
   letter-spacing: 0.48em;
@@ -389,7 +375,7 @@ p {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(6, 28, 35, 0.32);
   color: #c7dcda;
@@ -667,11 +653,7 @@ p {
 
 .lobby-card,
 .notice-card {
-  border: 1px solid rgba(226, 240, 222, 0.16);
   border-radius: 1.4rem;
-  background: linear-gradient(145deg, rgba(28, 70, 77, 0.92), rgba(12, 40, 49, 0.96)), var(--panel);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(18px);
 }
 
 .home-play {
@@ -825,7 +807,7 @@ select {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 0.72rem;
   background: rgba(3, 24, 30, 0.56);
-  color: var(--ink);
+  color: var(--foreground);
 }
 
 .text-input {
@@ -857,7 +839,7 @@ select {
 .divider::after {
   height: 1px;
   flex: 1;
-  background: var(--line);
+  background: var(--border);
   content: "";
 }
 
@@ -1022,7 +1004,7 @@ select {
   align-items: center;
   gap: 0.3rem;
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.55rem;
   margin-left: auto;
   background: rgba(255, 255, 255, 0.06);
@@ -1033,7 +1015,7 @@ select {
 
 .seat-kick:hover:not(:disabled) {
   border-color: rgba(244, 187, 79, 0.45);
-  color: var(--ink);
+  color: var(--foreground);
 }
 
 .seat-kick svg {
@@ -1455,12 +1437,12 @@ select {
 }
 
 .game-page {
-  --ink: #33405a;
+  --foreground: #33405a;
   --muted: #7f8ca1;
-  --line: rgba(88, 109, 145, 0.16);
-  --gold: #f5ad3f;
-  --teal: #25bfca;
-  --shadow: 0 18px 45px rgba(86, 105, 145, 0.18);
+  --border: rgba(88, 109, 145, 0.16);
+  --warning: #f5ad3f;
+  --success: #25bfca;
+  --surface-shadow: 0 18px 45px rgba(86, 105, 145, 0.18);
   display: grid;
   width: 100%;
   height: 100dvh;
@@ -1477,7 +1459,7 @@ select {
   background:
     radial-gradient(circle at 50% 34%, rgba(112, 205, 220, 0.18), transparent 38rem),
     linear-gradient(145deg, #f8f9ff, #edf2ff 64%, #e8f5fb);
-  color: var(--ink);
+  color: var(--foreground);
   color-scheme: light;
 }
 
@@ -1518,7 +1500,7 @@ select {
 
 .game-room-meta span {
   padding: 0.38rem 0.62rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   white-space: nowrap;
@@ -1529,7 +1511,7 @@ select {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 5px 14px rgba(79, 97, 135, 0.1);
@@ -1560,7 +1542,7 @@ select {
   align-items: center;
   gap: 0.55rem;
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.85rem;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 6px 16px rgba(81, 99, 137, 0.08);
@@ -1631,7 +1613,7 @@ select {
 .player-stat svg {
   width: 0.85rem;
   height: 0.85rem;
-  color: var(--gold);
+  color: var(--warning);
 }
 
 .player-replace {
@@ -1640,7 +1622,7 @@ select {
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.4rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.45rem;
   background: #f5f7fd;
   color: var(--muted);
@@ -1652,7 +1634,7 @@ select {
 
 .player-replace:hover:not(:disabled) {
   border-color: rgba(244, 187, 79, 0.45);
-  color: var(--ink);
+  color: var(--foreground);
 }
 
 .player-replace svg {
@@ -1686,7 +1668,7 @@ select {
   place-items: center;
   border-radius: 0.75rem;
   background: #fff0c9;
-  color: var(--gold);
+  color: var(--warning);
 }
 
 .phase-icon svg {
@@ -1747,7 +1729,7 @@ select {
 
 .turn-clock strong {
   margin-left: auto;
-  color: var(--ink);
+  color: var(--foreground);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1785,7 +1767,7 @@ select {
 
 .dice-result > strong {
   min-width: 1.8rem;
-  color: var(--gold);
+  color: var(--warning);
   font-size: 1.15rem;
   text-align: center;
 }
@@ -2223,7 +2205,7 @@ select {
 .side-card {
   min-width: 0;
   padding: 0.8rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.95rem;
   background: rgba(255, 255, 255, 0.84);
   box-shadow: 0 8px 22px rgba(81, 99, 137, 0.09);
@@ -2245,7 +2227,7 @@ select {
 .side-card-title svg {
   width: 1rem;
   height: 1rem;
-  color: var(--gold);
+  color: var(--warning);
 }
 
 .bank-grid,
@@ -2319,7 +2301,7 @@ select {
   height: 0.38rem;
   border-radius: 50%;
   margin-top: 0.35rem;
-  background: var(--teal);
+  background: var(--success);
 }
 
 .event-list p {
@@ -2338,7 +2320,7 @@ select {
   gap: 1rem;
   height: 100%;
   padding: 0.45rem 0.55rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   margin: 0;
   background: rgba(255, 255, 255, 0.88);
@@ -2427,7 +2409,7 @@ select {
 .piece-counts svg {
   width: 0.85rem;
   height: 0.85rem;
-  color: var(--gold);
+  color: var(--warning);
 }
 
 .action-dock {
@@ -2506,7 +2488,7 @@ select {
   align-items: center;
   gap: 0.4rem;
   padding: 0.48rem 0.58rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.65rem;
   background: #f6f8fd;
   cursor: pointer;
@@ -2524,7 +2506,7 @@ select {
 .action-button > svg {
   width: 1rem;
   height: 1rem;
-  color: var(--gold);
+  color: var(--warning);
 }
 
 .action-button > strong {
@@ -2703,7 +2685,7 @@ select {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 50%;
   background: #edf1f8;
   color: #607087;
@@ -2747,7 +2729,7 @@ select {
 .trade-tabs button[aria-selected="true"] {
   background: #fff;
   box-shadow: 0 4px 12px rgba(75, 90, 123, 0.1);
-  color: var(--ink);
+  color: var(--foreground);
 }
 
 .trade-tabs svg {
@@ -2782,7 +2764,7 @@ select {
 
 .trade-exchange-icon,
 .offer-exchange > svg {
-  color: var(--teal);
+  color: var(--success);
 }
 
 .resource-choice,
@@ -2790,7 +2772,7 @@ select {
 .trade-recipients {
   min-width: 0;
   padding: 0.7rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.85rem;
   background: #fff;
 }
@@ -2827,7 +2809,7 @@ select {
 .resource-choice button.is-selected {
   border-color: rgba(37, 191, 202, 0.5);
   background: #e7fbfb;
-  box-shadow: inset 0 -2px var(--teal);
+  box-shadow: inset 0 -2px var(--success);
   color: #256f76;
 }
 
@@ -2867,7 +2849,7 @@ select {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.4rem;
   background: #fff;
   color: #657188;
@@ -2902,7 +2884,7 @@ select {
   align-items: center;
   gap: 0.1rem 0.35rem;
   padding: 0.35rem 0.55rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.55rem;
   cursor: pointer;
 }
@@ -2911,7 +2893,7 @@ select {
   grid-row: span 2;
   width: 1rem;
   height: 1rem;
-  accent-color: var(--teal);
+  accent-color: var(--success);
 }
 
 .trade-recipients span {
@@ -2934,7 +2916,7 @@ select {
   align-items: center;
   gap: 0.55rem;
   padding: 0.35rem 0.6rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: #f5f7fc;
   color: #68758b;
@@ -2983,7 +2965,7 @@ select {
 
 .offer-exchange > section {
   padding: 0.75rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
   background: #fff;
 }
@@ -3017,7 +2999,7 @@ select {
   position: absolute;
   top: 0.1rem;
   right: 0.25rem;
-  color: var(--ink);
+  color: var(--foreground);
 }
 
 .offer-exchange li span {
@@ -3067,7 +3049,7 @@ select {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.45rem;
   background: rgba(255, 255, 255, 0.06);
   cursor: pointer;
@@ -3091,7 +3073,7 @@ select {
   border: 1px solid rgba(255, 141, 120, 0.42);
   border-radius: 0.75rem;
   background: #4c2928;
-  box-shadow: var(--shadow);
+  box-shadow: var(--surface-shadow);
   color: #ffd0c7;
   font-size: 0.78rem;
 }
@@ -3185,7 +3167,7 @@ select {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 50%;
   background: #e7edf6;
   color: #526079;
@@ -3267,7 +3249,7 @@ select {
   border-radius: 50%;
   margin: 0 auto 1rem;
   background: rgba(244, 187, 79, 0.13);
-  color: var(--gold);
+  color: var(--warning);
 }
 
 .win-crown svg {

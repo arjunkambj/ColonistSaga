@@ -61,7 +61,6 @@ export function AuthScreenView({
         className="auth-login auth-reference-panel"
         kind="card"
         radius="lg"
-        tone="ocean"
       >
         <div className="auth-reference-brand">
           <Brand />

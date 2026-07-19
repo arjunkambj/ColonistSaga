@@ -10,7 +10,14 @@ import {
   type ResourceType,
 } from "@catansaga/game";
 import { Button, Checkbox, Description, Modal, Tabs } from "@heroui/react";
-import { ArrowRightLeft, Check, Handshake, Minus, Plus, Store, X } from "lucide-react";
+import handshakeIcon from "@iconify-icons/game-icons/shaking-hands";
+import storeIcon from "@iconify-icons/game-icons/shop";
+import checkIcon from "@iconify-icons/solar/check-circle-outline";
+import closeIcon from "@iconify-icons/solar/close-circle-outline";
+import minusIcon from "@iconify-icons/solar/minus-circle-outline";
+import plusIcon from "@iconify-icons/solar/add-circle-outline";
+import tradeIcon from "@iconify-icons/solar/transfer-horizontal-outline";
+import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -95,7 +102,7 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
                 onPress={() => setIsOpen(false)}
                 variant="ghost"
               >
-                <X aria-hidden="true" />
+                <Icon aria-hidden="true" icon={closeIcon} />
               </Button>
             </Modal.Header>
 
@@ -107,11 +114,11 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
                   <Tabs.ListContainer className="trade-tabs">
                     <Tabs.List aria-label="Trade partner">
                       <Tabs.Tab id="players">
-                        <Handshake aria-hidden="true" /> Players
+                        <Icon aria-hidden="true" icon={handshakeIcon} /> Players
                         <Tabs.Indicator />
                       </Tabs.Tab>
                       <Tabs.Tab id="bank">
-                        <Store aria-hidden="true" /> Bank & Ports
+                        <Icon aria-hidden="true" icon={storeIcon} /> Bank & Ports
                         <Tabs.Indicator />
                       </Tabs.Tab>
                     </Tabs.List>
@@ -177,7 +184,7 @@ function BankTradeForm({
           options={availableGiveResources}
           selected={selectedGive}
         />
-        <ArrowRightLeft className="trade-exchange-icon" aria-hidden="true" />
+        <Icon aria-hidden="true" className="trade-exchange-icon" icon={tradeIcon} />
         <ResourceChoice
           disabled={disabled}
           label="Receive 1"
@@ -196,7 +203,7 @@ function BankTradeForm({
           )
         }
       >
-        <Check aria-hidden="true" /> Confirm {displayRatio}:1 Trade
+        <Icon aria-hidden="true" icon={checkIcon} /> Confirm {displayRatio}:1 Trade
       </Button>
     </div>
   );
@@ -280,7 +287,7 @@ function PlayerTradeForm({ disabled, game, me, onCommand }: TradeCenterProps) {
           limits={me.resources}
           onChange={setGive}
         />
-        <ArrowRightLeft className="trade-exchange-icon" aria-hidden="true" />
+        <Icon aria-hidden="true" className="trade-exchange-icon" icon={tradeIcon} />
         <InventoryPicker
           disabled={disabled}
           excludedResources={give}
@@ -325,7 +332,7 @@ function PlayerTradeForm({ disabled, game, me, onCommand }: TradeCenterProps) {
           onCommand({ give, kind: "propose_trade", recipientPlayerIds, want }, "Trade offer sent.")
         }
       >
-        <Handshake aria-hidden="true" /> Send Offer
+        <Icon aria-hidden="true" icon={handshakeIcon} /> Send Offer
       </Button>
     </div>
   );
@@ -370,7 +377,7 @@ function InventoryPicker({
                 onPress={() => update(resource, -1)}
                 variant="ghost"
               >
-                <Minus aria-hidden="true" />
+                <Icon aria-hidden="true" icon={minusIcon} />
               </Button>
               <output aria-live="polite">{inventory[resource]}</output>
               <Button
@@ -384,7 +391,7 @@ function InventoryPicker({
                 onPress={() => update(resource, 1)}
                 variant="ghost"
               >
-                <Plus aria-hidden="true" />
+                <Icon aria-hidden="true" icon={plusIcon} />
               </Button>
             </div>
           </div>
@@ -424,7 +431,7 @@ function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
 
       <div className="offer-exchange">
         <OfferInventory inventory={viewerIsProposer ? offer.give : offer.want} label="You give" />
-        <ArrowRightLeft aria-hidden="true" />
+        <Icon aria-hidden="true" icon={tradeIcon} />
         <OfferInventory
           inventory={viewerIsProposer ? offer.want : offer.give}
           label="You receive"
@@ -469,7 +476,7 @@ function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
               }
               variant="secondary"
             >
-              <X aria-hidden="true" /> Decline
+              <Icon aria-hidden="true" icon={closeIcon} /> Decline
             </Button>
             <Button
               aria-describedby={!viewerCanAfford ? "trade-affordability" : undefined}
@@ -486,7 +493,7 @@ function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
                 )
               }
             >
-              <Check aria-hidden="true" /> Accept Trade
+              <Icon aria-hidden="true" icon={checkIcon} /> Accept Trade
             </Button>
           </div>
         </>
@@ -502,7 +509,7 @@ function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
           }
           variant="secondary"
         >
-          <X aria-hidden="true" /> Cancel Offer
+          <Icon aria-hidden="true" icon={closeIcon} /> Cancel Offer
         </Button>
       ) : (
         <p className="trade-waiting" role="status">

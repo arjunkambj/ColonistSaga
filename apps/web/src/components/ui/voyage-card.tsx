@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { ArrowRight } from "lucide-react";
+import arrowRightIcon from "@iconify-icons/solar/arrow-right-outline";
+import { Icon } from "@iconify/react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
@@ -39,8 +40,8 @@ export function VoyageCard({
         className: "voyage-card",
         kind: "card",
         radius: "lg",
-        tone,
       })}
+      data-voyage-tone={tone}
       isDisabled={disabled}
       isPending={pending}
       onPress={onPress}
@@ -58,7 +59,7 @@ export function VoyageCard({
         <small>{description}</small>
       </span>
       <span className="voyage-card-action" aria-hidden="true">
-        <ArrowRight />
+        <Icon icon={arrowRightIcon} />
       </span>
     </Button>
   );

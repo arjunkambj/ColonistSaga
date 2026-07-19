@@ -8,7 +8,11 @@ import {
   type TerrainType,
 } from "@catansaga/game";
 import { Button } from "@heroui/react";
-import { Minus, Move, Plus, Scan } from "lucide-react";
+import moveIcon from "@iconify-icons/game-icons/move";
+import minusIcon from "@iconify-icons/solar/minus-circle-outline";
+import plusIcon from "@iconify-icons/solar/add-circle-outline";
+import scanIcon from "@iconify-icons/solar/scanner-outline";
+import { Icon } from "@iconify/react";
 import {
   useEffect,
   useRef,
@@ -328,7 +332,7 @@ export function GameBoard({
     >
       <div className="board-navigation">
         <span className="board-gesture-hint">
-          <Move aria-hidden="true" />
+          <Icon aria-hidden="true" icon={moveIcon} />
           <span>Drag or use arrows</span>
           <small>Scroll or +/− to zoom</small>
         </span>
@@ -342,7 +346,7 @@ export function GameBoard({
             size="sm"
             variant="secondary"
           >
-            <Minus aria-hidden="true" />
+            <Icon aria-hidden="true" icon={minusIcon} />
           </Button>
           <output aria-label="Current board zoom" className="board-zoom-level">
             {Math.round(boardViewport.scale * 100)}%
@@ -356,7 +360,7 @@ export function GameBoard({
             size="sm"
             variant="secondary"
           >
-            <Plus aria-hidden="true" />
+            <Icon aria-hidden="true" icon={plusIcon} />
           </Button>
           <Button
             aria-label="Reset board view"
@@ -371,7 +375,7 @@ export function GameBoard({
             size="sm"
             variant="secondary"
           >
-            <Scan aria-hidden="true" />
+            <Icon aria-hidden="true" icon={scanIcon} />
           </Button>
         </div>
       </div>

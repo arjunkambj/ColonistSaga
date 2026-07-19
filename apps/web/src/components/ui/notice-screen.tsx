@@ -3,8 +3,9 @@
 import { Button } from "@heroui/react";
 import { useState } from "react";
 
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { LiquidGlass } from "@/components/ui/liquid-glass";
 
 export interface NoticeScreenProps {
   actionLabel: string;
@@ -44,7 +45,7 @@ export function NoticeScreen({
   return (
     <>
       <main className="centered-page notice-page" id="main-content">
-        <section className="notice-card">
+        <LiquidGlass as="section" className="notice-card" kind="card" radius="md">
           <Brand />
           <h1>{title}</h1>
           <p>{message}</p>
@@ -55,7 +56,7 @@ export function NoticeScreen({
           >
             {actionLabel}
           </Button>
-        </section>
+        </LiquidGlass>
       </main>
       {confirmation && showConfirmation ? (
         <ConfirmationDialog

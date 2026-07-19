@@ -9,7 +9,6 @@ remain code-native so the game stays responsive and deterministic.
 | Asset                                        | Decision       | Project file                                                                                  | Notes                                                                                                     |
 | -------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Shared daytime coastal panorama              | Generated      | `apps/web/public/shared-assets/coastal-cove-day-v1.jpg`                                       | 564 KB delivery asset; the generated PNG master remains beside it.                                        |
-| Destination navigation icon strip            | Generated      | `apps/web/public/shared-assets/destination-icons-v1.jpg`                                      | 208 KB five-cell sprite for Store, Collection, Leaderboard, Achievements, and News.                       |
 | Login castle-island centerpiece              | Generated      | `apps/web/public/shared-assets/login-castle-island-v1.avif`                                   | 112 KB transparent delivery asset; generated PNG master retained.                                         |
 | Development-card deck icon                   | Generated      | `apps/web/public/game-assets/ui/development-deck-v1.avif`                                     | 36 KB disabled-tile art; generated PNG master retained.                                                   |
 | Quick Match illustration                     | Reuse          | `apps/web/public/home-assets/menu/quick-match.png`                                            | Transparent 3D art is clipped into the blue reusable voyage card.                                         |
@@ -39,24 +38,6 @@ Lighting/mood: bright warm late-morning sun, joyful, adventurous, clear atmosphe
 Color palette: deep blue, cyan, emerald green, warm limestone, terracotta roofs, small purple flowers.
 Constraints: environment only; no UI, no card frames, no logos, no symbols, no people, no text, no watermark; preserve a clean 16:9 composition and strong readable center negative space.
 Avoid: dusk or night, orange sunset, empty generic Greek cliffs, flat illustration, photorealism, dark center, duplicated lighthouse, blurry central sea.
-```
-
-## Generated destination-icon prompt
-
-Built-in Imagegen mode was used with the main-menu reference. The generated cells deliberately
-use a dock-matched navy field because the current image output does not provide a real alpha
-channel; the CSS crops each equal cell inside the same navy glass navigation surface.
-
-```text
-Use case: stylized game UI asset
-Asset type: five-icon navigation sprite strip
-Reference: use the five colored 3D destination icons in the bottom navigation of the supplied Catansaga main-menu image as the style and subject reference.
-Primary request: Recreate five isolated premium 3D toy-like game menu icons in one perfectly horizontal strip, in this exact left-to-right order: (1) red-and-white market storefront with one gold coin, (2) two blue collection cards with a small gold cup, (3) gold leaderboard trophy on a small blue podium, (4) circular dark-blue achievement medal with a raised gold star, (5) folded off-white newspaper.
-Composition: five equal cells; each icon centered in its cell; identical visual scale and baseline; generous spacing; no overlap.
-Style: polished friendly 3D mobile strategy-game icon, crisp beveled edges, saturated colors, soft cool key light, subtle object shadow contained tightly around each icon.
-Background: one deep navy field matching #064B88, edge to edge.
-Text: no labels or UI copy beyond the small newspaper glyph intrinsic to the reference icon.
-Constraints: no navigation frame, glass panel, scenery, people, extra objects, or watermark; sprite strip only.
 ```
 
 ## Generated login-island prompt

@@ -2,7 +2,13 @@
 
 import type { BaseGameSettings } from "@catansaga/game";
 import { Button } from "@heroui/react";
-import { Bot, Check, Clipboard, Crown, Gamepad2, LogOut } from "lucide-react";
+import botIcon from "@iconify-icons/game-icons/robot-golem";
+import crownIcon from "@iconify-icons/game-icons/crown";
+import gamepadIcon from "@iconify-icons/game-icons/gamepad";
+import checkIcon from "@iconify-icons/solar/check-circle-outline";
+import copyIcon from "@iconify-icons/solar/copy-outline";
+import logoutIcon from "@iconify-icons/solar/logout-outline";
+import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -107,7 +113,7 @@ export function LobbyScreen({
           onPress={() => setConfirmation({ kind: "leave" })}
           variant="ghost"
         >
-          <LogOut aria-hidden="true" />
+          <Icon aria-hidden="true" icon={logoutIcon} />
           {pendingAction === "leave" ? "Leaving…" : "Leave Room"}
         </Button>
       </header>
@@ -124,7 +130,7 @@ export function LobbyScreen({
           variant="ghost"
         >
           <span translate="no">{room.code}</span>
-          {copied ? <Check aria-hidden="true" /> : <Clipboard aria-hidden="true" />}
+          <Icon aria-hidden="true" icon={copied ? checkIcon : copyIcon} />
           <small aria-live="polite">{copied ? "Copied" : "Copy Code"}</small>
         </Button>
 
@@ -142,7 +148,7 @@ export function LobbyScreen({
                 <span>
                   {member?.role === "host" ? (
                     <>
-                      <Crown aria-hidden="true" /> Host
+                      <Icon aria-hidden="true" icon={crownIcon} /> Host
                     </>
                   ) : member ? (
                     "Ready"
@@ -165,7 +171,7 @@ export function LobbyScreen({
                   }
                   variant="secondary"
                 >
-                  <Bot aria-hidden="true" />
+                  <Icon aria-hidden="true" icon={botIcon} />
                   {pendingAction === "replace" ? "Replacing…" : "Use Bot"}
                 </Button>
               ) : null}
@@ -208,7 +214,7 @@ export function LobbyScreen({
               isPending={pendingAction === "start"}
               onPress={onStart}
             >
-              <Gamepad2 aria-hidden="true" />
+              <Icon aria-hidden="true" icon={gamepadIcon} />
               {pendingAction === "start" ? "Building the Island…" : "Start Game"}
             </Button>
           </>

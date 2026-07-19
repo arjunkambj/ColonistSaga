@@ -12,24 +12,23 @@ import {
   type ResourceType,
 } from "@catansaga/game";
 import { Button, Modal } from "@heroui/react";
+import botIcon from "@iconify-icons/game-icons/robot-golem";
+import crownIcon from "@iconify-icons/game-icons/crown";
+import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
+import flagIcon from "@iconify-icons/game-icons/flag-objective";
+import hammerIcon from "@iconify-icons/game-icons/hammer-nails";
+import playerIcon from "@iconify-icons/game-icons/player-base";
+import scrollIcon from "@iconify-icons/game-icons/scroll-unfurled";
+import shieldIcon from "@iconify-icons/game-icons/shield";
+import trophyIcon from "@iconify-icons/game-icons/trophy-cup";
+import helpIcon from "@iconify-icons/solar/question-circle-outline";
+import infoIcon from "@iconify-icons/solar/info-circle-outline";
+import layersIcon from "@iconify-icons/solar/layers-outline";
+import maximizeIcon from "@iconify-icons/solar/maximize-square-outline";
+import minimizeIcon from "@iconify-icons/solar/minimize-square-outline";
+import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
+import { Icon } from "@iconify/react";
 import { useMutation } from "convex/react";
-import {
-  Bot,
-  CircleHelp,
-  Crown,
-  Dices,
-  Flag,
-  Hammer,
-  Info,
-  Layers3,
-  Maximize2,
-  Minimize2,
-  ScrollText,
-  Settings,
-  ShieldCheck,
-  Trophy,
-  UserRound,
-} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -176,7 +175,7 @@ export function GameScreen({
           <span translate="no">Room {code}</span>
           <span>Turn {game.turnNumber}</span>
           <span className="victory-target-pill">
-            <Trophy aria-hidden="true" /> First to {game.victoryPoints} VP
+            <Icon aria-hidden="true" icon={trophyIcon} /> First to {game.victoryPoints} VP
           </span>
         </div>
         <div className="game-header-actions">
@@ -190,7 +189,7 @@ export function GameScreen({
             onPress={() => setGameInfoView("overview")}
             variant="ghost"
           >
-            <Settings aria-hidden="true" />
+            <Icon aria-hidden="true" icon={settingsIcon} />
           </Button>
           <Button
             aria-controls="game-info-dialog"
@@ -202,7 +201,7 @@ export function GameScreen({
             onPress={() => setGameInfoView("help")}
             variant="ghost"
           >
-            <CircleHelp aria-hidden="true" />
+            <Icon aria-hidden="true" icon={helpIcon} />
           </Button>
           <Button
             aria-controls="game-sidebar-panels"
@@ -216,7 +215,7 @@ export function GameScreen({
             }}
             variant="ghost"
           >
-            {isBoardFocused ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+            <Icon aria-hidden="true" icon={isBoardFocused ? minimizeIcon : maximizeIcon} />
           </Button>
           <Button
             aria-controls="game-info-dialog"
@@ -228,7 +227,7 @@ export function GameScreen({
             onPress={() => setGameInfoView("overview")}
             variant="ghost"
           >
-            <Info aria-hidden="true" />
+            <Icon aria-hidden="true" icon={infoIcon} />
           </Button>
           <Button
             aria-label="Leave game"
@@ -275,7 +274,7 @@ export function GameScreen({
 
       <section className="phase-banner phase-banner-overlay" aria-labelledby="phase-title">
         <div className="phase-icon" aria-hidden="true">
-          {game.phase.kind === "roll" ? <Dices /> : <Flag />}
+          <Icon icon={game.phase.kind === "roll" ? diceIcon : flagIcon} />
         </div>
         <div className="phase-copy">
           <p className="eyebrow">Turn {game.turnNumber}</p>
@@ -393,7 +392,11 @@ function PlayerStrip({
               aria-hidden="true"
             >
               <span className="player-avatar-fallback">
-                {player.isBot ? <Bot aria-hidden="true" /> : getPlayerInitials(player.displayName)}
+                {player.isBot ? (
+                  <Icon aria-hidden="true" icon={botIcon} />
+                ) : (
+                  getPlayerInitials(player.displayName)
+                )}
               </span>
               {avatarSrc ? (
                 <img
@@ -425,7 +428,7 @@ function PlayerStrip({
                 aria-label={`${player.victoryPoints} of ${victoryTarget} victory points`}
                 className="player-stat player-victory-stat"
               >
-                <Crown aria-hidden="true" />
+                <Icon aria-hidden="true" icon={crownIcon} />
                 <strong>{player.victoryPoints}</strong>
                 <small>VP</small>
               </span>
@@ -435,7 +438,7 @@ function PlayerStrip({
                 aria-label={`${player.resourceCount} resource cards`}
                 className="player-stat player-resource-stat"
               >
-                <Layers3 aria-hidden="true" />
+                <Icon aria-hidden="true" icon={layersIcon} />
                 <strong>{player.resourceCount}</strong> <small>cards</small>
               </span>
               <div className="player-piece-stats" aria-label="Pieces remaining" role="group">
@@ -464,7 +467,7 @@ function PlayerStrip({
                 onPress={() => onReplacePlayer(player.id)}
                 variant="secondary"
               >
-                <Bot aria-hidden="true" />
+                <Icon aria-hidden="true" icon={botIcon} />
                 <span>{pendingReplacementId === player.id ? "Replacing…" : "Use Bot"}</span>
               </Button>
             ) : null}
@@ -520,7 +523,7 @@ function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; id
     <section className="side-card" aria-labelledby={titleId}>
       <div className="side-card-title">
         <h2 id={titleId}>Resource Market</h2>
-        <ShieldCheck aria-hidden="true" />
+        <Icon aria-hidden="true" icon={shieldIcon} />
       </div>
       <ul className="bank-grid">
         {RESOURCE_ORDER.map((resource) => (
@@ -555,7 +558,7 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
     <section className="side-card event-card" aria-labelledby={titleId}>
       <div className="side-card-title">
         <h2 id={titleId}>Game Log</h2>
-        <ScrollText aria-hidden="true" />
+        <Icon aria-hidden="true" icon={scrollIcon} />
       </div>
       <p aria-atomic="true" aria-live="polite" className="sr-only">
         {visibleEvents[0]?.text ?? "No moves yet."}
@@ -610,7 +613,6 @@ function MobileGameInfo({
               className: "mobile-game-info-dialog game-info-reference-dialog",
               kind: "panel",
               radius: "md",
-              tone: "ocean",
             })}
             id="game-info-dialog"
           >
@@ -831,7 +833,7 @@ function ActionDock({
                 }
                 variant="secondary"
               >
-                <UserRound aria-hidden="true" /> {player?.displayName ?? "Neighbor"}
+                <Icon aria-hidden="true" icon={playerIcon} /> {player?.displayName ?? "Neighbor"}
               </Button>
             );
           })}
@@ -853,7 +855,7 @@ function ActionDock({
           isPending={pending}
           onPress={() => onCommand({ kind: "roll" }, "Dice rolled.")}
         >
-          <Dices aria-hidden="true" />
+          <Icon aria-hidden="true" icon={diceIcon} />
           <span>{pending ? "Rolling…" : "Roll Dice"}</span>
         </Button>
         <ActionTile
@@ -882,7 +884,7 @@ function ActionDock({
   if (game.phase.kind !== "build_and_trade") {
     return (
       <section className="action-dock is-waiting" aria-label="Required action">
-        <Hammer aria-hidden="true" />
+        <Icon aria-hidden="true" icon={hammerIcon} />
         <div>
           <strong>Choose a highlighted board target</strong>
           <span>The board shows every legal option.</span>
@@ -1286,7 +1288,7 @@ function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextAc
       className={botThinking ? "turn-clock is-bot" : "turn-clock"}
       role="timer"
     >
-      {botThinking ? <Bot aria-hidden="true" /> : null}
+      {botThinking ? <Icon aria-hidden="true" icon={botIcon} /> : null}
       <span>{botThinking ? "Bot thinking" : "Turn time"}</span>
       <strong>{seconds}s</strong>
     </div>
@@ -1383,7 +1385,7 @@ function WinOverlay({
           <Modal.Dialog className="win-card">
             <Modal.Header className="win-card-header">
               <span className="win-crown" aria-hidden="true">
-                <Crown />
+                <Icon icon={crownIcon} />
               </span>
               <div>
                 <p className="eyebrow">Game Complete</p>
