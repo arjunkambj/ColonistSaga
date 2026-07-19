@@ -5,9 +5,7 @@
   "scripts": {
     "build": "next build",
     "check-types": "tsc --noEmit",
-    "dev": "next dev --port 3000",
-    "start": "serve out --listen 3000",
-    "test": "node --test --experimental-strip-types src/constants/game/*.test.ts src/lib/*.test.ts src/lib/game/*.test.ts src/lib/lobby/*.test.ts"
+    "dev": "next dev --port 3000"
   },
   "dependencies": {
     "@colonistsaga/backend": "workspace:*",

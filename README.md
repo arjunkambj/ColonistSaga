@@ -23,13 +23,15 @@ pnpm install
 pnpm dev:setup
 ```
 
-Convex writes its deployment values to `packages/backend/.env.local`. Copy the deployment URL into the ignored file `apps/web/.env.local`:
+Convex writes its deployment values to `packages/backend/.env.local`. Create the ignored file `apps/web/.env.local` from the example, then add the Convex URL and credentials for your hosted Hexclave project:
 
 ```dotenv
 NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+NEXT_PUBLIC_HEXCLAVE_PROJECT_ID=your-hosted-project-id
+NEXT_PUBLIC_HEXCLAVE_PUBLISHABLE_CLIENT_KEY=your-publishable-client-key
 ```
 
-`pnpm dev` starts the local Hexclave dashboard, syncs `hexclave.config.ts`, injects the public Hexclave project values into the web process, and sets the matching `HEXCLAVE_PROJECT_ID` on the Convex development deployment. Backend environment values belong in Convex, not in the web app. A publishable client key is only needed when `requirePublishableClientKey` is enabled. This integration uses individual accounts only; it does not enable Hexclave Teams.
+Set the same hosted project ID as `HEXCLAVE_PROJECT_ID` in the Convex dashboard for each deployment. Backend environment values belong in Convex, not in the web app. A publishable client key is only needed when `requirePublishableClientKey` is enabled. This integration uses individual accounts only; it does not enable Hexclave Teams.
 
 Run the backend and web app together:
 
