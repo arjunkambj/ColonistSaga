@@ -1,6 +1,6 @@
-# Catansaga
+# ColonistSaga
 
-Catansaga is a real-time, reconnect-safe three- or four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current game supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
+ColonistSaga is a real-time, reconnect-safe three- or four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current game supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
 
 ## Features
 

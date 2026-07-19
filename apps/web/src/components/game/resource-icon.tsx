@@ -1,4 +1,4 @@
-import type { ResourceType } from "@catansaga/game";
+import type { ResourceType } from "@colonistsaga/game";
 
 export const RESOURCE_LABELS: Readonly<Record<ResourceType, string>> = {
   brick: "Brick",

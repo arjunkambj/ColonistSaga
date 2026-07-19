@@ -1,5 +1,5 @@
-import { DEFAULT_TOPOLOGY, axialToPixel } from "@catansaga/game";
-import type { AxialCoordinate, PixelCoordinate } from "@catansaga/game";
+import { DEFAULT_TOPOLOGY, axialToPixel } from "@colonistsaga/game";
+import type { AxialCoordinate, PixelCoordinate } from "@colonistsaga/game";
 
 import { BOARD_TILE } from "@/constants/game/board-assets";
 

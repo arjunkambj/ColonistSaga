@@ -21,7 +21,7 @@ async function getMainViewUrl(): Promise<string> {
 const url = await getMainViewUrl();
 
 new BrowserWindow({
-  title: "catansaga",
+  title: "ColonistSaga",
   url,
   frame: {
     width: 1280,

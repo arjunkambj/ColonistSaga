@@ -1,4 +1,4 @@
-# Catansaga detailed V7 Base asset review
+# ColonistSaga detailed V7 Base asset review
 
 ## Verdict
 

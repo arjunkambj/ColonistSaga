@@ -1,4 +1,4 @@
-import type { BotDifficulty } from "@catansaga/game";
+import type { BotDifficulty } from "@colonistsaga/game";
 
 export const MAX_SEATS = 4;
 export const DEFAULT_BOT_DIFFICULTY: BotDifficulty = "medium";

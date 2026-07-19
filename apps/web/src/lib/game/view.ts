@@ -1,4 +1,4 @@
-import type { GamePhase } from "@catansaga/game";
+import type { GamePhase } from "@colonistsaga/game";
 
 export interface PhaseCopy {
   detail: string;

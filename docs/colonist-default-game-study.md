@@ -4,13 +4,13 @@
 
 This study is limited to the four-player Base game and its single default
 19-hex layout. Alternate maps, expansions, five-to-eight-player layouts, and
-ranked modes are deliberately outside the Catansaga v1 scope.
+ranked modes are deliberately outside the ColonistSaga v1 scope.
 
 ## Verified flow
 
 1. A room starts with one host seat and three open seats. Each open seat can be
    filled by a guest or an Easy, Medium, or Hard bot.
-2. The room exposes Base mode and Base map as separate selections. Catansaga v1
+2. The room exposes Base mode and Base map as separate selections. ColonistSaga v1
    fixes both selections and does not persist a layout choice.
 3. Starting the tested Base room created the standard 19-land-hex island with
    nine ports and four player colors.
@@ -19,7 +19,7 @@ ranked modes are deliberately outside the Catansaga v1 scope.
    show victory points, development-card count, resource-card count, army, and
    road length.
 5. The tested room used a two-minute setup timer even though its normal turn
-   timer was set to 60 seconds. Catansaga therefore models the two timers
+   timer was set to 60 seconds. ColonistSaga therefore models the two timers
    separately.
 6. Disconnecting leaves the match recoverable. The game log announces the
    disconnect, warns that a bot will take over on the next turn, and announces
@@ -48,7 +48,7 @@ enabled, Balanced Dice enabled, 60-second normal turns, 10 points to win, and a
 discard limit of seven. It successfully started with three bots on the default
 Base board.
 
-## Catansaga implications
+## ColonistSaga implications
 
 - Keep one canonical server state and a typed, append-only ordered event ledger.
 - Require an expected action number and client action ID for idempotent turn

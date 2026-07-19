@@ -1,5 +1,5 @@
 {
-  "name": "catansaga",
+  "name": "colonistsaga",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -17,18 +17,18 @@
     "dev:desktop": "turbo run dev:hmr -F desktop",
     "build:desktop": "turbo run build:stable -F desktop",
     "build:desktop:canary": "turbo run build:canary -F desktop",
-    "dev:server": "turbo run dev -F @catansaga/backend",
-    "dev:setup": "turbo run dev:setup -F @catansaga/backend",
+    "dev:server": "turbo run dev -F @colonistsaga/backend",
+    "dev:setup": "turbo run dev:setup -F @colonistsaga/backend",
     "sync:hexclave:convex": "pnpm --dir packages/backend exec convex env set HEXCLAVE_PROJECT_ID \"$HEXCLAVE_PROJECT_ID\"",
     "check": "oxlint && oxfmt --write"
   },
   "dependencies": {
-    "@catansaga/env": "workspace:*",
+    "@colonistsaga/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@catansaga/config": "workspace:*",
+    "@colonistsaga/config": "workspace:*",
     "@hexclave/cli": "^1.0.51",
     "@hexclave/next": "^1.0.51",
     "@types/node": "^22.13.14",

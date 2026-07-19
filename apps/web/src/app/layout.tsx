@@ -10,7 +10,7 @@ import "./reference-screens.css";
 
 export const metadata: Metadata = {
   description: "A friendly real-time island-building board game.",
-  title: "Catansaga",
+  title: "ColonistSaga",
 };
 
 export const viewport: Viewport = {

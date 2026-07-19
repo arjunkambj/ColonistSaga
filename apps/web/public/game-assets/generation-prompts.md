@@ -1,4 +1,4 @@
-# Catansaga default Base asset generation prompts
+# ColonistSaga default Base asset generation prompts
 
 > The current detailed V7 terrain and piece refinement is documented in
 > `docs/game-asset-generation-v3.md`. It supersedes the V6 terrain, road,
@@ -116,7 +116,7 @@ Edit the V2 desert master while preserving its exact flat-top outer silhouette, 
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game terrain hex tile
+Asset type: ColonistSaga board-game terrain hex tile
 Primary request: Create one original grain-producing fields terrain hex for a digital tabletop strategy game.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: a single regular hexagonal clay terrain tile with a warm golden ochre soil surface, shallow hand-sculpted furrows, and a few compact clusters of ripe golden wheat; no green foliage.
@@ -133,7 +133,7 @@ Avoid: branded game artwork, photorealism, busy micro-detail, crop, perspective 
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game terrain hex tile
+Asset type: ColonistSaga board-game terrain hex tile
 Primary request: Create one original lumber-producing forest terrain hex for a digital tabletop strategy game.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: a single regular hexagonal clay terrain tile with a deep evergreen-green forest floor and five compact rounded conifer trees arranged as one readable woodland cluster; keep trees inside the hex silhouette.
@@ -150,7 +150,7 @@ Color palette: pine green, teal green, earthy brown; do not use #ff00ff anywhere
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game terrain hex tile
+Asset type: ColonistSaga board-game terrain hex tile
 Primary request: Create one original brick-producing hills terrain hex for a digital tabletop strategy game.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: a single regular hexagonal clay terrain tile with layered rounded terracotta hills, shallow gullies, and small clay-rock ridges; no bricks, buildings, plants, or loose objects outside the tile.
@@ -167,7 +167,7 @@ Color palette: burnt coral, terracotta, rust, warm sienna; do not use #00ff00 an
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game terrain hex tile
+Asset type: ColonistSaga board-game terrain hex tile
 Primary request: Create one original ore-producing mountains terrain hex for a digital tabletop strategy game.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: a single regular hexagonal clay terrain tile with three chunky rounded slate-gray mountain peaks, layered rocky foothills, and a cool gray stone base; no snow, vegetation, ore nuggets, or loose objects outside the tile.
@@ -184,7 +184,7 @@ Color palette: slate gray, blue-gray, charcoal, muted lavender-gray; do not use 
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game terrain hex tile
+Asset type: ColonistSaga board-game terrain hex tile
 Primary request: Create one original wool-producing pasture terrain hex for a digital tabletop strategy game.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: a single regular hexagonal clay terrain tile with a fresh spring-green pasture surface, soft low rolling mounds, small clover-like tufts, and two tiny rounded ivory clay sheep resting safely inside the hex.
@@ -201,7 +201,7 @@ Avoid: branded game artwork, photorealism, busy micro-detail, crop, perspective 
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game terrain hex tile
+Asset type: ColonistSaga board-game terrain hex tile
 Primary request: Create one original desert terrain hex for a digital tabletop strategy game, serving as the robber starting terrain.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: a single regular hexagonal clay terrain tile with warm pale sand, three broad wind-shaped dune ridges, a few small rounded sandstone pebbles embedded in the surface, and subtle dry cracks; no cactus, plants, bones, robber, token, or loose objects outside the tile.
@@ -218,7 +218,7 @@ Avoid: branded game artwork, photorealism, busy micro-detail, crop, perspective 
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga inventory and trade resource icon
+Asset type: ColonistSaga inventory and trade resource icon
 Primary request: Create one original standalone resource icon representing TREE / WOOD, matching the direct tree symbol shown in the reference resource-card row without copying its UI or artwork.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; no shadow, gradient, texture, reflection, or floor.
 Subject: one compact healthy evergreen tree with a short visible brown trunk and three clearly separated rounded tiers of green clay foliage; a single tree only, not logs, timber, a forest, or a terrain tile.
@@ -231,7 +231,7 @@ Constraints: readable at 64px; no card, frame, label, text, number, logo, waterm
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga inventory and trade resource icon
+Asset type: ColonistSaga inventory and trade resource icon
 Primary request: Create one original standalone resource icon representing BRICK, matching the direct brick symbol in the reference resource-card row without copying its UI or artwork.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for local removal; no shadow, gradient, texture, reflection, or floor.
 Subject: one compact stack of three rounded terracotta clay bricks, two on the bottom and one centered on top; clearly separated brick shapes with shallow top indent lines.
@@ -244,7 +244,7 @@ Constraints: readable at 64px; no card, frame, text, number, logo, watermark, UI
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga inventory and trade resource icon
+Asset type: ColonistSaga inventory and trade resource icon
 Primary request: Create one original standalone resource icon representing SHEEP, matching the direct sheep symbol in the reference resource-card row without copying its UI or artwork.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for local removal; no shadow, gradient, texture, reflection, or floor.
 Subject: one small full-body ivory sheep in side three-quarter view, with a compact rounded cloud-like wool body, clearly visible beige face, two small ears, and four short legs; a single sheep only.
@@ -257,7 +257,7 @@ Constraints: unmistakable at 64px; no card, frame, text, number, logo, watermark
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga inventory and trade resource icon
+Asset type: ColonistSaga inventory and trade resource icon
 Primary request: Create one original standalone resource icon representing WHEAT, matching the direct wheat symbol in the reference resource-card row without copying its UI or artwork.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for local removal; no shadow, gradient, texture, reflection, or floor.
 Subject: one compact upright golden wheat sheaf with five thick stalks, large readable rounded grain kernels, and a simple warm-brown tie; no green leaves.
@@ -270,7 +270,7 @@ Constraints: readable at 64px; no card, frame, text, number, logo, watermark, UI
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga inventory and trade resource icon
+Asset type: ColonistSaga inventory and trade resource icon
 Primary request: Create one original standalone resource icon representing STONE, matching the direct stone symbol in the reference resource-card row without copying its UI or artwork.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for local removal; no shadow, gradient, texture, reflection, or floor.
 Subject: one compact cluster of three rounded gray stones in different sizes, arranged as a stable low pile; broad simple facets, clearly stone rather than metallic ore.
@@ -283,7 +283,7 @@ Constraints: readable at 64px; no card, frame, text, number, logo, watermark, UI
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga board-game robber pawn token
+Asset type: ColonistSaga board-game robber pawn token
 Primary request: Create one original neutral robber pawn for blocking a terrain hex.
 Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
 Subject: one abstract charcoal clay pawn with a low rounded circular foot, tapered faceted body, narrow collar, and smooth oval top; dignified simple silhouette, no face, hands, weapons, clothing, or character details.
@@ -301,7 +301,7 @@ Avoid: branded game piece designs, photorealism, human figure, hooded character,
 ```text
 Use case: reference-guided image edit
 References: the supplied bright casual-game home screen and character-selection images, used only for softness, palette, and material cues.
-Asset type: Catansaga decorative domestic-trade modal illustration.
+Asset type: ColonistSaga decorative domestic-trade modal illustration.
 Primary request: Create one original cheerful island trading caravan: a compact blue-and-gold wooden handcart piled with timber logs, red bricks, wheat sheaves, a wool bundle, and rounded stone, with a rolled map and a small balance scale suggesting fair exchange.
 Style/medium: polished friendly casual-mobile-game illustration with softly rounded clay forms, pale warm highlights, clean silhouettes, and playful proportions; original unbranded design.
 Composition/framing: isolated three-quarter view, cart facing right, complete silhouette, no cropped wheels or cargo, no ground plane.
@@ -315,7 +315,7 @@ Generated with OpenAI's built-in image generation tool. The two supplied board s
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga in-game board canvas background, wide responsive raster backdrop
+Asset type: ColonistSaga in-game board canvas background, wide responsive raster backdrop
 Input images: Image 1 is a style reference for the polished friendly clay-board warmth and turquoise water palette; Image 2 is a composition reference for a clear blue tabletop surrounding a centered game board. Neither image is an edit target.
 Primary request: Create an original premium illustrated ocean tabletop backdrop for a multiplayer hex-board game. The live board will be rendered in code over the center, so the middle 72% must stay visually quiet and unobstructed.
 Scene/backdrop: bright turquoise open water viewed directly top-down, with very subtle soft wavelets, tiny foam flecks, faint depth gradients, and restrained illustrated shoreline hints only at the extreme corners.
@@ -333,7 +333,7 @@ Generated with OpenAI's built-in image generation tool on a flat `#ff00ff` backg
 
 ```text
 Use case: stylized-concept
-Asset type: reusable Catansaga board-game port marker cutout
+Asset type: reusable ColonistSaga board-game port marker cutout
 Input images: the supplied board UI with sailing port markers is a composition reference only; the polished clay board screenshot is a material/style reference; the newly generated turquoise ocean is a palette reference. None is an edit target.
 Primary request: Create one original tiny friendly island trading skiff used as a harbor marker around a hex board.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, water, or lighting variation.
@@ -352,12 +352,12 @@ Generated with OpenAI's built-in image generation tool on a flat `#ff00ff` backg
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga action-dock game UI icon, transparent cutout source
+Asset type: ColonistSaga action-dock game UI icon, transparent cutout source
 Input images: Image 1 is a resource-card hierarchy reference; Image 2 is an action-dock composition reference; Image 3 is a player-banner hierarchy reference; Image 4 is a turn-banner and dice reference. All are references only, not edit targets, and their artwork must not be copied.
 Primary request: Create one original compact MARKET TRADE action icon for a friendly multiplayer island strategy game.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, or lighting variation.
 Subject: a small teal-and-gold merchant satchel with a rolled cream map tucked inside and two bold curved exchange arrows crossing on the front; one cohesive fused icon silhouette.
-Style/medium: polished casual-game 3D clay icon matching Catansaga's rounded terrain and resource assets; tactile, cheerful, premium, immediately readable at 48–64 px.
+Style/medium: polished casual-game 3D clay icon matching ColonistSaga's rounded terrain and resource assets; tactile, cheerful, premium, immediately readable at 48–64 px.
 Composition/framing: centered isolated icon, front three-quarter view, square footprint, complete silhouette, 12% even padding.
 Lighting/mood: bright soft upper-left studio light on subject only; restrained internal ambient occlusion.
 Color palette: teal, sea-glass blue, honey gold, warm cream; do not use #ff00ff in the subject.
@@ -371,7 +371,7 @@ Generated with OpenAI's built-in image generation tool on a flat `#ff00ff` backg
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga action-dock game UI icon, transparent cutout source
+Asset type: ColonistSaga action-dock game UI icon, transparent cutout source
 Input images: the four supplied UI screenshots are hierarchy and action-dock references only; the newly generated market satchel is the authoritative style, material, camera, padding, lighting, and palette reference. None is an edit target.
 Primary request: Create one original compact END TURN icon for a friendly multiplayer island strategy game.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, or lighting variation.

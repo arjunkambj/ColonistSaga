@@ -9,7 +9,7 @@ import {
   type GamePlayerInput,
   type GameState,
   type ResourceInventory,
-} from "@catansaga/game";
+} from "@colonistsaga/game";
 
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";

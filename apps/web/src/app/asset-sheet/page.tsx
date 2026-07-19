@@ -14,8 +14,8 @@ import styles from "./asset-sheet.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
 export const metadata: Metadata = {
-  description: "A category-by-category inventory of Catansaga's generated and planned assets.",
-  title: "Asset Sheet · Catansaga",
+  description: "A category-by-category inventory of ColonistSaga's generated and planned assets.",
+  title: "Asset Sheet · ColonistSaga",
 };
 
 interface AssetItem extends AssetCardItem {
@@ -46,17 +46,17 @@ const ASSET_CATEGORIES = [
     description: "Large scene-setting artwork used behind the login, home, and game views.",
     assets: [
       {
-        name: "Catansaga logo",
+        name: "ColonistSaga logo",
         description: "Primary illustrated wordmark for authentication screens.",
-        format: "PNG · 1648×937",
-        path: "/auth-assets/catansaga-logo-v1.png",
+        format: "PNG · 1666×944",
+        path: "/auth-assets/colonistsaga-logo-v1.png",
         status: "generated",
       },
       {
-        name: "Catansaga mark",
+        name: "ColonistSaga mark",
         description: "Standalone hexagonal brand mark used for the app icon and favicon.",
         format: "PNG · 1024×1024",
-        path: "/shared-assets/catansaga-mark.png",
+        path: "/shared-assets/colonistsaga-mark.png",
         status: "generated",
       },
       {

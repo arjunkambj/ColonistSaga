@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   output: "export",
-  transpilePackages: ["@catansaga/backend", "@catansaga/game"],
+  transpilePackages: ["@colonistsaga/backend", "@colonistsaga/game"],
 };
 
 export default nextConfig;

@@ -1,6 +1,6 @@
 "use client";
 
-import type { BaseGameSettings } from "@catansaga/game";
+import type { BaseGameSettings } from "@colonistsaga/game";
 import { Button } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import crownIcon from "@iconify-icons/game-icons/crown";

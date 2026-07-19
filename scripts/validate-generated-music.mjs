@@ -121,7 +121,7 @@ async function main() {
     (total, entry) => total + entry.actualDurationSeconds,
     0,
   );
-  const report = `# Generated Catansaga music report
+  const report = `# Generated ColonistSaga music report
 
 ## Result
 

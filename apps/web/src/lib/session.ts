@@ -1,4 +1,4 @@
-export const SESSION_STORAGE_KEY = "catansaga.session.v2";
+export const SESSION_STORAGE_KEY = "colonistsaga.session.v2";
 export const SESSION_VERSION = 2;
 
 export interface PlayerSession {

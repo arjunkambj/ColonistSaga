@@ -1,8 +1,8 @@
-# Catansaga audio production brief
+# ColonistSaga audio production brief
 
 ## Product read
 
-Catansaga is a friendly three- or four-player island strategy game. Its current flow is:
+ColonistSaga is a friendly three- or four-player island strategy game. Its current flow is:
 
 1. dusk-harbor sign-in;
 2. bright archipelago home screen;

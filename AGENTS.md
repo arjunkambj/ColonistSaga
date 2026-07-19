@@ -2,7 +2,7 @@
 
 ## Product & Technology Scope
 
-Catansaga is a Colonist.io-style multiplayer board game. Build deterministic rules, real-time turns, reconnect-safe sessions, and separate game state from presentation. Use only Next.js for the client and Convex for the backend, persistence, and synchronization. Do not add another framework, database, or API layer without an explicit architecture change.
+ColonistSaga is a Colonist.io-style multiplayer board game. Build deterministic rules, real-time turns, reconnect-safe sessions, and separate game state from presentation. Use only Next.js for the client and Convex for the backend, persistence, and synchronization. Do not add another framework, database, or API layer without an explicit architecture change.
 
 ## Project Structure & Module Organization
 

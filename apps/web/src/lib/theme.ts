@@ -1,5 +1,5 @@
 export const DEFAULT_THEME = "light";
-export const THEME_STORAGE_KEY = "catansaga:theme";
+export const THEME_STORAGE_KEY = "colonistsaga:theme";
 
 export type Theme = "dark" | "light";
 

@@ -30,7 +30,7 @@ references.
 Use case: stylized-concept
 Asset type: shared full-screen game login and home background
 Input images: Image 1 is the login-screen composition and world-style reference; Image 2 is the main-menu composition and world-style reference.
-Primary request: Create one polished 16:9 daytime Mediterranean fantasy coastal panorama that can sit behind both the Catansaga login panel and the three main-menu cards.
+Primary request: Create one polished 16:9 daytime Mediterranean fantasy coastal panorama that can sit behind both the ColonistSaga login panel and the three main-menu cards.
 Scene/backdrop: brilliant cobalt sky with large soft white clouds; saturated turquoise sea; warm stone harbor village and red-tile roofs on the left; a tall stone lighthouse on a rugged green cliff on the right; small sailboats and distant islands; lush foreground foliage, flowers, wooden rails, and sunlit rocks at the lower corners.
 Style/medium: premium friendly 3D strategy-game environment render, toy-like but richly detailed, matching the supplied references.
 Composition/framing: wide landscape; keep the central 48% visually calm and mostly open sea/sky so glass UI remains readable; left village and right lighthouse frame the scene without intruding into the center; horizon near 38% from the top.

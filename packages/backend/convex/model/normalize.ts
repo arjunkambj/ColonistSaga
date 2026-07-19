@@ -1,5 +1,5 @@
-import type { BaseGameSettings } from "@catansaga/game";
-import { mapSupportsPlayerCount } from "@catansaga/game/maps";
+import type { BaseGameSettings } from "@colonistsaga/game";
+import { mapSupportsPlayerCount } from "@colonistsaga/game/maps";
 
 import { ROOM_CODE_LENGTH } from "./constants";
 import { fail } from "./errors";
@@ -39,7 +39,7 @@ export function createPrivateGameSeed(): string {
   const randomParts = Array.from({ length: 4 }, () =>
     Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36),
   );
-  return `catansaga-game-v1:${randomParts.join(":")}`;
+  return `colonistsaga-game-v1:${randomParts.join(":")}`;
 }
 
 export function validateActionNumber(value: number): number {

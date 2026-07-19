@@ -1,6 +1,6 @@
-# Catansaga Detailed V7 Board Assets
+# ColonistSaga Detailed V7 Board Assets
 
-Generated July 17, 2026 with OpenAI's built-in image generation tool. The current V6 Catansaga tile and piece files were used as edit targets. Their canvas purpose, light clay material, camera family, and shared board geometry were retained; the interior terrain detail and piece silhouettes were redesigned.
+Generated July 17, 2026 with OpenAI's built-in image generation tool. The current V6 ColonistSaga tile and piece files were used as edit targets. Their canvas purpose, light clay material, camera family, and shared board geometry were retained; the interior terrain detail and piece silhouettes were redesigned.
 
 Every generated source used a perfectly flat `#ff00ff` chroma background. The sources were processed with the installed chroma-removal helper using border auto-key, a soft matte, transparent threshold 12, opaque threshold 220, and despill.
 
@@ -8,7 +8,7 @@ Every generated source used a perfectly flat `#ff00ff` chroma background. The so
 
 ```text
 Use case: precise-object-edit
-Asset type: Catansaga board terrain hex, V7 refinement
+Asset type: ColonistSaga board terrain hex, V7 refinement
 Input images: Image 1 is the edit target and authoritative source for exact canvas, flat-top hex silhouette, honey-gold rim geometry, perspective, scale, padding, material, palette, and lighting.
 Primary request: Enrich only the terrain surface details while preserving the exact shared tile geometry. {terrain detail}
 Style/medium: polished light casual-game 3D clay; smooth rounded handcrafted forms, subtle surface texture, crisp small-scale readability, friendly upper-left lighting.
@@ -31,7 +31,7 @@ Terrain detail lines:
 
 ```text
 Use case: precise-object-edit
-Asset type: Catansaga color-tinted board piece, V7 redesign
+Asset type: ColonistSaga color-tinted board piece, V7 redesign
 Input images: Image 1 is the previous edit target and material/lighting reference only; preserve its warm ivory base material, rounded casual-game finish, camera family, and transparent-asset purpose, but replace the object's design.
 Primary request: {piece design}
 Style/medium: original polished casual-mobile-game 3D token; smooth matte carved wood and clay; warm creamy ivory base with honey-gold bevel highlights and soft lavender-gray creases; enough relief detail to remain readable after player-color tinting.

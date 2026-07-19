@@ -1,4 +1,4 @@
-# Catansaga game schema
+# ColonistSaga game schema
 
 ## Scope
 
@@ -6,7 +6,7 @@ The game currently implements one configurable three- or four-player Base game o
 
 ## Authoritative game state
 
-`@catansaga/game` owns the JSON-serializable state and every rule transition. Convex stores that state as private JSON and exposes a filtered viewer-specific projection.
+`@colonistsaga/game` owns the JSON-serializable state and every rule transition. Convex stores that state as private JSON and exposes a filtered viewer-specific projection.
 
 | Area     | Key fields                                                     | Invariant                                                                                   |
 | -------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |

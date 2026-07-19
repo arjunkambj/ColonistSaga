@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@catansaga/backend/convex/_generated/api";
+import { api } from "@colonistsaga/backend/convex/_generated/api";
 import { type CurrentUser, useHexclaveApp } from "@hexclave/next";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -32,7 +32,7 @@ import {
   writePlayerSession,
 } from "@/lib/session";
 
-export function CatansagaApp() {
+export function ColonistSagaApp() {
   const hexclave = useHexclaveApp();
   const [user, setUser] = useState<CurrentUser | null>();
   const [userLoadFailed, setUserLoadFailed] = useState(false);

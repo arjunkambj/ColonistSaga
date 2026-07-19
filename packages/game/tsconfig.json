@@ -1,5 +1,5 @@
 {
-  "extends": "@catansaga/config/tsconfig.base.json",
+  "extends": "@colonistsaga/config/tsconfig.base.json",
   "compilerOptions": {
     "types": ["node", "vitest/globals"]
   },

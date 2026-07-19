@@ -10,8 +10,8 @@
     "test": "node --test --experimental-strip-types src/constants/game/*.test.ts src/lib/*.test.ts src/lib/game/*.test.ts src/lib/lobby/*.test.ts"
   },
   "dependencies": {
-    "@catansaga/backend": "workspace:*",
-    "@catansaga/game": "workspace:*",
+    "@colonistsaga/backend": "workspace:*",
+    "@colonistsaga/game": "workspace:*",
     "@heroui/react": "^3.2.2",
     "@heroui/styles": "^3.2.2",
     "@hexclave/next": "^1.0.51",
@@ -24,7 +24,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@catansaga/config": "workspace:*",
+    "@colonistsaga/config": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",

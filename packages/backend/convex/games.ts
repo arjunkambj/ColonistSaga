@@ -1,5 +1,5 @@
-import { DEFAULT_BASE_GAME_SETTINGS, applyCommand as applyGameCommand } from "@catansaga/game";
-import type { GameCommand } from "@catansaga/game";
+import { DEFAULT_BASE_GAME_SETTINGS, applyCommand as applyGameCommand } from "@colonistsaga/game";
+import type { GameCommand } from "@colonistsaga/game";
 import { ConvexError, v } from "convex/values";
 
 import { earliestActionDeadlineAt, isActionDeadlineExpired } from "../lib/game-scheduling";

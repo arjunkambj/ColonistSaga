@@ -6,7 +6,7 @@ import {
   type PlayerViewState,
   type ResourceType,
   type TerrainType,
-} from "@catansaga/game";
+} from "@colonistsaga/game";
 import { Button } from "@heroui/react";
 import moveIcon from "@iconify-icons/game-icons/move";
 import minusIcon from "@iconify-icons/solar/minus-circle-outline";

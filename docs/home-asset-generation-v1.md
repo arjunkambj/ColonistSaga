@@ -1,6 +1,6 @@
 # Home Asset Generation V1
 
-The Catansaga home artwork was generated with OpenAI's built-in image generation tool, then prepared locally for the web UI. The Twosheep screenshot was used only as a broad mood reference for an inviting scenic game menu; its scenery, composition, branding, and menu layout were explicitly excluded.
+The ColonistSaga home artwork was generated with OpenAI's built-in image generation tool, then prepared locally for the web UI. The Twosheep screenshot was used only as a broad mood reference for an inviting scenic game menu; its scenery, composition, branding, and menu layout were explicitly excluded.
 
 ## Shipped Assets
 
@@ -15,11 +15,11 @@ The Catansaga home artwork was generated with OpenAI's built-in image generation
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga full-screen home background
-Input images: Image 1 is a broad mood reference only for an inviting scenic game-menu backdrop; do not reproduce its mountains, houses, layout, logo area, menu positions, or identifiable scenery. Image 2 is Catansaga's authoritative reference for light pastel color, rounded modeling, honey-gold accents, smooth clay/plastic material, and friendly casual-game polish.
-Primary request: Create an original wide sunlit island-coast landscape for Catansaga's home screen.
+Asset type: ColonistSaga full-screen home background
+Input images: Image 1 is a broad mood reference only for an inviting scenic game-menu backdrop; do not reproduce its mountains, houses, layout, logo area, menu positions, or identifiable scenery. Image 2 is ColonistSaga's authoritative reference for light pastel color, rounded modeling, honey-gold accents, smooth clay/plastic material, and friendly casual-game polish.
+Primary request: Create an original wide sunlit island-coast landscape for ColonistSaga's home screen.
 Scene/backdrop: a sweeping turquoise bay between two low rounded green islands, distant warm cream sea cliffs, tiny terracotta-roof settlement shapes far in the background, curved meadow terraces in the foreground, a winding pale path toward the water, and a bright airy sky with a few soft rounded clouds. This is a coastal island setting, not an alpine valley.
-Style/medium: polished light casual-mobile-game environment illustration; painterly 3D with broad rounded clay-like forms, simplified vegetation, smooth gradients, restrained detail, and the same cheerful material family as the Catansaga reference.
+Style/medium: polished light casual-mobile-game environment illustration; painterly 3D with broad rounded clay-like forms, simplified vegetation, smooth gradients, restrained detail, and the same cheerful material family as the ColonistSaga reference.
 Composition/framing: wide cinematic landscape intended to crop responsively to 16:9. Keep the middle-left sky and meadow visually calm for a headline; keep the middle-right bay and sky calm for translucent menu cards. Place richer scenery mainly along the lower edge and distant horizon. Strong depth but no single central emblem.
 Lighting/mood: bright soft morning light, welcoming and adventurous, gentle peach-gold highlights, cool clean atmospheric haze.
 Color palette: sky cyan, turquoise water, spring and emerald greens, warm cream cliffs, honey gold, small coral accents, pale lavender shadows.
@@ -33,8 +33,8 @@ Each illustration was generated separately with this shared prompt and one subje
 
 ```text
 Use case: stylized-concept
-Asset type: Catansaga home-menu illustration
-Input images: Image 1 is the authoritative Catansaga asset reference for rounded modeling, honey-gold accents, pastel surfaces, smooth clay/plastic materials, lighting, and small-scale readability. Image 2 is the new Catansaga home landscape reference for palette and atmosphere only.
+Asset type: ColonistSaga home-menu illustration
+Input images: Image 1 is the authoritative ColonistSaga asset reference for rounded modeling, honey-gold accents, pastel surfaces, smooth clay/plastic materials, lighting, and small-scale readability. Image 2 is the new ColonistSaga home landscape reference for palette and atmosphere only.
 Primary request: Create {subject}.
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal; one uniform color with no shadow, gradient, texture, reflection, floor plane, or lighting variation.
 Style/medium: original polished light casual-mobile-game 3D icon; broad rounded toy-like forms; smooth matte clay/plastic; minimal texture; bright upper-left light and friendly proportions.

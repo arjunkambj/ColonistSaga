@@ -26,7 +26,7 @@ importers:
 
   .:
     dependencies:
-      '@catansaga/env':
+      '@colonistsaga/env':
         specifier: workspace:*
         version: link:packages/env
       dotenv:
@@ -36,7 +36,7 @@ importers:
         specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
-      '@catansaga/config':
+      '@colonistsaga/config':
         specifier: workspace:*
         version: link:packages/config
       '@hexclave/cli':
@@ -82,10 +82,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@catansaga/backend':
+      '@colonistsaga/backend':
         specifier: workspace:*
         version: link:../../packages/backend
-      '@catansaga/game':
+      '@colonistsaga/game':
         specifier: workspace:*
         version: link:../../packages/game
       '@heroui/react':
@@ -119,7 +119,7 @@ importers:
         specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
     devDependencies:
-      '@catansaga/config':
+      '@colonistsaga/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@tailwindcss/postcss':
@@ -155,7 +155,7 @@ importers:
 
   packages/backend:
     dependencies:
-      '@catansaga/game':
+      '@colonistsaga/game':
         specifier: workspace:*
         version: link:../game
       '@hexclave/next':
@@ -171,7 +171,7 @@ importers:
         specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
-      '@catansaga/config':
+      '@colonistsaga/config':
         specifier: workspace:*
         version: link:../config
       '@types/node':
@@ -195,7 +195,7 @@ importers:
         specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
-      '@catansaga/config':
+      '@colonistsaga/config':
         specifier: workspace:*
         version: link:../config
       '@types/node':
@@ -207,7 +207,7 @@ importers:
 
   packages/game:
     devDependencies:
-      '@catansaga/config':
+      '@colonistsaga/config':
         specifier: workspace:*
         version: link:../config
       typescript:

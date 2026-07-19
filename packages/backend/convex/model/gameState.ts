@@ -3,14 +3,14 @@ import {
   createDefaultGame,
   getRequiredPlayerIds,
   toPlayerView,
-} from "@catansaga/game";
+} from "@colonistsaga/game";
 import type {
   BaseGameSettings,
   BotDifficulty,
   GameCommand,
   GamePlayerInput,
   GameState,
-} from "@catansaga/game";
+} from "@colonistsaga/game";
 
 import { nextScheduledActionAt, nextTurnDeadlineAt } from "../../lib/game-scheduling";
 import { internal } from "../_generated/api";

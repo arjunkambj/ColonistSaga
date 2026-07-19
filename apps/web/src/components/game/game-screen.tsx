@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@catansaga/backend/convex/_generated/api";
+import { api } from "@colonistsaga/backend/convex/_generated/api";
 import {
   BUILD_COSTS,
   RESOURCE_ORDER,
@@ -10,7 +10,7 @@ import {
   type PrivatePlayerState,
   type ResourceInventory,
   type ResourceType,
-} from "@catansaga/game";
+} from "@colonistsaga/game";
 import { Button, Modal } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import crownIcon from "@iconify-icons/game-icons/crown";

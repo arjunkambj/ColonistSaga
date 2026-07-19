@@ -1,5 +1,5 @@
-import type { BaseGameSettings, GameMapId } from "@catansaga/game";
-import { getGameMapDefinition } from "@catansaga/game/maps";
+import type { BaseGameSettings, GameMapId } from "@colonistsaga/game";
+import { getGameMapDefinition } from "@colonistsaga/game/maps";
 
 export type BotCount = 0 | 1 | 2 | 3;
 

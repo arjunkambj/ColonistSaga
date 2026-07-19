@@ -1,5 +1,5 @@
 {
-  "name": "@catansaga/env",
+  "name": "@colonistsaga/env",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@catansaga/config": "workspace:*",
+    "@colonistsaga/config": "workspace:*",
     "@types/node": "^22.13.14",
     "typescript": "^6"
   }

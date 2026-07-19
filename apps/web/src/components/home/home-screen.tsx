@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_BASE_GAME_SETTINGS } from "@catansaga/game";
+import { DEFAULT_BASE_GAME_SETTINGS } from "@colonistsaga/game";
 import { Button, Input, Label, Modal, Slider, TextField } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
@@ -266,7 +266,7 @@ export function HomeScreen({
               <Modal.Header className="setup-dialog-header">
                 <div>
                   <p className="eyebrow">Island Guide</p>
-                  <Modal.Heading>{homeNotice?.title ?? "Catansaga"}</Modal.Heading>
+                  <Modal.Heading>{homeNotice?.title ?? "ColonistSaga"}</Modal.Heading>
                   <p id="home-notice-description">{homeNotice?.description}</p>
                 </div>
                 <Button

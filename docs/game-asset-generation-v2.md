@@ -1,4 +1,4 @@
-# Catansaga light V6 asset generation
+# ColonistSaga light V6 asset generation
 
 Generated July 17, 2026 with the built-in image generation tool. The supplied
 screens 1–5 were style-only references; screen 6 was the current board and

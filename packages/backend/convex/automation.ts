@@ -1,5 +1,5 @@
-import { applyCommand, chooseAutomatedCommand } from "@catansaga/game";
-import type { GameCommand, GameState } from "@catansaga/game";
+import { applyCommand, chooseAutomatedCommand } from "@colonistsaga/game";
+import type { GameCommand, GameState } from "@colonistsaga/game";
 import { v } from "convex/values";
 
 import { isScheduledActionDue } from "../lib/game-scheduling";

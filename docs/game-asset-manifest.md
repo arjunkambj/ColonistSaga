@@ -1,8 +1,8 @@
-# Catansaga v1 game asset manifest
+# ColonistSaga v1 game asset manifest
 
 ## Art direction
 
-Catansaga uses an original light casual-mobile-game style inspired by the
+ColonistSaga uses an original light casual-mobile-game style inspired by the
 provided UI references: rounded clay/plastic forms, pastel surfaces, warm
 highlights, honey-gold terrain rims, short ambient shading, clean silhouettes,
 and readable detail at small sizes. It must not copy another game's branding,

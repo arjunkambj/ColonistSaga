@@ -1,6 +1,6 @@
 export const DEFAULT_MUSIC_VOLUME = 35;
 
-const MUSIC_VOLUME_STORAGE_KEY = "catansaga:music-volume";
+const MUSIC_VOLUME_STORAGE_KEY = "colonistsaga:music-volume";
 
 export function normalizeMusicVolume(value: number): number {
   if (!Number.isFinite(value)) {
