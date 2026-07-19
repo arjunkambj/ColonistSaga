@@ -80,24 +80,52 @@
 }
 
 .summary {
+  position: relative;
+  isolation: isolate;
   display: flex;
   gap: 0.65rem;
 }
 
+.summary::before {
+  position: absolute;
+  z-index: -1;
+  inset: -1.5rem;
+  background:
+    radial-gradient(
+      circle at 16% 45%,
+      color-mix(in oklch, var(--accent) 10%, transparent),
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 86% 35%,
+      color-mix(in oklch, var(--foreground) 5%, transparent),
+      transparent 24%
+    );
+  filter: blur(24px);
+  opacity: 0.38;
+  pointer-events: none;
+  content: "";
+}
+
 .summaryItem {
-  --liquid-color: color-mix(in oklch, var(--surface-secondary) 58%, transparent);
-  --liquid-color-deep: color-mix(in oklch, var(--surface-secondary) 82%, transparent);
-  --liquid-border: color-mix(in oklch, var(--foreground) 12%, transparent);
-  --liquid-highlight: color-mix(in oklch, var(--background) 76%, transparent);
+  --liquid-color: color-mix(in oklch, var(--background) 74%, transparent);
+  --liquid-color-deep: color-mix(in oklch, var(--surface-secondary) 66%, transparent);
+  --liquid-border: color-mix(in oklch, var(--foreground) 9%, transparent);
+  --liquid-highlight: color-mix(in oklch, var(--background) 88%, transparent);
   --liquid-shadow:
     inset 0 1px 0 var(--liquid-highlight),
-    inset 0 -1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
-    0 8px 22px color-mix(in oklch, var(--foreground) 7%, transparent);
+    inset 0 -1px 0 color-mix(in oklch, var(--foreground) 3%, transparent),
+    0 6px 18px color-mix(in oklch, var(--foreground) 5%, transparent);
   display: flex;
   min-width: 8.5rem;
   align-items: center;
   gap: 0.7rem;
   padding: 0.8rem 0.9rem;
+}
+
+.summaryItem::after {
+  border-color: transparent;
+  opacity: 0;
 }
 
 .summaryIcon {
@@ -219,7 +247,7 @@
 .cardContent {
   display: grid;
   height: 100%;
-  grid-template-rows: 9.5rem auto;
+  grid-template-rows: auto auto;
   gap: 0;
   padding: 0;
 }
@@ -227,6 +255,7 @@
 .preview {
   position: relative;
   display: grid;
+  min-height: 9.5rem;
   place-items: center;
   min-width: 0;
   overflow: hidden;
@@ -262,16 +291,47 @@
 }
 
 .preview img {
+  display: block;
   width: 100%;
-  height: 100%;
-  padding: 0.65rem;
-  object-fit: contain;
+  height: auto;
   user-select: none;
 }
 
-.preview[data-fit="cover"] img {
+.previewButton {
+  display: block;
+  width: 100%;
   padding: 0;
-  object-fit: cover;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.previewButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.assetPreviewDialog {
+  width: min(100%, 72rem);
+  max-height: min(100%, 52rem);
+  overflow: hidden;
+  border: 1px solid var(--separator);
+  border-radius: 1.15rem;
+  background: var(--surface-secondary);
+}
+
+.assetPreviewDialogBody {
+  display: grid;
+  max-height: min(100dvh - 5rem, 48rem);
+  place-items: center;
+  padding: 1rem;
+}
+
+.assetPreviewDialogBody img {
+  display: block;
+  max-width: 100%;
+  max-height: min(100dvh - 7rem, 46rem);
+  object-fit: contain;
 }
 
 .placeholder {

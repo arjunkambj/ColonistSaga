@@ -1,10 +1,7 @@
-import { Card, Chip } from "@heroui/react";
 import arrowLeftIcon from "@iconify-icons/solar/arrow-left-line-duotone";
 import checkIcon from "@iconify-icons/solar/check-circle-bold-duotone";
 import clockIcon from "@iconify-icons/solar/clock-circle-bold-duotone";
 import imageIcon from "@iconify-icons/solar/gallery-bold-duotone";
-import musicIcon from "@iconify-icons/solar/music-note-2-bold-duotone";
-import sparkleIcon from "@iconify-icons/solar/stars-bold-duotone";
 import { Icon } from "@iconify/react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,7 +9,7 @@ import type { ReactNode } from "react";
 
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 
-import { AudioPlayButton } from "./audio-play-button";
+import { AssetCard, type AssetCardItem } from "./asset-card";
 import styles from "./asset-sheet.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -21,17 +18,9 @@ export const metadata: Metadata = {
   title: "Asset Sheet · Catansaga",
 };
 
-type AssetStatus = "generated" | "needed";
-type AssetKind = "audio" | "image";
-
-interface AssetItem {
+interface AssetItem extends AssetCardItem {
   description: string;
-  fit?: "contain" | "cover";
   format: string;
-  kind?: AssetKind;
-  name: string;
-  path?: string;
-  status: AssetStatus;
 }
 
 interface AssetCategory {
@@ -61,6 +50,13 @@ const ASSET_CATEGORIES = [
         description: "Primary illustrated wordmark for authentication screens.",
         format: "PNG · 1648×937",
         path: "/auth-assets/catansaga-logo-v1.png",
+        status: "generated",
+      },
+      {
+        name: "Catansaga mark",
+        description: "Standalone hexagonal brand mark used for the app icon and favicon.",
+        format: "PNG · 1024×1024",
+        path: "/shared-assets/catansaga-mark.png",
         status: "generated",
       },
       {
@@ -500,7 +496,7 @@ function SummaryItem({
   value: number;
 }) {
   return (
-    <LiquidGlass className={styles.summaryItem} data-tone={tone} kind="control" radius="md">
+    <LiquidGlass className={styles.summaryItem} data-tone={tone} kind="control" radius="sm">
       <span className={styles.summaryIcon}>{icon}</span>
       <span>
         <strong>{value}</strong>
@@ -534,48 +530,6 @@ function AssetCategoryRow({ category }: { category: AssetCategory }) {
   );
 }
 
-function AssetCard({ asset }: { asset: AssetItem }) {
-  const isGenerated = asset.status === "generated";
-
-  return (
-    <Card className={styles.assetCard} data-status={asset.status} variant="transparent">
-      <Card.Content className={styles.cardContent}>
-        <div className={styles.preview} data-fit={asset.fit ?? "contain"}>
-          {asset.path && asset.kind !== "audio" ? (
-            <img
-              alt={`${asset.name} asset preview`}
-              decoding="async"
-              draggable={false}
-              loading="lazy"
-              src={asset.path}
-            />
-          ) : asset.path && asset.kind === "audio" ? (
-            <div className={styles.audioPreview}>
-              <Icon aria-hidden="true" icon={musicIcon} />
-              <AudioPlayButton name={asset.name} src={asset.path} />
-            </div>
-          ) : (
-            <div className={styles.placeholder}>
-              {asset.kind === "audio" ? (
-                <Icon aria-hidden="true" icon={musicIcon} />
-              ) : (
-                <Icon aria-hidden="true" icon={sparkleIcon} />
-              )}
-              <span>{isGenerated ? "Audio asset" : "Generation needed"}</span>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.cardBody}>
-          <Chip color={isGenerated ? "success" : "warning"} size="sm" variant="soft">
-            <Chip.Label>{isGenerated ? "Generated" : "Need to generate"}</Chip.Label>
-          </Chip>
-          <h3>{asset.name}</h3>
-        </div>
-      </Card.Content>
-    </Card>
-  );
-}
 
 function toId(value: string) {
   return value
