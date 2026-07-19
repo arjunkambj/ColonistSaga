@@ -9,14 +9,18 @@ import { useState } from "react";
 import { AudioPlayButton } from "./audio-play-button";
 import styles from "./asset-sheet.module.css";
 
-export type AssetKind = "audio" | "image";
+export type AssetKind = "audio" | "brand" | "image";
 
 export interface AssetCardItem {
+  description?: string;
   fit?: "contain" | "cover";
+  format?: string;
   kind?: AssetKind;
   name: string;
   path?: string;
+  previewText?: string;
   status: "generated" | "needed";
+  swatches?: readonly string[];
 }
 
 export function AssetCard({ asset }: { asset: AssetCardItem }) {
@@ -29,7 +33,18 @@ export function AssetCard({ asset }: { asset: AssetCardItem }) {
       <Card className={styles.assetCard} data-status={asset.status} variant="transparent">
         <Card.Content className={styles.cardContent}>
           <div className={styles.preview} data-fit={asset.fit ?? "contain"}>
-            {canPreview ? (
+            {asset.kind === "brand" ? (
+              <div className={styles.brandPreview}>
+                {asset.swatches ? (
+                  <div aria-hidden="true" className={styles.swatchRow}>
+                    {asset.swatches.map((swatch) => (
+                      <span className={styles.swatch} key={swatch} style={{ background: swatch }} />
+                    ))}
+                  </div>
+                ) : null}
+                {asset.previewText ? <span>{asset.previewText}</span> : null}
+              </div>
+            ) : canPreview ? (
               <button
                 aria-label={`Open ${asset.name} preview`}
                 className={styles.previewButton}
@@ -66,6 +81,8 @@ export function AssetCard({ asset }: { asset: AssetCardItem }) {
               <Chip.Label>{isGenerated ? "Generated" : "Need to generate"}</Chip.Label>
             </Chip>
             <h3>{asset.name}</h3>
+            {asset.description ? <p>{asset.description}</p> : null}
+            {asset.format ? <small>{asset.format}</small> : null}
           </div>
         </Card.Content>
       </Card>
@@ -74,7 +91,10 @@ export function AssetCard({ asset }: { asset: AssetCardItem }) {
         <Modal>
           <Modal.Backdrop isOpen={isPreviewOpen} onOpenChange={setIsPreviewOpen} variant="blur">
             <Modal.Container size="cover">
-              <Modal.Dialog aria-label={`${asset.name} preview`} className={styles.assetPreviewDialog}>
+              <Modal.Dialog
+                aria-label={`${asset.name} preview`}
+                className={styles.assetPreviewDialog}
+              >
                 <Modal.CloseTrigger />
                 <Modal.Body className={styles.assetPreviewDialogBody}>
                   <img alt={asset.name} src={asset.path} />

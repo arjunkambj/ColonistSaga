@@ -31,14 +31,131 @@ interface AssetCategory {
 
 const MUSIC_ASSETS = [
   {
-    description: "Looping maritime menu soundtrack.",
+    description: "Current looping maritime soundtrack for the home and lobby screens.",
     format: "MP3 · 256 kbps",
     kind: "audio",
     name: "Main lobby music",
     path: "/music/main-loby-music.mp3",
     status: "generated",
   },
+  {
+    description: "Second lobby loop for side-by-side music testing.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "Alternate lobby theme",
+    status: "needed",
+  },
+  {
+    description: "Focused loop for snake-order settlement and road placement.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "Opening placement music",
+    status: "needed",
+  },
+  {
+    description: "Low-fatigue loop for ordinary dice, resource, building, and trade turns.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "In-game ambience",
+    status: "needed",
+  },
+  {
+    description: "More active companion loop for later rounds; crossfade from in-game ambience.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "In-game momentum theme",
+    status: "needed",
+  },
+  {
+    description: "Short danger sting when a seven activates the robber.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "Seven revealed sting",
+    status: "needed",
+  },
+  {
+    description: "Warm end-of-game music for the local winner.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "Victory music",
+    status: "needed",
+  },
+  {
+    description: "Respectful result cue when another player wins.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "Other player victory music",
+    status: "needed",
+  },
+  {
+    description: "Neutral result cue for a draw.",
+    format: "Target · 48 kHz WAV + runtime copy",
+    kind: "audio",
+    name: "Draw music",
+    status: "needed",
+  },
 ] satisfies readonly AssetItem[];
+
+const SOUND_EFFECT_ASSETS = [
+  ["Button press", "Tactile feedback for ordinary buttons, tabs, and build-mode controls."],
+  [
+    "Primary action",
+    "Confident confirmation for Roll Dice, Start Game, discard, and trade actions.",
+  ],
+  ["Action accepted", "Generic success feedback when no more specific gameplay cue applies."],
+  ["Action rejected", "Gentle validation or connection error feedback."],
+  ["Modal open", "Paper-and-canvas transition for trade, setup, and information panels."],
+  ["Modal close", "Short counterpart for closing or cancelling a panel."],
+  ["Stepper and toggle", "Quiet repeatable feedback for resource counts and game settings."],
+  ["Copy room code", "Small confirmation when a private room code is copied."],
+  ["Room joined", "Welcoming cue when the local player enters a room."],
+  ["Player joined", "Social cue when another player takes a visible lobby seat."],
+  ["Player left", "Neutral cue when a lobby seat becomes empty."],
+  ["Bot joined", "Warm clockwork cue when a bot fills a seat."],
+  ["Build the island", "Transition from the room into the playable board."],
+  ["Your turn", "Once-per-handoff notification that the viewer can act."],
+  ["Turn passes", "Subtle feedback when the local player successfully ends a turn."],
+  ["Dice shake", "Loopable two-dice texture from roll press until the server result arrives."],
+  ["Dice land", "Tactile settle when the confirmed dice total appears."],
+  ["Receive resources", "One bundle reward for the viewer after production or setup."],
+  ["Tree resource accent", "Optional quiet texture when selecting or receiving timber."],
+  ["Brick resource accent", "Optional quiet texture when selecting or receiving brick."],
+  ["Sheep resource accent", "Optional quiet texture when selecting or receiving wool."],
+  ["Wheat resource accent", "Optional quiet texture when selecting or receiving grain."],
+  ["Stone resource accent", "Optional quiet texture when selecting or receiving ore."],
+  [
+    "Legal target selected",
+    "Precise feedback when a valid road, settlement, or city target is chosen.",
+  ],
+  ["Road placed", "Confirmed board sound for a newly placed road."],
+  ["Settlement placed", "Confirmed board sound for a newly placed settlement."],
+  ["City upgraded", "Meaningful, non-victory cue for upgrading a settlement."],
+  ["Discard required", "Alert for players required to discard after a seven."],
+  ["Cards discarded", "Confirmed resource-card discard into the supply."],
+  ["Robber moved", "Dark pawn movement when the robber relocates to a tile."],
+  ["Resource stolen", "Private positive feedback for the player who successfully steals."],
+  ["Resource lost", "Private, restrained feedback for the robbed player."],
+  ["Market opens", "Friendly opening cue for the bank and player trade center."],
+  ["Trade offer sent", "Social feedback when a player trade proposal is confirmed."],
+  ["Trade offer received", "Notice for an invited player to respond to a trade."],
+  ["Trade complete", "Shared confirmation when a player trade is accepted."],
+  ["Trade declined", "Private feedback when an invited player declines an offer."],
+  ["Trade cancelled", "Quiet feedback when the proposer withdraws an offer."],
+  ["Bank or harbor trade", "Resource exchange confirmation using the best available bank rate."],
+  ["Turn timer", "Low-pressure countdown tick for the final ten seconds."],
+  ["Final timer tick", "Slightly more urgent final-three-seconds countdown tick."],
+  ["Time expired", "Clear but non-punitive cue when the action deadline passes."],
+  ["Connection interrupted", "Recoverable real-time connection warning."],
+  ["Reconnected", "Reassuring cue when the game session is restored."],
+  ["Victory transition", "Brief transition into the local winner result screen."],
+  ["Return home", "Quiet exit from results back to the home screen."],
+].map(([name, description]) => ({
+  name,
+  description,
+  format: "Target · 48 kHz WAV + runtime copy",
+  kind: "audio" as const,
+  status: "needed" as const,
+}));
 
 const ASSET_CATEGORIES = [
   {
@@ -387,37 +504,59 @@ const ASSET_CATEGORIES = [
   {
     name: "Audio",
     description:
-      "Compare available music tracks and track the gameplay sound set still to produce.",
+      "Production checklist for the current Catan-style rules: turns, dice, resources, building, the seven/discard/robber flow, trade, timers, and results.",
+    assets: [...MUSIC_ASSETS, ...SOUND_EFFECT_ASSETS],
+  },
+  {
+    name: "Brand foundations",
+    description:
+      "The implemented visual system behind every screen. These are code-defined foundations, so no artwork generation is required.",
     assets: [
-      ...MUSIC_ASSETS,
       {
-        name: "Alternate lobby theme",
-        description: "A second menu direction for side-by-side music testing.",
-        format: "Target · MP3 runtime copy",
-        kind: "audio",
-        status: "needed",
+        name: "Display typography",
+        description:
+          "Georgia anchors game titles, the logo lockup, and card headings with a warm, tabletop-editorial voice.",
+        format: "Georgia · 700–900 · system serif",
+        kind: "brand",
+        previewText: "Build your island",
+        status: "generated",
       },
       {
-        name: "In-game ambience",
-        description: "A low-intensity loop for active board play.",
-        format: "Target · MP3 runtime copy",
-        kind: "audio",
-        status: "needed",
+        name: "Interface typography",
+        description:
+          "Inter is the legible workhorse for rules, room status, resources, and quick in-turn decisions; system sans fallbacks keep it resilient.",
+        format: "Inter · 400–900 · system sans fallback",
+        kind: "brand",
+        previewText: "Roll dice · Trade · Build",
+        status: "generated",
       },
-      ...[
-        ["Dice roll", "Tactile two-dice roll and settle."],
-        ["Place piece", "Short wood-and-clay placement sound."],
-        ["Receive resources", "Warm resource reward flourish."],
-        ["Trade complete", "Friendly market exchange confirmation."],
-        ["Turn timer", "Low-pressure final-seconds cue."],
-        ["Victory", "Bright end-of-game musical sting."],
-      ].map(([name, description]) => ({
-        name,
-        description,
-        format: "Target · WAV + runtime copy",
-        kind: "audio" as const,
-        status: "needed" as const,
-      })),
+      {
+        name: "Island light palette",
+        description:
+          "Paper-white surfaces, slate ink, harvest gold, and lagoon cyan provide the clear daytime board and action hierarchy.",
+        format: "#F4F9FF · #33405A · #F5AD3F · #25BFCA",
+        kind: "brand",
+        status: "generated",
+        swatches: ["#F4F9FF", "#33405A", "#F5AD3F", "#25BFCA"],
+      },
+      {
+        name: "Ocean dark palette",
+        description:
+          "Deep ocean blue, cloud-white type, warm token gold, and bright cyan feedback preserve contrast around the board at night.",
+        format: "#063A78 · #F4F9FF · #FFD15A · #54D8FF",
+        kind: "brand",
+        status: "generated",
+        swatches: ["#063A78", "#F4F9FF", "#FFD15A", "#54D8FF"],
+      },
+      {
+        name: "Player seat colors",
+        description:
+          "Red, blue, orange, and green remain reserved for player ownership across pieces, HUDs, and activity states.",
+        format: "#F04F49 · #2F8EE8 · #F18C2C · #2FB86A",
+        kind: "brand",
+        status: "generated",
+        swatches: ["#F04F49", "#2F8EE8", "#F18C2C", "#2FB86A"],
+      },
     ],
   },
 ] satisfies readonly AssetCategory[];
@@ -529,7 +668,6 @@ function AssetCategoryRow({ category }: { category: AssetCategory }) {
     </section>
   );
 }
-
 
 function toId(value: string) {
   return value
