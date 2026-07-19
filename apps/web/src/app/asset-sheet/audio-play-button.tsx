@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import pauseIcon from "@iconify-icons/solar/pause-outline";
-import playIcon from "@iconify-icons/solar/play-outline";
+import pauseIcon from "@iconify-icons/solar/pause-bold-duotone";
+import playIcon from "@iconify-icons/solar/play-bold-duotone";
 import { Icon } from "@iconify/react";
 import { useRef, useState } from "react";
 

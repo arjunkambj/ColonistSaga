@@ -1,7 +1,7 @@
 "use client";
 
-import moonIcon from "@iconify-icons/solar/moon-linear";
-import sunIcon from "@iconify-icons/solar/sun-linear";
+import moonIcon from "@iconify-icons/solar/moon-bold-duotone";
+import sunIcon from "@iconify-icons/solar/sun-bold-duotone";
 import { Icon } from "@iconify/react";
 import { Button } from "@heroui/react";
 import { useEffect, useState } from "react";

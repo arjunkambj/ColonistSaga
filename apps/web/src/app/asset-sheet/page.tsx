@@ -1,10 +1,10 @@
 import { Card, Chip } from "@heroui/react";
-import arrowLeftIcon from "@iconify-icons/solar/arrow-left-outline";
-import checkIcon from "@iconify-icons/solar/check-circle-outline";
-import clockIcon from "@iconify-icons/solar/clock-circle-outline";
-import imageIcon from "@iconify-icons/solar/gallery-outline";
-import musicIcon from "@iconify-icons/solar/music-note-2-outline";
-import sparkleIcon from "@iconify-icons/solar/stars-outline";
+import arrowLeftIcon from "@iconify-icons/solar/arrow-left-line-duotone";
+import checkIcon from "@iconify-icons/solar/check-circle-bold-duotone";
+import clockIcon from "@iconify-icons/solar/clock-circle-bold-duotone";
+import imageIcon from "@iconify-icons/solar/gallery-bold-duotone";
+import musicIcon from "@iconify-icons/solar/music-note-2-bold-duotone";
+import sparkleIcon from "@iconify-icons/solar/stars-bold-duotone";
 import { Icon } from "@iconify/react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -442,23 +442,16 @@ export default function AssetSheetPage() {
   return (
     <main className={styles.page} id="main-content">
       <div className={styles.shell}>
-        <ThemeToggle />
         <header className={styles.header}>
-          <div className={styles.headerCopy}>
+          <div className={styles.headerActions}>
             <Link className={styles.backLink} href="/">
               <Icon aria-hidden="true" icon={arrowLeftIcon} width={16} />
               Back to game
             </Link>
-            <img
-              alt="Catansaga"
-              className={styles.mainLogo}
-              decoding="async"
-              draggable={false}
-              fetchPriority="high"
-              height={937}
-              src="/auth-assets/catansaga-logo-v1.png"
-              width={1648}
-            />
+            <ThemeToggle />
+          </div>
+
+          <div className={styles.headerCopy}>
             <p className={styles.eyebrow}>Production inventory</p>
             <h1>Game asset sheet</h1>
           </div>
@@ -575,11 +568,6 @@ function AssetCard({ asset }: { asset: AssetItem }) {
 
         <div className={styles.cardBody}>
           <Chip color={isGenerated ? "success" : "warning"} size="sm" variant="soft">
-            {isGenerated ? (
-              <Icon aria-hidden="true" icon={checkIcon} width={12} />
-            ) : (
-              <Icon aria-hidden="true" icon={clockIcon} width={12} />
-            )}
             <Chip.Label>{isGenerated ? "Generated" : "Need to generate"}</Chip.Label>
           </Chip>
           <h3>{asset.name}</h3>

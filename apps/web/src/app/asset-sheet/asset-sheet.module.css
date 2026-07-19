@@ -9,7 +9,6 @@
 }
 
 .shell {
-  position: relative;
   width: min(100%, 96rem);
   min-width: 0;
   min-height: 100%;
@@ -19,10 +18,8 @@
 }
 
 .themeToggle {
-  position: absolute;
-  z-index: 2;
-  top: max(1.5rem, env(safe-area-inset-top));
-  right: max(1rem, env(safe-area-inset-right));
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
 }
 
 .themeToggle svg {
@@ -34,9 +31,17 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
-  gap: 2rem;
-  padding: clamp(1rem, 3vw, 2.5rem) 0 clamp(1.5rem, 3vw, 2.75rem);
+  column-gap: 2rem;
+  row-gap: 1.5rem;
+  padding: 0 0 clamp(1.5rem, 3vw, 2.75rem);
   border-bottom: 1px solid var(--separator);
+}
+
+.headerActions {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .headerCopy {
@@ -47,7 +52,6 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  margin-bottom: 2rem;
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 750;
@@ -56,15 +60,6 @@
 
 .backLink:hover {
   color: var(--warning);
-}
-
-.mainLogo {
-  display: block;
-  width: clamp(10rem, 18vw, 15rem);
-  height: auto;
-  margin-bottom: 1.2rem;
-  filter: drop-shadow(0 12px 20px color-mix(in oklch, var(--background) 32%, transparent));
-  user-select: none;
 }
 
 .eyebrow {
@@ -90,6 +85,14 @@
 }
 
 .summaryItem {
+  --liquid-color: color-mix(in oklch, var(--surface-secondary) 58%, transparent);
+  --liquid-color-deep: color-mix(in oklch, var(--surface-secondary) 82%, transparent);
+  --liquid-border: color-mix(in oklch, var(--foreground) 12%, transparent);
+  --liquid-highlight: color-mix(in oklch, var(--background) 76%, transparent);
+  --liquid-shadow:
+    inset 0 1px 0 var(--liquid-highlight),
+    inset 0 -1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    0 8px 22px color-mix(in oklch, var(--foreground) 7%, transparent);
   display: flex;
   min-width: 8.5rem;
   align-items: center;
@@ -99,12 +102,10 @@
 
 .summaryIcon {
   display: grid;
-  width: 2rem;
-  height: 2rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 0.65rem;
-  background: var(--default-soft);
 }
 
 .summaryIcon svg {
@@ -206,14 +207,13 @@
   padding: 0;
   border: 1px solid var(--separator);
   border-radius: 1.15rem;
-  background: var(--background);
+  background: var(--surface-secondary);
   box-shadow: 0 18px 36px color-mix(in oklch, var(--background) 18%, transparent);
   overflow: hidden;
 }
 
 .assetCard[data-status="needed"] {
   border-style: dashed;
-  background: var(--surface-secondary);
 }
 
 .cardContent {
