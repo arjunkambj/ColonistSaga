@@ -81,7 +81,6 @@ export function AssetCard({ asset }: { asset: AssetCardItem }) {
               <Chip.Label>{isGenerated ? "Generated" : "Need to generate"}</Chip.Label>
             </Chip>
             <h3>{asset.name}</h3>
-            {asset.description ? <p>{asset.description}</p> : null}
             {asset.format ? <small>{asset.format}</small> : null}
           </div>
         </Card.Content>

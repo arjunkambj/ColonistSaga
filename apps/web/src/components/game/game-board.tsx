@@ -1,5 +1,6 @@
 import {
   NUMBER_TOKEN_PIPS,
+  PLAYER_COLORS,
   TERRAIN_RESOURCE,
   type GameCommand,
   type PlayerGameView,
@@ -44,7 +45,6 @@ import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 
 export type BuildMode = "city" | "road" | "settlement" | null;
 
-const PLAYER_THEMES = ["red", "blue", "orange", "green"] as const;
 const TERRAIN_LABELS: Readonly<Record<TerrainType, string>> = {
   desert: "Desert",
   fields: "Fields",
@@ -63,7 +63,7 @@ const KEYBOARD_PAN_STEP = 48;
 type BoardPieceAsset = keyof typeof PIECE_LABELS;
 type BuildPreviewAsset = BoardPieceAsset | "robber";
 type BoardTile = PlayerGameView["board"]["tiles"][number];
-type PlayerTheme = (typeof PLAYER_THEMES)[number];
+type PlayerTheme = (typeof PLAYER_COLORS)[number];
 
 interface BoardInspectionDetail {
   label: string;
@@ -1034,5 +1034,5 @@ export function getTargetMode(game: PlayerGameView, buildMode: BuildMode) {
 }
 
 export function getPlayerTheme(player: PlayerViewState) {
-  return PLAYER_THEMES[player.seatIndex % PLAYER_THEMES.length] ?? "red";
+  return PLAYER_COLORS[player.seatIndex % PLAYER_COLORS.length] ?? "red";
 }

@@ -11,4 +11,9 @@ test("recalculates bot capacity when a two-human lobby shrinks", () => {
 test("prevents a table from being smaller than its human membership", () => {
   assert.equal(getMinimumPlayerCount("base", 3), 3);
   assert.equal(getMinimumPlayerCount("base", 4), 4);
+  assert.equal(getMinimumPlayerCount("base", 8), 8);
+});
+
+test("supports seven bots at an eight-player table", () => {
+  assert.equal(getBotCapacity(8, 1), 7);
 });

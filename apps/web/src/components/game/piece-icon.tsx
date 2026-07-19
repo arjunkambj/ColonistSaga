@@ -1,7 +1,8 @@
+import type { PlayerColor } from "@colonistsaga/game";
 import type { CSSProperties } from "react";
 
 export type PieceAsset = "city" | "road" | "settlement";
-export type PieceTheme = "blue" | "green" | "orange" | "red";
+export type PieceTheme = PlayerColor;
 
 const PIECE_ASSET_PATHS: Readonly<Record<PieceAsset, string>> = {
   city: "/game-assets/pieces/city.png",

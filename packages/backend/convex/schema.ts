@@ -23,7 +23,14 @@ export const baseGameSettingsValidator = v.object({
   friendlyRobber: v.boolean(),
   hideBankCards: v.boolean(),
   map: v.literal("base"),
-  maxPlayers: v.union(v.literal(3), v.literal(4)),
+  maxPlayers: v.union(
+    v.literal(3),
+    v.literal(4),
+    v.literal(5),
+    v.literal(6),
+    v.literal(7),
+    v.literal(8),
+  ),
   turnTimerSeconds: v.union(
     v.literal(0),
     v.literal(30),

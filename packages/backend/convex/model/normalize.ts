@@ -79,7 +79,7 @@ export function validateGameSettings(settings: BaseGameSettings): BaseGameSettin
     fail("INVALID_SETTINGS", "Map must be the Base Map.");
   }
   if (!mapSupportsPlayerCount(settings.map, settings.maxPlayers)) {
-    fail("INVALID_SETTINGS", "The Base Map supports three or four players.");
+    fail("INVALID_SETTINGS", "The Base Map supports three to eight players.");
   }
   return { ...settings };
 }

@@ -25,6 +25,7 @@ import type {
   GameState,
   LegalActions,
   PlayerId,
+  PlayerCount,
   PlayerState,
   ResourceInventory,
   ResourceType,
@@ -38,11 +39,11 @@ function fail(code: GameRuleErrorCode, message: string): never {
 function getCurrentSetupSeatOrder(state: GameState) {
   const playerCount = state.players.length;
 
-  if (playerCount !== 3 && playerCount !== 4) {
-    fail("INVALID_COMMAND", "A base game requires three or four players");
+  if (playerCount < 3 || playerCount > 8) {
+    fail("INVALID_COMMAND", "A base game requires three to eight players");
   }
 
-  return getSetupSeatOrder(playerCount);
+  return getSetupSeatOrder(playerCount as PlayerCount);
 }
 
 function requirePlayer(state: GameState, playerId: PlayerId) {

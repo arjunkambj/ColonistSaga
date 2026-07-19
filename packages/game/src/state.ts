@@ -3,7 +3,13 @@ import { BANK_RESOURCE_COUNT, DEFAULT_BASE_GAME_SETTINGS, INITIAL_PIECES } from 
 import { mapSupportsPlayerCount } from "./maps";
 import { emptyInventory, filledInventory } from "./resources";
 import { GameRuleError } from "./types";
-import type { BaseGameSettings, BotDifficulty, GamePlayerInput, GameState } from "./types";
+import type {
+  BaseGameSettings,
+  BotDifficulty,
+  GamePlayerInput,
+  GameState,
+  PlayerCount,
+} from "./types";
 
 const MINIMUM_VICTORY_POINTS = 3;
 const MAXIMUM_BUILDING_VICTORY_POINTS = 13;
@@ -13,7 +19,7 @@ const BOT_DIFFICULTIES: readonly BotDifficulty[] = ["easy", "medium", "hard"];
 const TURN_TIMERS = [0, 30, 60, 90, 120] as const;
 
 function createSettings(
-  playerCount: 3 | 4,
+  playerCount: PlayerCount,
   input: Partial<BaseGameSettings> | undefined,
 ): BaseGameSettings {
   const overrides = input ?? {};
@@ -95,11 +101,11 @@ export function createDefaultGame(
   seed: string,
   settingsInput?: Partial<BaseGameSettings>,
 ): GameState {
-  if (players.length !== 3 && players.length !== 4) {
-    throw new GameRuleError("INVALID_COMMAND", "A base game requires three or four players");
+  if (players.length < 3 || players.length > 8) {
+    throw new GameRuleError("INVALID_COMMAND", "A base game requires three to eight players");
   }
 
-  const playerCount = players.length;
+  const playerCount = players.length as PlayerCount;
   const settings = createSettings(playerCount, settingsInput);
 
   if (new Set(players.map((player) => player.id)).size !== players.length) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SETUP_SEAT_ORDER, TERRAIN_RESOURCE, getSetupSeatOrder } from "./constants";
+import { TERRAIN_RESOURCE, getSetupSeatOrder } from "./constants";
 import { totalResources } from "./resources";
 import { applyCommand, getLegalActions } from "./rules";
 import { DEFAULT_TOPOLOGY } from "./topology";
@@ -11,7 +11,7 @@ describe("snake setup", () => {
   it("places two free settlement-road pairs per player in snake order", () => {
     let state = createTestGame();
 
-    for (const [setupIndex, seatIndex] of SETUP_SEAT_ORDER.entries()) {
+    for (const [setupIndex, seatIndex] of getSetupSeatOrder(4).entries()) {
       const expectedPlayer = state.players[seatIndex];
       expect(state.phase).toEqual({ kind: "setup_settlement", setupIndex });
       expect(state.activePlayerId).toBe(expectedPlayer?.id);
@@ -134,5 +134,56 @@ describe("snake setup", () => {
     expect(state.phase.kind).toBe("roll");
     expect(state.activePlayerId).toBe("player-1");
     expect(state.players.map((player) => player.victoryPoints)).toEqual([2, 2, 2]);
+  });
+
+  it("completes the snake setup for eight players", () => {
+    let state = createDefaultGame(createTestPlayers(false, 8), "eight-player-setup", {
+      balancedDice: false,
+      friendlyRobber: false,
+      maxPlayers: 8,
+    });
+    const settlementOrder: string[] = [];
+
+    while (state.phase.kind === "setup_settlement" || state.phase.kind === "setup_road") {
+      const playerId = state.activePlayerId;
+      const legal = getLegalActions(state, playerId);
+
+      if (state.phase.kind === "setup_settlement") {
+        settlementOrder.push(playerId);
+        state = applyCommand(state, playerId, {
+          kind: "place_settlement",
+          vertexKey: legal.settlementVertexKeys[0]!,
+        });
+      } else {
+        state = applyCommand(state, playerId, {
+          edgeKey: legal.roadEdgeKeys[0]!,
+          kind: "place_road",
+        });
+      }
+    }
+
+    expect(getSetupSeatOrder(8)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 5, 4, 3, 2, 1, 0]);
+    expect(settlementOrder).toEqual([
+      "player-1",
+      "player-2",
+      "player-3",
+      "player-4",
+      "player-5",
+      "player-6",
+      "player-7",
+      "player-8",
+      "player-8",
+      "player-7",
+      "player-6",
+      "player-5",
+      "player-4",
+      "player-3",
+      "player-2",
+      "player-1",
+    ]);
+    expect(state.phase.kind).toBe("roll");
+    expect(state.players.map((player) => player.victoryPoints)).toEqual(
+      Array.from({ length: 8 }, () => 2),
+    );
   });
 });

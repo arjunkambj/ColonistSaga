@@ -2,6 +2,7 @@ import type {
   BaseGameSettings,
   BuildingKind,
   PlayerPieces,
+  PlayerCount,
   ResourceInventory,
   ResourceType,
   TerrainType,
@@ -59,9 +60,7 @@ export const NUMBER_TOKEN_PIPS: Readonly<Record<number, number>> = {
   12: 1,
 };
 
-export const SETUP_SEAT_ORDER = [0, 1, 2, 3, 3, 2, 1, 0] as const;
-
-export function getSetupSeatOrder(playerCount: 3 | 4): number[] {
+export function getSetupSeatOrder(playerCount: PlayerCount): number[] {
   const ascending = Array.from({ length: playerCount }, (_, index) => index);
   return [...ascending, ...[...ascending].reverse()];
 }

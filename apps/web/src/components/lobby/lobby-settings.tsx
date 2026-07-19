@@ -197,7 +197,7 @@ export function LobbySettings({
               className="lobby-settings-description"
               id={`${id}-max-players-description`}
             >
-              Standard Base games support three or four occupied seats.
+              Standard Base games support three to eight occupied seats.
             </Description>
             <Select.Popover className="lobby-settings-popover">
               <ListBox>

@@ -3,8 +3,22 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_BASE_GAME_SETTINGS } from "./constants";
 import { createDefaultGame } from "./state";
 import { createTestPlayers } from "./test-helpers";
+import { PLAYER_COLORS } from "./types";
 
 describe("base game settings", () => {
+  it("defines one stable color for each of the eight seats", () => {
+    expect(PLAYER_COLORS).toEqual([
+      "red",
+      "blue",
+      "orange",
+      "green",
+      "purple",
+      "teal",
+      "yellow",
+      "pink",
+    ]);
+  });
+
   it("exports and snapshots the standard defaults", () => {
     const state = createDefaultGame(createTestPlayers(), "default-settings");
 
@@ -38,6 +52,15 @@ describe("base game settings", () => {
       maxPlayers: 3,
       victoryPoints: 8,
     });
+  });
+
+  it("accepts an eight-player table", () => {
+    const state = createDefaultGame(createTestPlayers(false, 8), "eight-player", {
+      maxPlayers: 8,
+    });
+
+    expect(state.players).toHaveLength(8);
+    expect(state.settings.maxPlayers).toBe(8);
   });
 
   it.each([

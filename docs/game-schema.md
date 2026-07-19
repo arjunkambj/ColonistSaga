@@ -2,7 +2,7 @@
 
 ## Scope
 
-The game currently implements one configurable three- or four-player Base game on the canonical 19-hex board. Custom layouts, development cards, awards, chat, rankings, and expansions are intentionally deferred.
+The game currently implements one configurable three-to-eight-player Base game on the canonical 19-hex board. Custom layouts, development cards, awards, chat, rankings, and expansions are intentionally deferred.
 
 ## Authoritative game state
 

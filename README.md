@@ -1,18 +1,18 @@
 # ColonistSaga
 
-ColonistSaga is a real-time, reconnect-safe three- or four-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current game supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
+ColonistSaga is a real-time, reconnect-safe three-to-eight-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current game supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
 
 ## Features
 
-- Quick Play against two or three paced deterministic bots with Easy, Medium, and Hard strategies.
-- Private three- or four-seat rooms with atomic bot, timer, victory-target, discard, dice, robber, and bank-visibility settings.
+- Quick Play against two to seven paced deterministic bots with Easy, Medium, and Hard strategies.
+- Private three-to-eight-seat rooms with atomic bot, timer, victory-target, discard, dice, robber, and bank-visibility settings.
 - Canonical 19-tile board, nine port-aware bank ratios, domestic trade offers, snake setup, production, robber/discard/steal, construction, and a configurable victory target.
 - Server-authoritative, revisioned commands with idempotent retries.
 - Hexclave-authenticated player sessions and reactive reconnect through Convex.
 - Private player hands and server-only random state.
 - Full-viewport, keyboard-accessible game controls using the generated terrain, resource, piece, and trade art pack.
 
-The implemented state model and command contract are documented in [docs/game-schema.md](docs/game-schema.md). The complete art inventory is in [docs/game-asset-manifest.md](docs/game-asset-manifest.md).
+The implemented state model and command contract are documented in [docs/game-schema.md](docs/game-schema.md). The complete art inventory is in [docs/game-asset-manifest.md](docs/game-asset-manifest.md), and the deliberately lean audio scope is in [docs/audio/audio-production-brief.md](docs/audio/audio-production-brief.md).
 
 ## Local setup
 

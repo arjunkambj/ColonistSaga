@@ -19,27 +19,28 @@ All generated gameplay art must:
 
 ## Generate now: default Base board pack
 
-| ID                | File                    | Purpose                     | Target        |
-| ----------------- | ----------------------- | --------------------------- | ------------- |
-| terrain-fields    | `terrain/fields.png`    | Wheat-producing hex         | 512×512 RGBA  |
-| terrain-forest    | `terrain/forest.png`    | Tree-producing hex          | 512×512 RGBA  |
-| terrain-hills     | `terrain/hills.png`     | Brick-producing hex         | 512×512 RGBA  |
-| terrain-mountains | `terrain/mountains.png` | Stone-producing hex         | 512×512 RGBA  |
-| terrain-pasture   | `terrain/pasture.png`   | Sheep-producing hex         | 512×512 RGBA  |
-| terrain-desert    | `terrain/desert.png`    | Non-producing robber hex    | 512×512 RGBA  |
-| resource-tree     | `resources/tree.png`    | Inventory and trade icon    | 256×256 RGBA  |
-| resource-brick    | `resources/brick.png`   | Inventory and trade icon    | 256×256 RGBA  |
-| resource-sheep    | `resources/sheep.png`   | Inventory and trade icon    | 256×256 RGBA  |
-| resource-wheat    | `resources/wheat.png`   | Inventory and trade icon    | 256×256 RGBA  |
-| resource-stone    | `resources/stone.png`   | Inventory and trade icon    | 256×256 RGBA  |
-| piece-road        | `pieces/road.png`       | Neutral tintable road token | 512×512 RGBA  |
-| piece-settlement  | `pieces/settlement.png` | Neutral tintable settlement | 512×512 RGBA  |
-| piece-city        | `pieces/city.png`       | Neutral tintable city       | 512×512 RGBA  |
-| piece-robber      | `pieces/robber.png`     | Neutral robber pawn         | 256×256 RGBA  |
-| ui-trade-caravan  | `ui/trade-caravan.png`  | Domestic trade modal art    | 1672×941 RGBA |
+| ID                | File                          | Purpose                       | Target        |
+| ----------------- | ----------------------------- | ----------------------------- | ------------- |
+| terrain-fields    | `terrain/fields.png`          | Wheat-producing hex           | 512×512 RGBA  |
+| terrain-forest    | `terrain/forest.png`          | Tree-producing hex            | 512×512 RGBA  |
+| terrain-hills     | `terrain/hills.png`           | Brick-producing hex           | 512×512 RGBA  |
+| terrain-mountains | `terrain/mountains.png`       | Stone-producing hex           | 512×512 RGBA  |
+| terrain-pasture   | `terrain/pasture.png`         | Sheep-producing hex           | 512×512 RGBA  |
+| terrain-desert    | `terrain/desert.png`          | Non-producing robber hex      | 512×512 RGBA  |
+| resource-tree     | `resources/tree.png`          | Inventory and trade icon      | 256×256 RGBA  |
+| resource-brick    | `resources/brick.png`         | Inventory and trade icon      | 256×256 RGBA  |
+| resource-sheep    | `resources/sheep.png`         | Inventory and trade icon      | 256×256 RGBA  |
+| resource-wheat    | `resources/wheat.png`         | Inventory and trade icon      | 256×256 RGBA  |
+| resource-stone    | `resources/stone.png`         | Inventory and trade icon      | 256×256 RGBA  |
+| piece-road        | `pieces/road.png`             | Neutral tintable road token   | 512×512 RGBA  |
+| piece-settlement  | `pieces/settlement.png`       | Neutral tintable settlement   | 512×512 RGBA  |
+| piece-city        | `pieces/city.png`             | Neutral tintable city         | 512×512 RGBA  |
+| piece-robber      | `pieces/robber.png`           | Neutral robber pawn           | 256×256 RGBA  |
+| ui-development    | `ui/development-deck-v1.avif` | General development-card icon | 512×512 AVIF  |
+| ui-trade-caravan  | `ui/trade-caravan.png`        | Domestic trade modal art      | 1672×941 RGBA |
 
 The neutral road, settlement, and city are authored in warm ivory so the client
-can apply the four accessible player colors consistently rather than depending
+can apply the eight accessible player colors consistently rather than depending
 on separately generated variants.
 
 The trade caravan is an original transparent illustration derived from the
@@ -64,17 +65,20 @@ generated bitmaps:
 ## Generate later, when the matching feature is implemented
 
 - five full resource-card illustrations for tree, brick, sheep, wheat, and
-  stone; their labels and counts remain code-rendered;
+  stone, plus one shared unrevealed development-card face; their labels and
+  counts remain code-rendered;
+- one compact bank-building icon for the resource market and bank controls;
 - five full action-card illustrations for trade, road, settlement, city, and
   end turn; their titles, costs, counts, and states remain code-rendered;
-- five development-card illustrations and one hidden card back;
+- five full development-card illustrations and one hidden card back;
 - Longest Road and Largest Army award art;
-- player avatar set;
+- seven remaining color-matched player portraits;
 - victory/result flourishes;
 - optional ambient ocean details such as rocks, foam, and coastal plants;
-- sound effects for dice, placing pieces, receiving resources, trade, timer, and
-  victory;
 - lightweight board/piece animations derived from the approved still assets.
+
+The focused music and sound-effect backlog is documented in
+[`docs/audio/audio-production-brief.md`](audio/audio-production-brief.md).
 
 ## Acceptance checks
 

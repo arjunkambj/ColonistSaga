@@ -18,7 +18,19 @@ export type PlayerId = string;
 export type BuildingKind = "city" | "settlement";
 export type BotDifficulty = "easy" | "medium" | "hard";
 export type GameMapId = "base";
-export type PlayerCount = 3 | 4;
+export const PLAYER_COUNTS = [3, 4, 5, 6, 7, 8] as const;
+export type PlayerCount = (typeof PLAYER_COUNTS)[number];
+export const PLAYER_COLORS = [
+  "red",
+  "blue",
+  "orange",
+  "green",
+  "purple",
+  "teal",
+  "yellow",
+  "pink",
+] as const;
+export type PlayerColor = (typeof PLAYER_COLORS)[number];
 export type TurnTimerSeconds = 0 | 30 | 60 | 90 | 120;
 
 export interface BaseGameSettings {

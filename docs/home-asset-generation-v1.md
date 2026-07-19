@@ -4,12 +4,14 @@ The ColonistSaga home artwork was generated with OpenAI's built-in image generat
 
 ## Shipped Assets
 
-- `apps/web/public/home-assets/island-bay-v1.webp` — original 1920 × 1080 coastal home backdrop
 - `apps/web/public/home-assets/menu/quick-match.png` — transparent dice, road, and island illustration
 - `apps/web/public/home-assets/menu/host-island.png` — transparent lighthouse illustration
 - `apps/web/public/home-assets/menu/join-crew.png` — transparent island map and compass illustration
 - `docs/game-asset-previews/home-menu-v1.png` — review sheet
 - `docs/game-asset-previews/home-screen-v1.png` — implemented desktop UI preview
+
+The unreferenced `island-bay-v1.webp` panorama was removed from the public
+bundle. The home screen uses the shared coastal-cove delivery asset instead.
 
 ## Background Prompt
 

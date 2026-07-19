@@ -5,8 +5,8 @@ import { applyCommand, getLegalActions } from "./rules";
 import { createDefaultGame } from "./state";
 import type { GamePlayerInput, GameState, PlayerId, ResourceInventory } from "./types";
 
-export function createTestPlayers(isBot = false): GamePlayerInput[] {
-  return Array.from({ length: 4 }, (_, seatIndex) => ({
+export function createTestPlayers(isBot = false, playerCount = 4): GamePlayerInput[] {
+  return Array.from({ length: playerCount }, (_, seatIndex) => ({
     displayName: `Player ${seatIndex + 1}`,
     id: `player-${seatIndex + 1}`,
     isBot,

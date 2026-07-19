@@ -816,7 +816,6 @@
     bottom: -1.55rem;
     width: 3.5rem;
   }
-
 }
 
 @media (max-width: 760px) {
@@ -868,7 +867,6 @@
   .voyage-card {
     height: 31rem;
   }
-
 }
 
 /* Game table */
@@ -1755,7 +1753,7 @@
   .reference-game .player-strip {
     display: grid;
     min-height: 0;
-    grid-template-rows: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
     gap: 0.42rem;
     overflow: hidden;
   }

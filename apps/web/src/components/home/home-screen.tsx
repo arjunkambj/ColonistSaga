@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_BASE_GAME_SETTINGS } from "@colonistsaga/game";
+import { DEFAULT_BASE_GAME_SETTINGS, type BaseGameSettings } from "@colonistsaga/game";
 import { Button, Input, Label, Modal, Slider, TextField } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
@@ -27,6 +27,7 @@ import { LiveMessage } from "@/components/ui/live-message";
 import { VoyageCard } from "@/components/ui/voyage-card";
 import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
+import { toBotCount } from "@/lib/lobby/lobby-settings-model";
 import { isRoomCode, normalizeRoomCode } from "@/lib/session";
 
 export interface HomeScreenProps {
@@ -534,8 +535,7 @@ export function HomeScreen({
                 />
               </Modal.Body>
               <p className="setup-note">
-                Bot games fill every open seat: choose two bots for a 3-player table or three bots
-                for a 4-player table.
+                Bot games fill every open seat. Choose two to seven bots for a 3–8 player table.
               </p>
               <Modal.Footer>
                 <Button
@@ -567,13 +567,13 @@ function normalizeQuickSettings(
     };
   }
 
-  const botCount: BotCount = next.botCount >= 3 ? 3 : 2;
+  const botCount = toBotCount(Math.max(2, next.botCount));
   return {
     ...next,
     botCount,
     settings: {
       ...next.settings,
-      maxPlayers: botCount === 3 ? 4 : 3,
+      maxPlayers: (botCount + 1) as BaseGameSettings["maxPlayers"],
     },
   };
 }

@@ -10,84 +10,11 @@
   },
   "tracks": [
     {
-      "id": "voyage-begins-a",
-      "cue": "voyage-begins",
-      "variant": "A",
-      "usage": "Sign-in and home screen loop",
-      "targetDurationSeconds": 96,
-      "prompt": "Original instrumental seamless-loop soundtrack for a polished casual island strategy game, moving emotionally from a lantern-lit harbor at dusk to a bright blue archipelago where the player chooses a voyage. Handcrafted maritime folk chamber style: gentle nylon guitar, muted mandolin, soft marimba, warm pizzicato strings, light brushed frame drum, airy flute, and subtle ocean-breeze feeling. Begin intimate, reveal a hopeful memorable motif without a dramatic swell. Friendly, premium, curious, calm, 82 BPM, warm major key with suspended chords. Target exactly 96 seconds, immediate usable opening, seamless loop, no final cadence. No vocals, choir, humming, lyrics, pirate or tropical clichés, ukulele advertising feel, cinematic trailer drums, recognizable melody, or sound effects."
-    },
-    {
-      "id": "voyage-begins-b",
-      "cue": "voyage-begins",
-      "variant": "B",
-      "usage": "Sign-in and home screen alternate loop",
-      "targetDurationSeconds": 96,
-      "prompt": "Original instrumental seamless-loop companion for a polished casual island strategy game at a welcoming harbor and sunlit archipelago. Match a warm handcrafted maritime chamber palette: nylon guitar harmonics, soft marimba, pizzicato strings, muted mandolin, light hand percussion, airy flute, and restrained cello. Use a different original melody from variant A but the same gentle 82 BPM energy, key family, loudness, and hopeful curious mood. Spacious phrases, premium casual-game finish, no dramatic rise. Target exactly 96 seconds, immediate opening, seamless loop, no final cadence. No vocals, choir, humming, lyrics, pirate or tropical clichés, ukulele-advertising style, trailer percussion, recognizable melody, or sound effects."
-    },
-    {
-      "id": "gather-the-crew-a",
-      "cue": "gather-the-crew",
-      "variant": "A",
-      "usage": "Private lobby and settings loop",
-      "targetDurationSeconds": 80,
-      "prompt": "Original instrumental seamless-loop cue for a friendly multiplayer island-game lobby where three or four players gather around a handcrafted table and adjust rules. Light maritime chamber folk with soft marimba, muted plucked strings, brushed frame drum, tiny woodblock details, warm cello pizzicato, and occasional airy flute. Welcoming, social, expectant, never busy, suitable under reading settings for several minutes. 92 BPM, gentle syncopation, warm major harmony, restrained dynamics. Target exactly 80 seconds with an immediate usable opening and seamless loop, no ending chord. No vocals, pirate music, fanfare, comedy, casino sounds, large drums, recognizable melody, or sound effects."
-    },
-    {
-      "id": "gather-the-crew-b",
-      "cue": "gather-the-crew",
-      "variant": "B",
-      "usage": "Private lobby and settings alternate loop",
-      "targetDurationSeconds": 80,
-      "prompt": "Original instrumental seamless-loop companion for a friendly multiplayer island strategy lobby. Match variant A at 92 BPM and the same warm loudness with a different original melody. Use soft wooden marimba, nylon guitar, muted mandolin, brushed frame drum, light handpan, cello pizzicato, and sparse flute responses. Social anticipation and quiet table activity, uncluttered enough for configuration screens, no dramatic peaks. Target exactly 80 seconds, immediate start, seamless loop, no final cadence. No vocals, pirate or tavern music, fanfare, comedy, casino sounds, large drums, recognizable melody, or sound effects."
-    },
-    {
-      "id": "founding-shores-a",
-      "cue": "founding-shores",
-      "variant": "A",
-      "usage": "Initial settlement-and-road setup loop",
-      "targetDurationSeconds": 90,
-      "prompt": "Original instrumental seamless-loop cue for the opening placement phase of a cozy but strategic island board game. Players carefully choose their first settlement and road locations on a colorful clay-like map. Plucked nylon guitar, soft marimba, pizzicato strings, handpan, brushed frame drum, restrained wood percussion. Planning, first footsteps, island waking up, optimistic and focused, never tense. 96 BPM, clear gentle pulse, light major-modal harmony, modest melodic development. Target exactly 90 seconds, seamless loop, no slow intro, no final cadence. No vocals, epic scoring, pirate or medieval tavern style, heavy percussion, recognizable melody, or sound effects."
-    },
-    {
-      "id": "founding-shores-b",
-      "cue": "founding-shores",
-      "variant": "B",
-      "usage": "Initial settlement-and-road setup alternate loop",
-      "targetDurationSeconds": 90,
-      "prompt": "Original instrumental seamless-loop companion for the opening settlement-and-road placement of a colorful handcrafted island strategy game. Match variant A at 96 BPM with the same loudness and optimistic focused mood, but compose a different original motif. Nylon guitar ostinato, muted mandolin, marimba, warm pizzicato strings, sparse handpan, brushed frame drum, and little wooden taps. Gentle forward motion and thoughtful choices, never tense or triumphant. Target exactly 90 seconds, immediate useful opening, seamless loop, no ending cadence. No vocals, pirate or tavern music, epic scoring, heavy percussion, recognizable melody, or sound effects."
-    },
-    {
-      "id": "trade-winds-a",
-      "cue": "trade-winds",
-      "variant": "A",
-      "usage": "Main gameplay calm loop",
+      "id": "in-game-ambience",
+      "cue": "in-game-ambience",
+      "usage": "Main gameplay loop for normal turns, dice, resources, building, and trade",
       "targetDurationSeconds": 150,
-      "prompt": "Original instrumental seamless-loop background track for the main turns of a polished casual island strategy game. The player studies a colorful hex island, rolls dice, gains resources, builds roads and settlements, and plans trades. Handcrafted maritime chamber palette: nylon guitar ostinato, muted mandolin, soft marimba, gentle pizzicato strings, warm cello, sparse handpan, brushed frame drum. Thoughtful, sunlit, quietly satisfying, highly replayable, plenty of space between phrases. 88 BPM, warm modal-major harmony, small motif variations, restrained bass and transients. Target exactly 150 seconds, seamless loop, no ending resolution. No vocals, danger, pirate music, tropical cliché, trailer build, casino energy, recognizable melody, or sound effects."
-    },
-    {
-      "id": "trade-winds-b",
-      "cue": "trade-winds",
-      "variant": "B",
-      "usage": "Main gameplay calm alternate loop",
-      "targetDurationSeconds": 150,
-      "prompt": "Original instrumental seamless-loop companion for normal turns in a friendly island strategy game. Match variant A at 88 BPM with the same warm modal-major key family, instrument palette, loudness, and low-fatigue intensity, while using a different original melody. Nylon guitar, muted plucked strings, soft marimba, warm cello pizzicato, sparse handpan, brushed frame drum, and very occasional airy flute. Thoughtful table planning, sunlit water, satisfying incremental progress, spacious phrasing. Target exactly 150 seconds, immediate usable start, seamless loop, no final cadence. No vocals, pirate or tropical cliché, danger, trailer scoring, casino energy, recognizable melody, or sound effects."
-    },
-    {
-      "id": "clever-currents-a",
-      "cue": "clever-currents",
-      "variant": "A",
-      "usage": "Main gameplay momentum loop",
-      "targetDurationSeconds": 150,
-      "prompt": "Original instrumental seamless-loop companion track for the midgame of a friendly island strategy board game. Handcrafted maritime chamber sound with soft marimba, muted plucked strings, nylon guitar, warm cello pizzicato, small wood percussion, brushed frame drum, and a few bright flute answers. Suggest expanding roads, lively negotiation, and clever plans coming together without combat or racing. 100 BPM, buoyant restrained groove, major-modal harmony, medium-low intensity, no sudden peaks. Target exactly 150 seconds, seamless loop, no final chord. No vocals, pirate or tavern music, tropical pop, EDM, epic trailer scoring, recognizable melody, or sound effects."
-    },
-    {
-      "id": "clever-currents-b",
-      "cue": "clever-currents",
-      "variant": "B",
-      "usage": "Main gameplay momentum alternate loop",
-      "targetDurationSeconds": 150,
-      "prompt": "Original instrumental seamless-loop alternate for the midgame of a polished casual island strategy game. Match variant A at 100 BPM with the same warm handcrafted maritime palette, loudness, and medium-low intensity, but write a different original motif. Soft marimba, nylon guitar, muted mandolin, pizzicato cello and strings, light wood percussion, brushed frame drum, and sparse airy flute. Clever negotiation and steady expansion, active but comfortable for concentration, no dramatic peaks. Target exactly 150 seconds, seamless loop, no ending cadence. No vocals, pirate or tavern music, tropical pop, EDM, trailer scoring, recognizable melody, or sound effects."
+      "prompt": "Original instrumental seamless-loop background track for a friendly island strategy board game. Players study a colorful hex island, roll dice, gain resources, build roads and settlements, and plan trades. Use a warm handcrafted maritime chamber palette: nylon guitar, muted mandolin, soft marimba, gentle pizzicato strings, warm cello, sparse handpan, and brushed frame drum. Thoughtful, sunlit, quietly satisfying, and highly replayable with plenty of space between phrases. 88 BPM, warm modal-major harmony, restrained bass and transients, no dramatic rise or ending resolution. No vocals, pirate music, tropical cliché, trailer build, casino energy, recognizable melody, or sound effects."
     }
   ]
 }

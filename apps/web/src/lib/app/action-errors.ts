@@ -5,10 +5,10 @@ export function toActionableError(error: unknown): string {
     normalizedMessage.includes("too_many_players") ||
     normalizedMessage.includes("more human players")
   ) {
-    return "Remove or replace a player before reducing the table to three seats.";
+    return "Remove or replace a player before reducing the table size.";
   }
   if (normalizedMessage.includes("room full")) {
-    return "That room already has four players. Ask the host for a new room code.";
+    return "That room is full. Ask the host for a new room code or a larger table.";
   }
   if (normalizedMessage.includes("not found") || normalizedMessage.includes("room code")) {
     return "That room could not be found. Check the six-character code and try again.";

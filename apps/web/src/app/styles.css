@@ -1436,6 +1436,22 @@ select {
   --player-color: #2fb86a;
 }
 
+.player-purple {
+  --player-color: #8357d9;
+}
+
+.player-teal {
+  --player-color: #0f9696;
+}
+
+.player-yellow {
+  --player-color: #bd8100;
+}
+
+.player-pink {
+  --player-color: #d74786;
+}
+
 .game-page {
   --foreground: #33405a;
   --muted: #7f8ca1;

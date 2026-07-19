@@ -1,7 +1,7 @@
 import type { BaseGameSettings, GameMapId } from "@colonistsaga/game";
 import { getGameMapDefinition } from "@colonistsaga/game/maps";
 
-export type BotCount = 0 | 1 | 2 | 3;
+export type BotCount = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export function getBotCapacity(
   maxPlayers: BaseGameSettings["maxPlayers"],
@@ -22,7 +22,7 @@ export function getMinimumPlayerCount(
 }
 
 export function toBotCount(value: number): BotCount {
-  return clampInteger(value, 0, 3) as BotCount;
+  return clampInteger(value, 0, 7) as BotCount;
 }
 
 function clampInteger(value: number, minimum: number, maximum: number): number {

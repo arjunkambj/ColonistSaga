@@ -223,6 +223,20 @@
   white-space: nowrap;
 }
 
+.assetSubcategories {
+  display: grid;
+  gap: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.assetSubcategory h3 {
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .assetRow {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
@@ -422,13 +436,6 @@
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.05rem;
   line-height: 1.2;
-}
-
-.cardBody p {
-  margin: 0.45rem 0 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
 }
 
 .cardBody small {

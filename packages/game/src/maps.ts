@@ -1,4 +1,4 @@
-import type { GameMapId, PlayerCount } from "./types";
+import { PLAYER_COUNTS, type GameMapId, type PlayerCount } from "./types";
 
 export interface GameMapDefinition {
   readonly description: string;
@@ -9,10 +9,10 @@ export interface GameMapDefinition {
 
 export const GAME_MAP_DEFINITIONS: Readonly<Record<GameMapId, GameMapDefinition>> = Object.freeze({
   base: Object.freeze({
-    description: "The standard 19-tile island for three or four players.",
+    description: "The standard 19-tile island for three to eight players.",
     id: "base",
     label: "Base Map",
-    playerCounts: Object.freeze([3, 4] as const),
+    playerCounts: Object.freeze([...PLAYER_COUNTS]),
   }),
 });
 
