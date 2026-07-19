@@ -116,10 +116,10 @@ const ASSET_CATEGORIES = [
       },
       {
         name: "Ocean board canvas",
-        description: "Water backdrop beneath the playable board.",
+        description: "Quiet turquoise water backdrop beneath the playable board.",
         fit: "cover",
-        format: "WebP · 1672×941",
-        path: "/game-assets/ui/ocean-board-canvas-v1.webp",
+        format: "WebP · 1586×992",
+        path: "/game-assets/ui/ocean-board-canvas-v2.webp",
         status: "generated",
       },
     ],

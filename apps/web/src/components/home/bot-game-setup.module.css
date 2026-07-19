@@ -1,83 +1,46 @@
 .backdrop {
-  padding: clamp(1rem, 6dvh, 5rem) clamp(1rem, 4vw, 4rem);
-  background: rgba(7, 38, 66, 0.72);
-  backdrop-filter: blur(12px) saturate(0.82);
+  padding: clamp(1rem, 4dvh, 3rem) clamp(1rem, 4vw, 4rem);
 }
 
 .dialog {
-  position: relative;
   width: min(72rem, calc(100vw - 2rem));
   height: min(42rem, calc(100dvh - 2rem));
-  padding: 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.88);
-  border-radius: 1.35rem;
-  background: linear-gradient(145deg, #fffdf8 0%, #f4f8ff 100%);
-  box-shadow: 0 30px 90px rgba(4, 27, 51, 0.42);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
 }
 
 .header {
-  position: relative;
-  min-height: 9.25rem;
-  padding: 0.45rem 0.35rem 4rem;
-}
-
-.header > div {
-  max-width: 40rem;
-}
-
-.header :global(.eyebrow) {
-  margin-bottom: 0.7rem;
-  color: #f29600;
-  font-size: 0.72rem;
-  font-weight: 950;
-  letter-spacing: 0.14em;
-}
-
-.header h2 {
-  margin-bottom: 0.35rem;
-  color: #26344d;
-  font-size: 1.08rem;
-}
-
-.header p:last-child {
-  color: #637794;
-  font-size: 0.72rem;
+  min-height: 4.9rem;
 }
 
 .close {
-  position: absolute;
-  bottom: 0.55rem;
-  left: 0.35rem;
-  width: 44px;
-  height: 44px;
-  border: 1px solid #d8e1ed;
-  background: #eef3f9;
-  box-shadow: 0 2px 6px rgba(55, 75, 105, 0.08);
-  color: #687892;
+  font-size: 1.1rem;
 }
 
 .body {
-  min-height: 0;
-  padding-inline: 0;
+  padding: 0.85rem;
   overflow: hidden;
 }
 
 .body :global(.lobby-settings-panel) {
   height: 100%;
-  padding: 0.9rem 1rem 1rem;
-  border: 1px solid #edf0f5;
-  border-radius: 1rem 1rem 0 0;
-  background: rgba(249, 251, 255, 0.88);
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
   overflow-y: auto;
 }
 
 .body :global(.lobby-settings-title) {
-  color: #34415b;
-  font-size: 1rem;
+  padding: 0;
+  color: #fff;
+  font-size: 0.9rem;
 }
 
 .body :global(.lobby-settings-intro) {
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.75rem;
+  color: #b8e5fb;
 }
 
 .body :global(.lobby-settings-grid) {
@@ -87,34 +50,41 @@
 }
 
 .body :global(.lobby-settings-group) {
-  border-color: #dce3ed;
-  background: #f5f7fb;
+  border-color: rgba(220, 246, 255, 0.12);
+  background: rgba(2, 73, 124, 0.27);
+}
+
+.body :global(.lobby-settings-group-header h2) {
+  color: #fff;
+}
+
+.body :global(.lobby-settings-group-header p) {
+  color: #acdff7;
+}
+
+.body :global(.lobby-settings-control),
+.body :global(.lobby-settings-toggle),
+.body :global(.lobby-settings-static) {
+  border-color: rgba(220, 246, 255, 0.13);
+  background: rgba(234, 248, 255, 0.96);
 }
 
 .note {
-  z-index: 1;
-  width: calc(100% + 2.2rem);
   padding: 0.55rem 1rem 0;
-  margin: 0 -1.1rem;
-  background: #f4f8ff;
-  color: #637794;
+  margin: 0;
+  background: rgba(1, 66, 112, 0.3);
+  color: #bce7fd;
 }
 
 .footer {
-  width: calc(100% + 2.2rem);
   justify-content: center;
   padding: 0.6rem 1rem 1rem;
-  margin: 0 -1.1rem -1.1rem;
-  background: #f4f8ff;
 }
 
 .start {
   min-width: min(18rem, 100%);
   margin: 0;
   border-radius: 0.8rem;
-  background: linear-gradient(180deg, #ffd166, #ffad20);
-  box-shadow: 0 9px 26px rgba(231, 151, 19, 0.24);
-  color: #3d311e;
 }
 
 @media (max-width: 840px) {
@@ -126,38 +96,14 @@
   .dialog {
     width: 100%;
     height: calc(100dvh - 1.3rem);
-    padding: 0.8rem;
-    border-radius: 1rem;
   }
 
   .header {
-    min-height: 7rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .close {
-    top: 0.25rem;
-    right: 0.25rem;
-    bottom: auto;
-    left: auto;
-  }
-
-  .header > div {
-    padding-right: 3.5rem;
+    min-height: auto;
   }
 
   .body :global(.lobby-settings-grid) {
     grid-template-columns: 1fr;
-  }
-
-  .note,
-  .footer {
-    width: calc(100% + 1.6rem);
-    margin-inline: -0.8rem;
-  }
-
-  .footer {
-    margin-bottom: -0.8rem;
   }
 }
 

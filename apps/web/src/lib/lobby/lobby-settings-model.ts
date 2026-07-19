@@ -1,7 +1,29 @@
-import type { BaseGameSettings, GameMapId } from "@colonistsaga/game";
+import {
+  PLAYER_COLORS,
+  type BaseGameSettings,
+  type GameMapId,
+  type PlayerColor,
+} from "@colonistsaga/game";
 import { getGameMapDefinition } from "@colonistsaga/game/maps";
 
 export type BotCount = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export interface LobbySeatMember {
+  readonly controller: "bot" | "player";
+  readonly displayName: string;
+  readonly id: string;
+  readonly playerColor: PlayerColor;
+  readonly ready: boolean;
+  readonly role: "host" | "player";
+  readonly seatIndex: number;
+}
+
+interface LobbySeatPreviewInput {
+  readonly botCount: BotCount;
+  readonly maxPlayers: BaseGameSettings["maxPlayers"];
+  readonly members: readonly LobbySeatMember[];
+  readonly savedMaxPlayers: BaseGameSettings["maxPlayers"];
+}
 
 export function getBotCapacity(
   maxPlayers: BaseGameSettings["maxPlayers"],
@@ -23,6 +45,74 @@ export function getMinimumPlayerCount(
 
 export function toBotCount(value: number): BotCount {
   return clampInteger(value, 0, 7) as BotCount;
+}
+
+export function createLobbySeatPreview({
+  botCount,
+  maxPlayers,
+  members,
+  savedMaxPlayers,
+}: LobbySeatPreviewInput): ReadonlyArray<LobbySeatMember | undefined> {
+  const resizedMembers =
+    maxPlayers === savedMaxPlayers ? [...members] : fitMembersToPlayerLimit(members, maxPlayers);
+  const humans = resizedMembers.filter((member) => member.controller === "player");
+  const availableBotSeats = Math.max(0, maxPlayers - humans.length);
+  const desiredBotCount = Math.min(botCount, availableBotSeats);
+  const bots = resizedMembers
+    .filter((member) => member.controller === "bot")
+    .sort((left, right) => left.seatIndex - right.seatIndex)
+    .slice(0, desiredBotCount);
+  const occupiedSeatIndexes = new Set([...humans, ...bots].map((member) => member.seatIndex));
+  const addedBots = Array.from({ length: maxPlayers }, (_, seatIndex) => seatIndex)
+    .filter((seatIndex) => !occupiedSeatIndexes.has(seatIndex))
+    .slice(0, desiredBotCount - bots.length)
+    .map(createDraftBot);
+  const membersBySeat = new Map(
+    [...humans, ...bots, ...addedBots].map((member) => [member.seatIndex, member]),
+  );
+
+  return Array.from({ length: maxPlayers }, (_, seatIndex) => membersBySeat.get(seatIndex));
+}
+
+function fitMembersToPlayerLimit(
+  members: readonly LobbySeatMember[],
+  maxPlayers: BaseGameSettings["maxPlayers"],
+): LobbySeatMember[] {
+  const humans = members
+    .filter((member) => member.controller === "player")
+    .sort(compareLobbyMembers);
+  const bots = members
+    .filter((member) => member.controller === "bot")
+    .sort((left, right) => left.seatIndex - right.seatIndex)
+    .slice(0, Math.max(0, maxPlayers - humans.length));
+
+  return [...humans, ...bots].map(moveMemberToSeat);
+}
+
+function compareLobbyMembers(left: LobbySeatMember, right: LobbySeatMember): number {
+  if (left.role !== right.role) return left.role === "host" ? -1 : 1;
+  return left.seatIndex - right.seatIndex;
+}
+
+function moveMemberToSeat(member: LobbySeatMember, seatIndex: number): LobbySeatMember {
+  return {
+    ...member,
+    displayName: member.controller === "bot" ? `Bot ${seatIndex + 1}` : member.displayName,
+    playerColor: PLAYER_COLORS[seatIndex] ?? PLAYER_COLORS[0],
+    seatIndex,
+  };
+}
+
+function createDraftBot(seatIndex: number): LobbySeatMember {
+  return {
+    controller: "bot",
+    displayName: `Bot ${seatIndex + 1}`,
+    id: `draft-bot-${seatIndex}`,
+    playerColor: PLAYER_COLORS[seatIndex] ?? PLAYER_COLORS[0],
+    ready: true,
+    role: "player",
+    seatIndex,
+  };
 }
 
 function clampInteger(value: number, minimum: number, maximum: number): number {

@@ -309,22 +309,24 @@ Scene/backdrop: perfectly flat #ff00ff chroma-key background for local alpha rem
 Constraints: no words, numbers, logos, watermark, UI panels, characters, coins, gems, branded board-game imagery, or extra scenery.
 ```
 
-## ui/ocean-board-canvas-v1.webp
+## ui/ocean-board-canvas-v2.webp
 
-Generated with OpenAI's built-in image generation tool. The two supplied board screenshots were style and composition references only, not edit targets.
+Generated with OpenAI's built-in image generation tool. The supplied board screenshot was a
+style and mood reference only, not an edit target. The generated PNG was converted to a
+production WebP with Sharp at quality 86.
 
 ```text
 Use case: stylized-concept
-Asset type: ColonistSaga in-game board canvas background, wide responsive raster backdrop
-Input images: Image 1 is a style reference for the polished friendly clay-board warmth and turquoise water palette; Image 2 is a composition reference for a clear blue tabletop surrounding a centered game board. Neither image is an edit target.
-Primary request: Create an original premium illustrated ocean tabletop backdrop for a multiplayer hex-board game. The live board will be rendered in code over the center, so the middle 72% must stay visually quiet and unobstructed.
-Scene/backdrop: bright turquoise open water viewed directly top-down, with very subtle soft wavelets, tiny foam flecks, faint depth gradients, and restrained illustrated shoreline hints only at the extreme corners.
-Style/medium: polished casual strategy game environment art; soft 3D-clay/painterly hybrid; warm, tactile, friendly, clean enough for a production game UI.
-Composition/framing: 16:9 landscape; calm low-contrast center; slightly richer vignette and tiny decorative maritime details only near the far outer edges; seamless visual flow with no hard frame.
-Lighting/mood: bright soft daylight, inviting, calm, legible.
-Color palette: aqua, turquoise, sea-glass blue, tiny warm sand accents at distant corners.
-Constraints: no board tiles, no hexagons, no ports, no ships, no buildings, no characters, no cards, no buttons, no text, no logo, no watermark; avoid any important detail beneath the central board; no UI chrome.
-Avoid: flat solid blue, photorealism, high-frequency noise, dramatic waves, dark navy water, cluttered center, perspective horizon.
+Asset type: responsive game-board background texture for a web game
+Primary request: Generate only the open turquoise ocean background seen behind the board in Image 1. Image 1 is a style and mood reference, not an edit target. Remove the entire board, islands, hex tiles, ports, pieces, avatars, labels, buttons, and all UI.
+Scene/backdrop: uninterrupted bright tropical blue water filling the full canvas edge to edge
+Style/medium: polished friendly mobile-game 3D illustration, soft clay-like rendering, subtle painterly softness matching Image 1
+Composition/framing: wide landscape canvas; center 75% must stay visually quiet and unobstructed for a large board overlay; evenly usable at different responsive crops
+Lighting/mood: cheerful daylight, luminous aqua glow, gentle depth
+Color palette: cyan, turquoise, pale sky blue, restrained white highlights
+Materials/textures: very subtle broad underwater gradients, sparse soft ripples and faint caustic highlights, slightly blurred so the board remains dominant
+Constraints: background layer only; seamless-looking edge-to-edge water; no horizon; no shoreline; no sand; no rocks; no islands; no objects; no text; no symbols; no frame; no border; no watermark; no UI; no hexagons
+Avoid: photorealism, noisy wave texture, sharp highlights, dark navy patches, busy center, vignette, land in corners
 ```
 
 ## ui/port-skiff-v1.png

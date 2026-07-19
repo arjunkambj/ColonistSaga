@@ -31,6 +31,7 @@ import { toBotCount } from "@/lib/lobby/lobby-settings-model";
 import { isRoomCode, normalizeRoomCode } from "@/lib/session";
 
 import botSetupStyles from "./bot-game-setup.module.css";
+import setupShellStyles from "./game-setup-shell.module.css";
 import joinRoomStyles from "./join-room.module.css";
 
 export interface HomeScreenProps {
@@ -295,7 +296,7 @@ export function HomeScreen({
 
       <Modal>
         <Modal.Backdrop
-          className={`setup-backdrop ${joinRoomStyles.backdrop}`}
+          className={`setup-backdrop ${setupShellStyles.backdrop}`}
           isDismissable={!isPending}
           isKeyboardDismissDisabled={isPending}
           isOpen={showJoinRoom}
@@ -308,11 +309,11 @@ export function HomeScreen({
           <Modal.Container>
             <Modal.Dialog
               aria-describedby="join-room-description"
-              className={`setup-dialog join-room-dialog ${joinRoomStyles.dialog}`}
+              className={`setup-dialog join-room-dialog ${setupShellStyles.dialog} ${joinRoomStyles.dialog}`}
               id="join-room-dialog"
             >
-              <Modal.Header className={`setup-dialog-header ${joinRoomStyles.header}`}>
-                <span className={joinRoomStyles.icon} aria-hidden="true">
+              <Modal.Header className={`setup-dialog-header ${setupShellStyles.header}`}>
+                <span className={setupShellStyles.icon} aria-hidden="true">
                   <Icon icon={usersIcon} />
                 </span>
                 <div>
@@ -324,7 +325,7 @@ export function HomeScreen({
                 </div>
                 <Button
                   aria-label="Close join room"
-                  className={`setup-close ${joinRoomStyles.close}`}
+                  className={`setup-close ${setupShellStyles.close} ${joinRoomStyles.close}`}
                   isDisabled={isPending}
                   isIconOnly
                   onPress={() => setShowJoinRoom(false)}
@@ -333,7 +334,7 @@ export function HomeScreen({
                   <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
-              <Modal.Body className={joinRoomStyles.body}>
+              <Modal.Body className={`${setupShellStyles.body} ${joinRoomStyles.body}`}>
                 <form
                   className={`join-code-form ${joinRoomStyles.form}`}
                   id="join-room-form"
@@ -382,9 +383,9 @@ export function HomeScreen({
                   </TextField>
                 </form>
               </Modal.Body>
-              <Modal.Footer className={joinRoomStyles.footer}>
+              <Modal.Footer className={`${setupShellStyles.footer} ${joinRoomStyles.footer}`}>
                 <Button
-                  className={`button button-quiet ${joinRoomStyles.cancel}`}
+                  className={`button ${setupShellStyles.secondaryAction} ${joinRoomStyles.cancel}`}
                   isDisabled={isPending}
                   onPress={() => setShowJoinRoom(false)}
                   variant="ghost"
@@ -392,7 +393,7 @@ export function HomeScreen({
                   Cancel
                 </Button>
                 <Button
-                  className={`button button-primary ${joinRoomStyles.join}`}
+                  className={`button ${setupShellStyles.primaryAction} ${joinRoomStyles.join}`}
                   form="join-room-form"
                   isDisabled={isPending || !isRoomCode(joinCode) || !displayName.trim()}
                   isPending={pendingAction === "join"}
@@ -516,7 +517,7 @@ export function HomeScreen({
 
       <Modal>
         <Modal.Backdrop
-          className={`setup-backdrop ${botSetupStyles.backdrop}`}
+          className={`setup-backdrop ${setupShellStyles.backdrop} ${botSetupStyles.backdrop}`}
           isDismissable={!isPending}
           isKeyboardDismissDisabled={isPending}
           isOpen={showBotSetup}
@@ -527,10 +528,19 @@ export function HomeScreen({
           }}
         >
           <Modal.Container>
-            <Modal.Dialog className={`setup-dialog ${botSetupStyles.dialog}`} id="bot-setup-dialog">
-              <Modal.Header className={`setup-dialog-header ${botSetupStyles.header}`}>
+            <Modal.Dialog
+              aria-describedby="bot-setup-description"
+              className={`setup-dialog ${setupShellStyles.dialog} ${botSetupStyles.dialog}`}
+              id="bot-setup-dialog"
+            >
+              <Modal.Header
+                className={`setup-dialog-header ${setupShellStyles.header} ${botSetupStyles.header}`}
+              >
+                <span aria-hidden="true" className={setupShellStyles.icon}>
+                  <Icon icon={botIcon} />
+                </span>
                 <div>
-                  <p className="eyebrow">Bot Game</p>
+                  <p className="eyebrow">Quick Match</p>
                   <Modal.Heading id="bot-setup-title">Set Up Your Table</Modal.Heading>
                   <p id="bot-setup-description">
                     Pick the standard rules and bot challenge before the island is built.
@@ -538,16 +548,18 @@ export function HomeScreen({
                 </div>
                 <Button
                   aria-label="Close bot game setup"
-                  className={`setup-close ${botSetupStyles.close}`}
+                  className={`setup-close ${setupShellStyles.close} ${botSetupStyles.close}`}
                   isDisabled={isPending}
                   isIconOnly
                   onPress={() => setShowBotSetup(false)}
                   variant="ghost"
                 >
-                  ×
+                  <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
-              <Modal.Body className={`setup-dialog-body ${botSetupStyles.body}`}>
+              <Modal.Body
+                className={`setup-dialog-body ${setupShellStyles.body} ${botSetupStyles.body}`}
+              >
                 <LobbySettings
                   botCount={quickSettings.botCount}
                   botDifficulty={quickSettings.botDifficulty}
@@ -563,15 +575,15 @@ export function HomeScreen({
               <p className={`setup-note ${botSetupStyles.note}`}>
                 Bot games fill every open seat. Choose two to seven bots for a 3–8 player table.
               </p>
-              <Modal.Footer className={botSetupStyles.footer}>
+              <Modal.Footer className={`${setupShellStyles.footer} ${botSetupStyles.footer}`}>
                 <Button
-                  className={`button button-primary button-large setup-start ${botSetupStyles.start}`}
+                  className={`button button-large setup-start ${setupShellStyles.primaryAction} ${botSetupStyles.start}`}
                   isDisabled={isPending}
                   isPending={pendingAction === "quick"}
                   onPress={() => void onQuickPlay(quickSettings)}
                 >
                   <Icon aria-hidden="true" icon={botIcon} />
-                  {pendingAction === "quick" ? "Building the Island…" : "Start Bot Game"}
+                  {pendingAction === "quick" ? "Building the Island…" : "Start Quick Match"}
                 </Button>
               </Modal.Footer>
             </Modal.Dialog>

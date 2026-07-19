@@ -1808,8 +1808,8 @@ select {
   overflow: hidden;
   background:
     linear-gradient(rgba(77, 204, 216, 0.08), rgba(28, 155, 190, 0.12)),
-    url("/game-assets/ui/ocean-board-canvas-v1.webp") center / cover no-repeat,
-    #43c6d4;
+    url("/game-assets/ui/ocean-board-canvas-v2.webp") center / cover no-repeat,
+    #4bcce5;
   box-shadow:
     inset 0 0 70px rgba(20, 121, 151, 0.16),
     0 12px 30px rgba(83, 111, 151, 0.15);

@@ -18,7 +18,11 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { LiveMessage } from "@/components/ui/live-message";
 import type { PendingAction } from "@/lib/app/pending-action";
 import type { RoomView } from "@/lib/game/types";
-import { getBotCapacity, toBotCount } from "@/lib/lobby/lobby-settings-model";
+import {
+  createLobbySeatPreview,
+  getBotCapacity,
+  toBotCount,
+} from "@/lib/lobby/lobby-settings-model";
 
 import { LobbySettings, type BotCount, type LobbySettingsValue } from "./lobby-settings";
 import styles from "./lobby-screen.module.css";
@@ -61,11 +65,15 @@ export function LobbyScreen({
     botDifficulty: room.botDifficulty,
     settings: room.settings,
   }));
-  const seats = Array.from({ length: room.settings.maxPlayers }, (_, index) =>
-    room.members.find((member) => member.seatIndex === index),
-  );
   const humanCount = room.members.length - botCount;
   const botCapacity = getBotCapacity(settingsDraft.settings.maxPlayers, humanCount);
+  const seats = createLobbySeatPreview({
+    botCount: settingsDraft.botCount,
+    maxPlayers: settingsDraft.settings.maxPlayers,
+    members: room.members,
+    savedMaxPlayers: room.settings.maxPlayers,
+  });
+  const occupiedSeatCount = seats.filter(Boolean).length;
   const settingsAreSaved = sameLobbySettings(settingsDraft, room);
   const tableIsFull = room.members.length === room.settings.maxPlayers;
   const startHint = !settingsAreSaved
@@ -116,7 +124,9 @@ export function LobbyScreen({
   const addBot = () => {
     setSettingsDraft((current) => ({
       ...current,
-      botCount: toBotCount(Math.min(current.botCount + 1, botCapacity)),
+      botCount: toBotCount(
+        Math.min(current.botCount + 1, getBotCapacity(current.settings.maxPlayers, humanCount)),
+      ),
     }));
   };
 
@@ -154,7 +164,7 @@ export function LobbyScreen({
               <Icon aria-hidden="true" icon={usersIcon} /> Players
             </span>
             <small>
-              {room.members.length}/{room.settings.maxPlayers}
+              {occupiedSeatCount}/{settingsDraft.settings.maxPlayers}
             </small>
           </div>
 
