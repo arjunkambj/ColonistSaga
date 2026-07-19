@@ -32,9 +32,9 @@ All generated gameplay art must:
 | resource-sheep    | `resources/sheep.png`   | Inventory and trade icon    | 256×256 RGBA  |
 | resource-wheat    | `resources/wheat.png`   | Inventory and trade icon    | 256×256 RGBA  |
 | resource-stone    | `resources/stone.png`   | Inventory and trade icon    | 256×256 RGBA  |
-| piece-road        | `pieces/road.png`       | Neutral tintable road token | 256×256 RGBA  |
-| piece-settlement  | `pieces/settlement.png` | Neutral tintable settlement | 256×256 RGBA  |
-| piece-city        | `pieces/city.png`       | Neutral tintable city       | 256×256 RGBA  |
+| piece-road        | `pieces/road.png`       | Neutral tintable road token | 512×512 RGBA  |
+| piece-settlement  | `pieces/settlement.png` | Neutral tintable settlement | 512×512 RGBA  |
+| piece-city        | `pieces/city.png`       | Neutral tintable city       | 512×512 RGBA  |
 | piece-robber      | `pieces/robber.png`     | Neutral robber pawn         | 256×256 RGBA  |
 | ui-trade-caravan  | `ui/trade-caravan.png`  | Domestic trade modal art    | 1672×941 RGBA |
 
@@ -58,11 +58,15 @@ generated bitmaps:
 - number tokens, probability pips, 6/8 emphasis, port ratios, and port labels;
 - dice faces and roll result;
 - player-color rings, selection/hover/invalid states, and connection badges;
-- buttons, panels, cards, timers, counters, trade arrows, modal chrome, and chat;
+- buttons, panels, timers, counters, trade arrows, modal chrome, and chat;
 - accessibility patterns that supplement terrain and player color.
 
 ## Generate later, when the matching feature is implemented
 
+- five full resource-card illustrations for tree, brick, sheep, wheat, and
+  stone; their labels and counts remain code-rendered;
+- five full action-card illustrations for trade, road, settlement, city, and
+  end turn; their titles, costs, counts, and states remain code-rendered;
 - five development-card illustrations and one hidden card back;
 - Longest Road and Largest Army award art;
 - player avatar set;

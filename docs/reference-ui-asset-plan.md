@@ -104,4 +104,4 @@ Output: square high-resolution PNG suitable for chroma-keying to transparent alp
 - `VoyageCard`: reusable reference-style mode card with illustration, badge, copy, and action affordance.
 - Game action tiles: reusable dock/poster preset applied to Trade, the disabled Development Deck,
   Road, Settlement, City, and End Turn controls.
-- All remaining glass panels, header pills, player rows, resource cards, number tokens, dice, and navigation use CSS or SVG icons.
+- All remaining glass panels, header pills, player rows, number tokens, dice, and navigation use CSS or SVG icons. Resource and action cards use generated artwork with code-rendered labels, values, costs, and states.

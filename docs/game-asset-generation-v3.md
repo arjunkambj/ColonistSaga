@@ -50,9 +50,9 @@ Piece design lines:
 ## Final Normalization
 
 - Terrain: 512 × 512 RGBA with the approved shared alpha silhouette at `x=50–461`, `y=77–434`.
-- Road: 256 × 256 RGBA, centered inside a 236 × 76 box.
-- Settlement: 256 × 256 RGBA, centered inside a 210 × 210 box.
-- City: 256 × 256 RGBA, centered inside a 232 × 216 box.
+- Road: 512 × 512 RGBA.
+- Settlement: 512 × 512 RGBA.
+- City: 512 × 512 RGBA.
 - Review sheet: `docs/game-asset-previews/detailed-pack-v3.png`.
 - Board-scale integration preview: `docs/game-asset-previews/detailed-board-v3.png`.
 

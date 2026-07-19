@@ -279,57 +279,6 @@ Composition/framing: centered isolated subject, top-down three-quarter camera, a
 Constraints: readable at 64px; no card, frame, text, number, logo, watermark, UI, ground, sparkles, ore crystals, pickaxe, or extra objects.
 ```
 
-## pieces/road.png
-
-```text
-Use case: stylized-concept
-Asset type: Catansaga neutral tintable board-game road token
-Primary request: Create one original neutral road piece for placement along a hex edge.
-Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
-Subject: one simple long low road token formed from a single slightly irregular rounded rectangular clay beam with three shallow crosswise segment grooves; warm ivory throughout for client-side tinting.
-Style/medium: polished friendly 3D clay tabletop-game piece, softly rounded handmade form, subtle clay texture, original unbranded art.
-Composition/framing: single centered isolated subject running diagonally from lower-left to upper-right, consistent top-down three-quarter camera, fills about 66% of square canvas, generous equal padding, complete silhouette.
-Lighting/mood: soft warm upper-left studio light on subject only, minimal self-occlusion; no cast or contact shadow on background.
-Color palette: warm ivory, cream, pale beige only; do not use #00ff00 anywhere in the subject.
-Materials/textures: matte modeling clay, low-contrast tonal modeling suited to uniform player-color tinting, readable at 64 px.
-Constraints: one unbroken road token silhouette; no ground, no grass, no stones, no frame, no words, no numbers, no logos, no watermark, no UI, no extra objects.
-Avoid: branded game piece designs, photorealism, wood grain, metallic parts, crop, background shadow, green color.
-```
-
-## pieces/settlement.png
-
-```text
-Use case: stylized-concept
-Asset type: Catansaga neutral tintable board-game settlement token
-Primary request: Create one original neutral settlement piece representing a small village home.
-Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
-Subject: one compact single-story clay cottage token with a broad peaked roof, a small offset chimney, and one shallow doorway recess; all parts fused into one strong warm-ivory silhouette for client-side tinting.
-Style/medium: polished friendly 3D clay tabletop-game piece, softly rounded handmade forms, subtle clay texture, original unbranded art.
-Composition/framing: single centered isolated subject, consistent top-down three-quarter camera facing slightly right, fills about 64% of square canvas, generous equal padding, complete silhouette.
-Lighting/mood: soft warm upper-left studio light on subject only, gentle self-occlusion; no cast or contact shadow on background.
-Color palette: warm ivory, cream, pale beige only; do not use #00ff00 anywhere in the subject.
-Materials/textures: matte modeling clay, low-contrast tonal modeling suited to uniform player-color tinting, readable at 64 px.
-Constraints: compact fused silhouette clearly distinct from the city token; no base disk, no fence, no tree, no ground, no words, no numbers, no logos, no watermark, no UI, no extra objects.
-Avoid: branded game piece designs, photorealism, detailed architecture, crop, background shadow, green color.
-```
-
-## pieces/city.png
-
-```text
-Use case: stylized-concept
-Asset type: Catansaga neutral tintable board-game city token
-Primary request: Create one original neutral city piece representing a larger upgraded settlement.
-Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for background removal; one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
-Subject: one compact fused clay city token with a broad two-story hall, a taller square tower, two stepped rooflines, and two shallow doorway recesses; all parts unified into one strong warm-ivory silhouette for client-side tinting, clearly larger and more complex than a cottage.
-Style/medium: polished friendly 3D clay tabletop-game piece, softly rounded handmade forms, subtle clay texture, original unbranded art.
-Composition/framing: single centered isolated subject, consistent top-down three-quarter camera facing slightly right, fills about 68% of square canvas, generous equal padding, complete silhouette.
-Lighting/mood: soft warm upper-left studio light on subject only, gentle self-occlusion; no cast or contact shadow on background.
-Color palette: warm ivory, cream, pale beige only; do not use #00ff00 anywhere in the subject.
-Materials/textures: matte modeling clay, low-contrast tonal modeling suited to uniform player-color tinting, readable at 64 px.
-Constraints: compact fused silhouette clearly distinct from a single cottage settlement token; no base disk, no flag, no wall ring, no tree, no ground, no words, no numbers, no logos, no watermark, no UI, no extra objects.
-Avoid: branded game piece designs, photorealism, detailed architecture, crop, background shadow, green color.
-```
-
 ## pieces/robber.png
 
 ```text
@@ -435,7 +384,7 @@ Constraints: one icon only; no card frame, no button background, no hands, no ch
 Avoid: copying reference icons, photorealism, thin fragile frame, dark colors, tiny detail, cropped silhouette.
 ```
 
-## pieces/road-v2.png
+## pieces/road.png
 
 Generated with OpenAI's built-in image generation tool in `stylized-concept`
 mode on a pure `#ff00ff` chroma-key background. The selected source was
@@ -453,10 +402,10 @@ background. No curve, cobblestones, planks, grain, cracks, bolts, scenery,
 shadow, text, logo, watermark, or extra objects.
 ```
 
-## pieces/settlement-v2.png
+## pieces/settlement.png
 
 Generated and normalized with the same `stylized-concept`, chroma-key, soft
-matte, padding, and 512 × 512 workflow as `road-v2.png`.
+matte, padding, and 512 × 512 workflow as `road.png`.
 
 ```text
 Create one ultra-minimal board-game SETTLEMENT token only: exactly two primary
@@ -468,7 +417,7 @@ flat #ff00ff background. No porch, windows, chimney, fence, steps, shingles,
 bricks, scenery, cast shadow, text, logo, watermark, or extra objects.
 ```
 
-## pieces/city-v2.png
+## pieces/city.png
 
 Generated and normalized with the same `stylized-concept`, chroma-key, soft
 matte, padding, and 512 × 512 workflow as the other minimalist piece tokens.

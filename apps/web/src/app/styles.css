@@ -5114,10 +5114,6 @@ select {
   inset: 0;
 }
 
-.player-red .player-avatar.is-bot .player-avatar-image {
-  filter: hue-rotate(-28deg) saturate(1.16);
-}
-
 .player-name {
   min-width: 0;
   align-self: end;

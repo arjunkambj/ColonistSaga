@@ -59,13 +59,6 @@ const DIE_PIPS: Record<number, readonly number[]> = {
   6: [0, 2, 3, 5, 6, 8],
 };
 
-const BOT_PORTRAITS = {
-  blue: "/game-assets/players/bot-blue-v2.png",
-  green: "/game-assets/players/bot-green-v2.png",
-  orange: "/game-assets/players/bot-orange-v2.png",
-  red: "/game-assets/players/bot-orange-v2.png",
-} as const;
-
 const EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
@@ -386,11 +379,7 @@ function PlayerStrip({
       {players.map((player) => {
         const theme = getPlayerTheme(player);
         const isActive = player.id === activePlayerId;
-        const avatarSrc = player.isBot
-          ? BOT_PORTRAITS[theme]
-          : player.isViewer
-            ? viewerProfileImageUrl
-            : null;
+        const avatarSrc = player.isViewer ? viewerProfileImageUrl : null;
         const identityLabel = player.isViewer ? "You" : player.isBot ? "Bot" : null;
         const turnLabel = player.isViewer ? "Your turn" : player.isBot ? "Thinking" : "Playing";
         return (
@@ -404,7 +393,7 @@ function PlayerStrip({
               aria-hidden="true"
             >
               <span className="player-avatar-fallback">
-                {getPlayerInitials(player.displayName)}
+                {player.isBot ? <Bot aria-hidden="true" /> : getPlayerInitials(player.displayName)}
               </span>
               {avatarSrc ? (
                 <img

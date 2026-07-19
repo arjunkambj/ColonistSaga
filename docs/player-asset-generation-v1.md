@@ -35,22 +35,3 @@ Constraints: one original adult island explorer, friendly confident expression, 
 
 Each selected source was resized to 256 × 256 PNG for the HUD. The original
 generated sources remain in the Codex generated-images directory.
-
-## Bot Portraits V2
-
-The bot seats now use unmistakably robotic portraits so players can distinguish
-people from automated opponents at a glance. These were generated with
-OpenAI's built-in image generation tool in `stylized-concept` mode as opaque
-512 × 512 PNGs.
-
-```text
-Create one square, polished painterly maritime board-game portrait containing
-one unmistakably friendly robot character. Keep the face near 68% of the frame,
-use a strong color-coded circular ring and simple matching background, and make
-the silhouette readable at 48 px. No text, logo, watermark, human character,
-weapon, or background clutter.
-```
-
-- `apps/web/public/game-assets/players/bot-blue-v2.png`: blue navigator robot.
-- `apps/web/public/game-assets/players/bot-orange-v2.png`: orange shipwright robot.
-- `apps/web/public/game-assets/players/bot-green-v2.png`: green botanist robot.

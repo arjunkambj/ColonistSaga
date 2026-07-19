@@ -154,7 +154,7 @@ const ACTION_PRESET_TILES = [
     count: 13,
     kind: "road",
     meta: "1 wood · 1 brick",
-    src: "/game-assets/pieces/road-v2.png",
+    src: "/game-assets/pieces/road.png",
     title: "Road",
   },
   {
@@ -162,7 +162,7 @@ const ACTION_PRESET_TILES = [
     count: 3,
     kind: "settlement",
     meta: "Wood · brick · sheep · wheat",
-    src: "/game-assets/pieces/settlement-v2.png",
+    src: "/game-assets/pieces/settlement.png",
     title: "Settlement",
   },
   {
@@ -170,7 +170,7 @@ const ACTION_PRESET_TILES = [
     count: 4,
     kind: "city",
     meta: "2 wheat · 3 stone",
-    src: "/game-assets/pieces/city-v2.png",
+    src: "/game-assets/pieces/city.png",
     title: "City",
   },
   {

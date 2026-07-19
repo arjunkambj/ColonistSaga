@@ -48,6 +48,15 @@
   color: #f5cf75;
 }
 
+.mainLogo {
+  display: block;
+  width: clamp(10rem, 18vw, 15rem);
+  height: auto;
+  margin-bottom: 1.2rem;
+  filter: drop-shadow(0 12px 20px rgba(1, 16, 38, 0.32));
+  user-select: none;
+}
+
 .eyebrow {
   margin-bottom: 0.55rem;
   color: #f4bb4f;
@@ -211,6 +220,160 @@
   white-space: nowrap;
 }
 
+.musicTester {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1.2fr) minmax(15rem, 0.8fr);
+  gap: 0.9rem 1.2rem;
+  margin-bottom: 1.2rem;
+  padding: 1rem;
+  border: 1px solid rgba(105, 210, 186, 0.18);
+  border-radius: 1.1rem;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(97, 209, 187, 0.12), transparent 18rem),
+    rgba(7, 32, 40, 0.66);
+}
+
+.musicNowPlaying {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.musicArtwork {
+  display: grid;
+  width: 3.4rem;
+  height: 3.4rem;
+  place-items: center;
+  border: 1px solid rgba(97, 209, 187, 0.2);
+  border-radius: 0.9rem;
+  background: linear-gradient(145deg, rgba(38, 111, 116, 0.9), rgba(14, 54, 66, 0.92));
+  color: #8be2ce;
+}
+
+.musicArtwork[data-playing="true"] {
+  box-shadow: 0 0 0 0.3rem rgba(97, 209, 187, 0.08);
+  color: #f4ce72;
+}
+
+.musicArtwork svg {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.musicDetails {
+  display: grid;
+  min-width: 0;
+}
+
+.musicDetails > span {
+  color: #f4bb4f;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.musicDetails strong {
+  margin-top: 0.18rem;
+  overflow: hidden;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.musicDetails small {
+  margin-top: 0.18rem;
+  overflow: hidden;
+  color: var(--sheet-muted);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.musicPlayButton svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.musicTimeline {
+  display: grid;
+  grid-column: 1;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.musicTimeline span {
+  color: #94b2b3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.musicTimeline span:last-child {
+  text-align: right;
+}
+
+.musicTimeline input {
+  width: 100%;
+  accent-color: #f4bb4f;
+  cursor: pointer;
+}
+
+.trackList {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-content: start;
+  gap: 0.45rem;
+  max-height: 7.75rem;
+  overflow-y: auto;
+}
+
+.trackButton {
+  display: grid;
+  width: 100%;
+  min-height: 3.4rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-content: stretch;
+  padding-inline: 0.75rem;
+  text-align: left;
+}
+
+.trackButton svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.trackNumber {
+  color: #6f9294;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+}
+
+.trackName {
+  display: grid;
+  min-width: 0;
+}
+
+.trackName strong,
+.trackName small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trackName strong {
+  font-size: 0.77rem;
+}
+
+.trackName small {
+  color: #89a8a9;
+  font-size: 0.62rem;
+}
+
 .assetRow {
   display: grid;
   grid-auto-columns: 13.5rem;
@@ -362,6 +525,16 @@
 
   .summary {
     flex-wrap: wrap;
+  }
+
+  .musicTester {
+    grid-template-columns: 1fr;
+  }
+
+  .trackList {
+    grid-column: 1;
+    grid-row: auto;
+    max-height: 12rem;
   }
 }
 

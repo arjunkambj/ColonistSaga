@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import styles from "./asset-sheet.module.css";
+import { MusicTrackTester, type MusicTrack } from "./music-track-tester";
 
 export const metadata: Metadata = {
   description: "A category-by-category inventory of Catansaga's generated and planned assets.",
@@ -27,8 +28,19 @@ interface AssetItem {
 interface AssetCategory {
   assets: readonly AssetItem[];
   description: string;
+  musicTracks?: readonly MusicTrack[];
   name: string;
 }
+
+const MUSIC_TRACKS = [
+  {
+    description: "Looping maritime menu soundtrack.",
+    format: "MP3 · 256 kbps",
+    id: "main-lobby-v1",
+    name: "Main lobby music",
+    path: "/music/main-loby-music.mp3",
+  },
+] satisfies readonly MusicTrack[];
 
 const ASSET_CATEGORIES = [
   {
@@ -145,14 +157,14 @@ const ASSET_CATEGORIES = [
     })),
   },
   {
-    name: "Resource icons",
-    description: "Compact inventory and trading symbols for the five resources.",
+    name: "Bottom resource icons",
+    description: "Compact symbols used in the bottom HUD, counters, costs, and trade controls.",
     assets: [
-      ["Tree", "Timber resource icon.", "/game-assets/resources/tree.png"],
-      ["Brick", "Brick resource icon.", "/game-assets/resources/brick.png"],
-      ["Sheep", "Sheep resource icon.", "/game-assets/resources/sheep.png"],
-      ["Wheat", "Wheat resource icon.", "/game-assets/resources/wheat.png"],
-      ["Stone", "Stone resource icon.", "/game-assets/resources/stone.png"],
+      ["Tree icon", "Timber symbol for the bottom HUD.", "/game-assets/resources/tree.png"],
+      ["Brick icon", "Brick symbol for the bottom HUD.", "/game-assets/resources/brick.png"],
+      ["Sheep icon", "Sheep symbol for the bottom HUD.", "/game-assets/resources/sheep.png"],
+      ["Wheat icon", "Wheat symbol for the bottom HUD.", "/game-assets/resources/wheat.png"],
+      ["Stone icon", "Stone symbol for the bottom HUD.", "/game-assets/resources/stone.png"],
     ].map(([name, description, path]) => ({
       name,
       description,
@@ -162,145 +174,94 @@ const ASSET_CATEGORIES = [
     })),
   },
   {
-    name: "Board pieces",
-    description: "Neutral, player-tintable pieces plus the robber pawn.",
+    name: "Resource cards",
+    description: "Full portrait card artwork paired with the compact bottom resource icons.",
+    assets: [
+      ["Tree card", "Forest-and-timber card artwork."],
+      ["Brick card", "Clay-hills-and-brick card artwork."],
+      ["Sheep card", "Pasture-and-sheep card artwork."],
+      ["Wheat card", "Golden-fields-and-wheat card artwork."],
+      ["Stone card", "Mountain-and-stone card artwork."],
+    ].map(([name, description]) => ({
+      name,
+      description: `${description} Labels and counts remain code-rendered.`,
+      format: "Target · 512×768 RGBA",
+      status: "needed" as const,
+    })),
+  },
+  {
+    name: "Placement & action icons",
+    description: "Compact artwork used inside board-placement and bottom action controls.",
     assets: [
       {
-        name: "Road V2",
-        description: "Current detailed road source used by the action dock.",
+        name: "Road icon",
+        description: "Road placement icon and player-tintable board piece.",
         format: "PNG · 512×512",
-        path: "/game-assets/pieces/road-v2.png",
-        status: "generated",
-      },
-      {
-        name: "Settlement V2",
-        description: "Current detailed settlement source.",
-        format: "PNG · 512×512",
-        path: "/game-assets/pieces/settlement-v2.png",
-        status: "generated",
-      },
-      {
-        name: "City V2",
-        description: "Current detailed city source.",
-        format: "PNG · 512×512",
-        path: "/game-assets/pieces/city-v2.png",
-        status: "generated",
-      },
-      {
-        name: "Road V1",
-        description: "Normalized legacy road asset retained in the pack.",
-        format: "PNG · 256×256",
         path: "/game-assets/pieces/road.png",
         status: "generated",
       },
       {
-        name: "Settlement V1",
-        description: "Normalized legacy settlement asset retained in the pack.",
-        format: "PNG · 256×256",
+        name: "Settlement icon",
+        description: "House placement icon and player-tintable board piece.",
+        format: "PNG · 512×512",
         path: "/game-assets/pieces/settlement.png",
         status: "generated",
       },
       {
-        name: "City V1",
-        description: "Normalized legacy city asset retained in the pack.",
-        format: "PNG · 256×256",
+        name: "City icon",
+        description: "City upgrade icon and player-tintable board piece.",
+        format: "PNG · 512×512",
         path: "/game-assets/pieces/city.png",
         status: "generated",
       },
       {
-        name: "Robber",
-        description: "Neutral robber pawn for the desert and blocked tiles.",
+        name: "Robber icon",
+        description: "Robber movement icon and neutral board pawn.",
         format: "PNG · 256×256",
         path: "/game-assets/pieces/robber.png",
         status: "generated",
       },
-    ],
-  },
-  {
-    name: "Player portraits",
-    description: "Human and bot portraits designed to remain readable in the compact HUD.",
-    assets: [
-      ...[
-        [
-          "Red navigator",
-          "Human red-seat portrait.",
-          "/game-assets/players/red-navigator-v1.png",
-          "PNG · 256×256",
-        ],
-        [
-          "Blue cartographer",
-          "Human blue-seat portrait.",
-          "/game-assets/players/blue-cartographer-v1.png",
-          "PNG · 256×256",
-        ],
-        [
-          "Orange builder",
-          "Human orange-seat portrait.",
-          "/game-assets/players/orange-builder-v1.png",
-          "PNG · 256×256",
-        ],
-        [
-          "Green botanist",
-          "Human green-seat portrait.",
-          "/game-assets/players/green-botanist-v1.png",
-          "PNG · 256×256",
-        ],
-        [
-          "Blue bot",
-          "Robot navigator portrait.",
-          "/game-assets/players/bot-blue-v2.png",
-          "PNG · 512×512",
-        ],
-        [
-          "Orange bot",
-          "Robot shipwright portrait.",
-          "/game-assets/players/bot-orange-v2.png",
-          "PNG · 512×512",
-        ],
-        [
-          "Green bot",
-          "Robot botanist portrait.",
-          "/game-assets/players/bot-green-v2.png",
-          "PNG · 512×512",
-        ],
-      ].map(([name, description, path, format]) => ({
-        name,
-        description,
-        format,
-        path,
-        status: "generated" as const,
-      })),
       {
-        name: "Red bot",
-        description: "Dedicated robot portrait so red no longer reuses orange art.",
-        format: "Target · 512×512 PNG",
-        status: "needed" as const,
-      },
-    ],
-  },
-  {
-    name: "Game UI illustrations",
-    description: "Standalone art placed inside code-rendered cards, controls, and modals.",
-    assets: [
-      {
-        name: "Market trade",
-        description: "Trade action tile illustration.",
+        name: "Trade icon",
+        description: "Market artwork for domestic and bank trading controls.",
         format: "PNG · 256×256",
         path: "/game-assets/ui/market-trade-v1.png",
         status: "generated",
       },
       {
+        name: "End turn icon",
+        description: "Hourglass artwork for the end-turn control.",
+        format: "PNG · 256×256",
+        path: "/game-assets/ui/end-turn-hourglass-v1.png",
+        status: "generated",
+      },
+    ],
+  },
+  {
+    name: "Placement & action cards",
+    description: "Full card artwork for the bottom action dock, beyond the compact icons.",
+    assets: [
+      ["Trade card", "Market scene for opening bank or player trade."],
+      ["Road card", "Road-building card for edge placement."],
+      ["Settlement card", "House card for settlement placement."],
+      ["City card", "City-upgrade card for replacing a settlement."],
+      ["End turn card", "Hourglass card for completing the active turn."],
+    ].map(([name, description]) => ({
+      name,
+      description: `${description} Title, cost, count, and state remain code-rendered.`,
+      format: "Target · 512×768 RGBA",
+      status: "needed" as const,
+    })),
+  },
+  {
+    name: "Board utility art",
+    description: "Supporting illustrations that do not belong to the placement-card set.",
+    assets: [
+      {
         name: "Development deck",
         description: "Disabled deck action tile illustration.",
         format: "AVIF · transparent",
         path: "/game-assets/ui/development-deck-v1.avif",
-        status: "generated",
-      },
-      {
-        name: "End turn",
-        description: "Hourglass action tile illustration.",
-        format: "PNG · 256×256",
-        path: "/game-assets/ui/end-turn-hourglass-v1.png",
         status: "generated",
       },
       {
@@ -318,6 +279,42 @@ const ASSET_CATEGORIES = [
         status: "generated",
       },
     ],
+  },
+  {
+    name: "Player portraits",
+    description: "Human portraits designed to remain readable in the compact HUD.",
+    assets: [
+      [
+        "Red navigator",
+        "Human red-seat portrait.",
+        "/game-assets/players/red-navigator-v1.png",
+        "PNG · 256×256",
+      ],
+      [
+        "Blue cartographer",
+        "Human blue-seat portrait.",
+        "/game-assets/players/blue-cartographer-v1.png",
+        "PNG · 256×256",
+      ],
+      [
+        "Orange builder",
+        "Human orange-seat portrait.",
+        "/game-assets/players/orange-builder-v1.png",
+        "PNG · 256×256",
+      ],
+      [
+        "Green botanist",
+        "Human green-seat portrait.",
+        "/game-assets/players/green-botanist-v1.png",
+        "PNG · 256×256",
+      ],
+    ].map(([name, description, path, format]) => ({
+      name,
+      description,
+      format,
+      path,
+      status: "generated" as const,
+    })),
   },
   {
     name: "Development cards",
@@ -392,15 +389,34 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Audio",
-    description: "Current menu music and the gameplay sound set still to be produced.",
+    description:
+      "Compare available music tracks and track the gameplay sound set still to produce.",
+    musicTracks: MUSIC_TRACKS,
     assets: [
+      ...MUSIC_TRACKS.map(
+        (track) =>
+          ({
+            name: track.name,
+            description: track.description,
+            format: track.format,
+            kind: "audio",
+            path: track.path,
+            status: "generated",
+          }) as const,
+      ),
       {
-        name: "Main lobby music",
-        description: "Looping maritime menu soundtrack.",
-        format: "MP3 · 256 kbps",
+        name: "Alternate lobby theme",
+        description: "A second menu direction for side-by-side music testing.",
+        format: "Target · MP3 runtime copy",
         kind: "audio",
-        path: "/music/main-loby-music.mp3",
-        status: "generated",
+        status: "needed",
+      },
+      {
+        name: "In-game ambience",
+        description: "A low-intensity loop for active board play.",
+        format: "Target · MP3 runtime copy",
+        kind: "audio",
+        status: "needed",
       },
       ...[
         ["Dice roll", "Tactile two-dice roll and settle."],
@@ -442,6 +458,16 @@ export default function AssetSheetPage() {
               <ArrowLeft aria-hidden="true" size={16} />
               Back to game
             </Link>
+            <img
+              alt="Catansaga"
+              className={styles.mainLogo}
+              decoding="async"
+              draggable={false}
+              fetchPriority="high"
+              height={937}
+              src="/auth-assets/catansaga-logo-v1.png"
+              width={1648}
+            />
             <p className={styles.eyebrow}>Production inventory</p>
             <h1>Game asset sheet</h1>
             <p className={styles.intro}>
@@ -527,6 +553,8 @@ function AssetCategoryRow({ category }: { category: AssetCategory }) {
           {generatedCount}/{category.assets.length} ready
         </span>
       </div>
+
+      {category.musicTracks ? <MusicTrackTester tracks={category.musicTracks} /> : null}
 
       <div className={styles.assetRow} tabIndex={0}>
         {category.assets.map((asset) => (
