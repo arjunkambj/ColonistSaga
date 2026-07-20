@@ -1,4 +1,10 @@
-import type { GameCommand, PixelCoordinate, PlayerColor, PlayerGameView } from "@colonistsaga/game";
+import {
+  getTileId,
+  type GameCommand,
+  type PixelCoordinate,
+  type PlayerColor,
+  type PlayerGameView,
+} from "@colonistsaga/game";
 
 import { getEdgePlacement, getTilePoint, getVertexPoint, type BoardLayout } from "./board-layout";
 
@@ -10,6 +16,16 @@ type BuildCityCommand = Extract<GameCommand, { kind: "build_city" }>;
 type MoveRobberCommand = Extract<GameCommand, { kind: "move_robber" }>;
 type PlaceRoadCommand = Extract<GameCommand, { kind: "place_road" }>;
 type PlaceSettlementCommand = Extract<GameCommand, { kind: "place_settlement" }>;
+type BoardTile = PlayerGameView["board"]["tiles"][number];
+
+const TERRAIN_LABELS: Readonly<Record<BoardTile["terrain"], string>> = {
+  desert: "Desert",
+  fields: "Fields",
+  forest: "Forest",
+  hills: "Hills",
+  mountains: "Mountains",
+  pasture: "Pasture",
+};
 
 interface BoardCanvasTargetPresentation {
   readonly ariaHidden: boolean;
@@ -116,13 +132,25 @@ function createSettlementTargets(
   theme: PlayerColor,
   compactPlacement: boolean,
 ): readonly BoardCanvasSettlementTargetModel[] {
+  const tilesByTopologyId = indexTilesByTopologyId(game.board.tiles);
   const targets = game.legalActions.settlementVertexKeys.flatMap((vertexKey) => {
     const point = getVertexPoint(layout, vertexKey);
 
-    return point ? [{ point, vertexKey }] : [];
+    return point
+      ? [
+          {
+            point,
+            terrainContext: getAdjacentTerrainContext(
+              layout.topology.vertexTileIds[vertexKey],
+              tilesByTopologyId,
+            ),
+            vertexKey,
+          },
+        ]
+      : [];
   });
 
-  return targets.map(({ point, vertexKey }, index) => ({
+  return targets.map(({ point, terrainContext, vertexKey }, index) => ({
     angle: 0,
     asset: "settlement",
     command: { kind: "place_settlement", vertexKey },
@@ -132,7 +160,13 @@ function createSettlementTargets(
     successMessage: "Settlement placed.",
     theme,
     type: "vertex",
-    ...createTargetPresentation("settlement", index, compactPlacement),
+    ...createTargetPresentation(
+      "settlement",
+      index,
+      targets.length,
+      terrainContext,
+      compactPlacement,
+    ),
   }));
 }
 
@@ -142,13 +176,25 @@ function createCityTargets(
   theme: PlayerColor,
   compactPlacement: boolean,
 ): readonly BoardCanvasCityTargetModel[] {
+  const tilesByTopologyId = indexTilesByTopologyId(game.board.tiles);
   const targets = game.legalActions.cityVertexKeys.flatMap((vertexKey) => {
     const point = getVertexPoint(layout, vertexKey);
 
-    return point ? [{ point, vertexKey }] : [];
+    return point
+      ? [
+          {
+            point,
+            terrainContext: getAdjacentTerrainContext(
+              layout.topology.vertexTileIds[vertexKey],
+              tilesByTopologyId,
+            ),
+            vertexKey,
+          },
+        ]
+      : [];
   });
 
-  return targets.map(({ point, vertexKey }, index) => ({
+  return targets.map(({ point, terrainContext, vertexKey }, index) => ({
     angle: 0,
     asset: "city",
     command: { kind: "build_city", vertexKey },
@@ -158,7 +204,7 @@ function createCityTargets(
     successMessage: "City completed.",
     theme,
     type: "vertex",
-    ...createTargetPresentation("city", index, compactPlacement),
+    ...createTargetPresentation("city", index, targets.length, terrainContext, compactPlacement),
   }));
 }
 
@@ -168,13 +214,25 @@ function createRoadTargets(
   theme: PlayerColor,
   compactPlacement: boolean,
 ): readonly BoardCanvasRoadTargetModel[] {
+  const tilesByTopologyId = indexTilesByTopologyId(game.board.tiles);
   const targets = game.legalActions.roadEdgeKeys.flatMap((edgeKey) => {
     const point = getEdgePlacement(layout, edgeKey);
 
-    return point ? [{ edgeKey, point }] : [];
+    return point
+      ? [
+          {
+            edgeKey,
+            point,
+            terrainContext: getAdjacentTerrainContext(
+              layout.topology.edgeTileIds[edgeKey],
+              tilesByTopologyId,
+            ),
+          },
+        ]
+      : [];
   });
 
-  return targets.map(({ edgeKey, point }, index) => ({
+  return targets.map(({ edgeKey, point, terrainContext }, index) => ({
     angle: point.angle,
     asset: "road",
     command: { edgeKey, kind: "place_road" },
@@ -184,7 +242,7 @@ function createRoadTargets(
     successMessage: "Road placed.",
     theme,
     type: "edge",
-    ...createTargetPresentation("road", index, compactPlacement),
+    ...createTargetPresentation("road", index, targets.length, terrainContext, compactPlacement),
   }));
 }
 
@@ -198,10 +256,12 @@ function createRobberTargets(
   const targets = game.legalActions.robberTileIds.flatMap((tileId) => {
     const tile = tilesById.get(tileId);
 
-    return tile ? [{ point: getTilePoint(layout, tile), tileId }] : [];
+    return tile
+      ? [{ point: getTilePoint(layout, tile), terrainContext: getTerrainContext(tile), tileId }]
+      : [];
   });
 
-  return targets.map(({ point, tileId }, index) => ({
+  return targets.map(({ point, terrainContext, tileId }, index) => ({
     angle: 0,
     asset: "robber",
     command: { kind: "move_robber", tileId },
@@ -211,13 +271,15 @@ function createRobberTargets(
     successMessage: "Robber moved.",
     theme,
     type: "tile",
-    ...createTargetPresentation("robber", index, compactPlacement),
+    ...createTargetPresentation("robber", index, targets.length, terrainContext, compactPlacement),
   }));
 }
 
 function createTargetPresentation(
   mode: BoardTargetMode,
   index: number,
+  optionCount: number,
+  terrainContext: string,
   compactPlacement: boolean,
 ): BoardCanvasTargetPresentation {
   const marker = index + 1;
@@ -227,26 +289,61 @@ function createTargetPresentation(
     compactLabel: `${getCompactTargetNoun(mode)} ${marker}`,
     compactPlacement,
     interactive: !compactPlacement,
-    label: `${getTargetActionLabel(mode)} ${marker}`,
+    label: `${getTargetActionLabel(mode, terrainContext)}; option ${marker} of ${optionCount}`,
     marker,
     showMarker: compactPlacement,
   };
+}
+
+function indexTilesByTopologyId(tiles: readonly BoardTile[]): ReadonlyMap<string, BoardTile> {
+  return new Map(tiles.map((tile) => [getTileId(tile), tile] as const));
+}
+
+function getAdjacentTerrainContext(
+  tileIds: readonly string[] | undefined,
+  tilesByTopologyId: ReadonlyMap<string, BoardTile>,
+): string {
+  const labels = (tileIds ?? []).flatMap((tileId) => {
+    const tile = tilesByTopologyId.get(tileId);
+    return tile ? [getTerrainContext(tile)] : [];
+  });
+
+  return formatList(labels);
+}
+
+function getTerrainContext(tile: BoardTile): string {
+  const terrain = TERRAIN_LABELS[tile.terrain];
+  return tile.numberToken === null ? terrain : `${terrain} ${tile.numberToken}`;
+}
+
+function formatList(values: readonly string[]): string {
+  if (values.length < 2) {
+    return values[0] ?? "";
+  }
+
+  if (values.length === 2) {
+    return `${values[0]} and ${values[1]}`;
+  }
+
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
 }
 
 function getCompactTargetNoun(mode: BoardTargetMode): string {
   return mode === "robber" ? "Tile" : capitalize(mode);
 }
 
-function getTargetActionLabel(mode: BoardTargetMode): string {
+function getTargetActionLabel(mode: BoardTargetMode, terrainContext: string): string {
+  const adjacentContext = terrainContext ? ` beside ${terrainContext}` : "";
+
   switch (mode) {
     case "city":
-      return "Upgrade city at legal location";
+      return `Upgrade city at legal vertex${adjacentContext}`;
     case "road":
-      return "Place road at legal edge";
+      return `Place road at legal edge${adjacentContext}`;
     case "robber":
-      return "Move robber to legal tile";
+      return terrainContext ? `Move robber to ${terrainContext} tile` : "Move robber to legal tile";
     case "settlement":
-      return "Place settlement at legal location";
+      return `Place settlement at legal vertex${adjacentContext}`;
   }
 }
 

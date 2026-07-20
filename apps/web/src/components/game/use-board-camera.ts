@@ -229,6 +229,10 @@ export function useBoardCamera(): BoardCamera {
 
   const handleNativeWheel = useCallback(
     (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        return;
+      }
+
       event.preventDefault();
       if (activePointersRef.current.size > 0) {
         return;

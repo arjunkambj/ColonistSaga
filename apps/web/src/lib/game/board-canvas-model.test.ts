@@ -22,9 +22,17 @@ const TILES: PlayerGameView["board"]["tiles"] = [
 const LAYOUT = createBoardLayout(TILES);
 const VERTEX_KEY = Object.keys(LAYOUT.topology.vertexPositions)[0];
 const EDGE_KEY = Object.keys(LAYOUT.topology.edgeVertices)[0];
+const SHARED_VERTEX_KEY = Object.entries(LAYOUT.topology.vertexTileIds).find(
+  ([, tileIds]) => tileIds.length === 2,
+)?.[0];
+const SHARED_EDGE_KEY = Object.entries(LAYOUT.topology.edgeTileIds).find(
+  ([, tileIds]) => tileIds.length === 2,
+)?.[0];
 
-if (!VERTEX_KEY || !EDGE_KEY) {
-  throw new Error("The board fixture must contain vertex and edge geometry.");
+if (!VERTEX_KEY || !EDGE_KEY || !SHARED_VERTEX_KEY || !SHARED_EDGE_KEY) {
+  throw new Error(
+    "The board fixture must contain vertex and edge geometry, including shared locations.",
+  );
 }
 
 test("setup phases override the optional build mode", () => {
@@ -53,7 +61,7 @@ test("builds a settlement target with stable geometry and command data", () => {
     compactPlacement: false,
     id: `settlement:${VERTEX_KEY}`,
     interactive: true,
-    label: "Place settlement at legal location 1",
+    label: "Place settlement at legal vertex beside Fields 5 and Forest 8; option 1 of 1",
     locationKey: VERTEX_KEY,
     marker: 1,
     point: getVertexPoint(LAYOUT, VERTEX_KEY),
@@ -65,12 +73,16 @@ test("builds a settlement target with stable geometry and command data", () => {
 });
 
 test("builds a compact city target for the selected build mode", () => {
-  const game = createGame("build_and_trade", { cityVertexKeys: [VERTEX_KEY] });
+  const game = createGame("build_and_trade", { cityVertexKeys: [SHARED_VERTEX_KEY] });
   const [target] = createModels(game, "city", true);
 
   assert.equal(target?.asset, "city");
-  assert.deepEqual(target?.command, { kind: "build_city", vertexKey: VERTEX_KEY });
+  assert.deepEqual(target?.command, { kind: "build_city", vertexKey: SHARED_VERTEX_KEY });
   assert.equal(target?.compactLabel, "City 1");
+  assert.equal(
+    target?.label,
+    "Upgrade city at legal vertex beside Fields 5 and Forest 8; option 1 of 1",
+  );
   assert.equal(target?.ariaHidden, true);
   assert.equal(target?.interactive, false);
   assert.equal(target?.showMarker, true);
@@ -78,15 +90,19 @@ test("builds a compact city target for the selected build mode", () => {
 });
 
 test("builds a road target with its precomputed canvas angle", () => {
-  const game = createGame("setup_road", { roadEdgeKeys: [EDGE_KEY] });
+  const game = createGame("setup_road", { roadEdgeKeys: [SHARED_EDGE_KEY] });
   const [target] = createModels(game, null);
-  const placement = getEdgePlacement(LAYOUT, EDGE_KEY);
+  const placement = getEdgePlacement(LAYOUT, SHARED_EDGE_KEY);
 
   assert.equal(target?.asset, "road");
   assert.equal(target?.type, "edge");
-  assert.deepEqual(target?.command, { edgeKey: EDGE_KEY, kind: "place_road" });
+  assert.deepEqual(target?.command, { edgeKey: SHARED_EDGE_KEY, kind: "place_road" });
   assert.equal(target?.angle, placement?.angle);
   assert.deepEqual(target?.point, placement ? { x: placement.x, y: placement.y } : null);
+  assert.equal(
+    target?.label,
+    "Place road at legal edge beside Fields 5 and Forest 8; option 1 of 1",
+  );
 });
 
 test("indexes tiles once to build ordered robber targets", () => {
@@ -97,6 +113,7 @@ test("indexes tiles once to build ordered robber targets", () => {
     targets.map((target) => ({
       command: target.command,
       id: target.id,
+      label: target.label,
       marker: target.marker,
       point: target.point,
     })),
@@ -104,12 +121,14 @@ test("indexes tiles once to build ordered robber targets", () => {
       {
         command: { kind: "move_robber", tileId: "tile-b" },
         id: "robber:tile-b",
+        label: "Move robber to Forest 8 tile; option 1 of 2",
         marker: 1,
         point: getTilePoint(LAYOUT, TILES[1]!),
       },
       {
         command: { kind: "move_robber", tileId: "tile-a" },
         id: "robber:tile-a",
+        label: "Move robber to Fields 5 tile; option 2 of 2",
         marker: 2,
         point: getTilePoint(LAYOUT, TILES[0]!),
       },
@@ -135,7 +154,7 @@ test("omits missing vertex, edge, and tile geometry and keeps markers contiguous
 
     assert.equal(targets.length, 1);
     assert.equal(targets[0]?.marker, 1);
-    assert.equal(targets[0]?.label.endsWith(" 1"), true);
+    assert.equal(targets[0]?.label.endsWith("option 1 of 1"), true);
   }
 });
 

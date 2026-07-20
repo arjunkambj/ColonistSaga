@@ -29,16 +29,18 @@ import minimizeIcon from "@iconify-icons/solar/minimize-square-outline";
 import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
 import { Icon } from "@iconify/react";
 import { useMutation } from "convex/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
+import { createBoardLayout } from "@/lib/game/board-layout";
+import { createBoardCanvasTargetModels, type BoardTargetMode } from "@/lib/game/board-canvas-model";
 import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
 import { ActionTile } from "./action-tile";
-import { GameBoard, getPlayerTheme, getTargetMode, type BuildMode } from "./game-board";
+import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { PieceIcon, type PieceAsset, type PieceTheme } from "./piece-icon";
 import { TradeCenter } from "./trade-center";
@@ -58,7 +60,12 @@ const DIE_PIPS: Record<number, readonly number[]> = {
   6: [0, 2, 3, 5, 6, 8],
 };
 
-const EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+const UTC_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+const LOCAL_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
 });
@@ -93,6 +100,20 @@ export function GameScreen({
   const [isBoardFocused, setIsBoardFocused] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
+  const phaseHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  const restorePlacementFocus = useCallback((mode: BoardTargetMode) => {
+    const buildAction = document.querySelector<HTMLButtonElement>(
+      `.game-footer [data-action-kind="${mode}"]`,
+    );
+
+    if (buildAction && !buildAction.disabled) {
+      buildAction.focus();
+      return;
+    }
+
+    phaseHeadingRef.current?.focus();
+  }, []);
 
   const me = game.players.find((player): player is PrivatePlayerState => player.isViewer);
   const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
@@ -146,6 +167,8 @@ export function GameScreen({
   };
 
   const phaseCopy = getPhaseCopy(game.phase, activePlayer.id === me.id, activePlayer.displayName);
+  const latestEvent = events.at(-1)?.text;
+  const phaseLiveMessage = `${phaseCopy.title}. ${phaseCopy.detail}${latestEvent ? ` Latest table event: ${latestEvent}.` : ""}`;
 
   const runConfirmedAction = async () => {
     if (!confirmation || confirming) {
@@ -254,6 +277,7 @@ export function GameScreen({
 
         <PlayerStrip
           activePlayerId={game.activePlayerId}
+          activePhaseLabel={getPhaseStatusLabel(game.phase)}
           isHost={isHost}
           onReplacePlayer={(playerId) => {
             const player = game.players.find((candidate) => candidate.id === playerId);
@@ -278,7 +302,9 @@ export function GameScreen({
         </div>
         <div className="phase-copy">
           <p className="eyebrow">Turn {game.turnNumber}</p>
-          <h1 id="phase-title">{phaseCopy.title}</h1>
+          <h1 id="phase-title" ref={phaseHeadingRef} tabIndex={-1}>
+            {phaseCopy.title}
+          </h1>
           <p>{phaseCopy.detail}</p>
         </div>
         <div className="phase-status-tools">
@@ -292,6 +318,7 @@ export function GameScreen({
         game={game}
         onCancelBuildMode={() => setBuildMode(null)}
         onCommand={(command, message) => void sendCommand(command, message)}
+        onPlacementExit={restorePlacementFocus}
         pending={pendingCommand !== null}
       />
 
@@ -309,6 +336,7 @@ export function GameScreen({
         <CompactBoardTargets
           buildMode={buildMode}
           game={game}
+          me={me}
           onCommand={(command, message) => void sendCommand(command, message)}
           pending={pendingCommand !== null}
         />
@@ -340,9 +368,16 @@ export function GameScreen({
       ) : null}
 
       <div aria-atomic="true" aria-live="polite" className="game-live-region">
-        {error || announcement}
+        {phaseLiveMessage}
       </div>
-      {error ? <div className="toast toast-error">{error}</div> : null}
+      <div aria-atomic="true" aria-live="polite" className="game-command-live-region">
+        {announcement}
+      </div>
+      {error ? (
+        <div aria-atomic="true" className="toast toast-error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       {game.status === "completed" ? (
         <WinOverlay
@@ -358,6 +393,7 @@ export function GameScreen({
 
 function PlayerStrip({
   activePlayerId,
+  activePhaseLabel,
   isHost,
   onReplacePlayer,
   pendingReplacementId,
@@ -366,6 +402,7 @@ function PlayerStrip({
   victoryTarget,
 }: {
   activePlayerId: string;
+  activePhaseLabel: string;
   isHost: boolean;
   onReplacePlayer(playerId: string): void;
   pendingReplacementId: string | null;
@@ -373,8 +410,39 @@ function PlayerStrip({
   viewerProfileImageUrl: string | null;
   victoryTarget: number;
 }) {
+  const stripRef = useRef<HTMLOListElement>(null);
+
+  useEffect(() => {
+    const frameId = requestAnimationFrame(() => {
+      const activePlayer = [
+        ...(stripRef.current?.querySelectorAll<HTMLElement>("[data-player-id]") ?? []),
+      ].find((element) => element.dataset.playerId === activePlayerId);
+      const stripBounds = stripRef.current?.getBoundingClientRect();
+      const playerBounds = activePlayer?.getBoundingClientRect();
+      const isVisible =
+        stripBounds &&
+        playerBounds &&
+        playerBounds.left >= stripBounds.left &&
+        playerBounds.right <= stripBounds.right &&
+        playerBounds.top >= stripBounds.top &&
+        playerBounds.bottom <= stripBounds.bottom;
+      if (isVisible) {
+        return;
+      }
+
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      activePlayer?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [activePlayerId]);
+
   return (
-    <ol className="player-strip" aria-label="Players">
+    <ol className="player-strip" aria-label="Players" ref={stripRef}>
       {players.map((player) => {
         const theme = getPlayerTheme(player);
         const isActive = player.id === activePlayerId;
@@ -385,6 +453,7 @@ function PlayerStrip({
           <li
             aria-current={isActive ? "true" : undefined}
             className={`player-summary player-${theme}${isActive ? " is-active" : ""}${player.isViewer ? " is-viewer" : ""}`}
+            data-player-id={player.id}
             key={player.id}
           >
             <span
@@ -419,7 +488,9 @@ function PlayerStrip({
               </div>
               {isActive ? (
                 <span className="player-turn-status">
-                  <i aria-hidden="true" /> {turnLabel}
+                  <i aria-hidden="true" />
+                  <b>{turnLabel}</b>
+                  <small>{activePhaseLabel}</small>
                 </span>
               ) : null}
             </div>
@@ -551,8 +622,15 @@ function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; id
 }
 
 function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix?: string }) {
+  const [showLocalTime, setShowLocalTime] = useState(false);
   const visibleEvents = events.slice(-30).reverse();
   const titleId = `${idPrefix}events-title`;
+
+  useEffect(() => {
+    setShowLocalTime(true);
+  }, []);
+
+  const timeFormatter = showLocalTime ? LOCAL_EVENT_TIME_FORMATTER : UTC_EVENT_TIME_FORMATTER;
 
   return (
     <section className="side-card event-card" aria-labelledby={titleId}>
@@ -560,9 +638,6 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
         <h2 id={titleId}>Game Log</h2>
         <Icon aria-hidden="true" icon={scrollIcon} />
       </div>
-      <p aria-atomic="true" aria-live="polite" className="sr-only">
-        {visibleEvents[0]?.text ?? "No moves yet."}
-      </p>
       <ol className="event-list">
         {visibleEvents.length > 0 ? (
           visibleEvents.map((event) => (
@@ -571,7 +646,7 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
               <div className="event-copy">
                 <p>{event.text}</p>
                 <time dateTime={new Date(event.createdAt).toISOString()}>
-                  {EVENT_TIME_FORMATTER.format(event.createdAt)}
+                  {timeFormatter.format(event.createdAt)}
                 </time>
               </div>
             </li>
@@ -634,12 +709,28 @@ function MobileGameInfo({
               {isHelp ? (
                 <ol className="game-help-steps">
                   <li>
+                    <strong>Reach the victory target</strong>
+                    <span>Build settlements and cities until you reach the table’s VP goal.</span>
+                  </li>
+                  <li>
                     <strong>Roll</strong>
                     <span>Start your turn by rolling both dice.</span>
                   </li>
                   <li>
+                    <strong>Read the number pips</strong>
+                    <span>More dots mean a more frequent roll. Red 6 and 8 are the strongest.</span>
+                  </li>
+                  <li>
                     <strong>Trade and build</strong>
                     <span>Exchange cards, then choose a piece and a glowing board target.</span>
+                  </li>
+                  <li>
+                    <strong>Keep settlements apart</strong>
+                    <span>Every new settlement needs at least two clear roads between homes.</span>
+                  </li>
+                  <li>
+                    <strong>Unlock harbors</strong>
+                    <span>Build on a harbor corner to trade at its printed 3:1 or 2:1 rate.</span>
                   </li>
                   <li>
                     <strong>Resolve the robber</strong>
@@ -698,6 +789,28 @@ function MobileGameInfo({
 
 function ResourceHand({ me }: { me: PrivatePlayerState }) {
   const theme = getPlayerTheme(me);
+  const resourceListRef = useRef<HTMLUListElement>(null);
+  const [resourceListOverflows, setResourceListOverflows] = useState(false);
+
+  useEffect(() => {
+    const resourceList = resourceListRef.current;
+    if (!resourceList) {
+      return;
+    }
+
+    const updateOverflow = () =>
+      setResourceListOverflows(resourceList.scrollWidth > resourceList.clientWidth + 1);
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateOverflow);
+    resizeObserver?.observe(resourceList);
+    window.addEventListener("resize", updateOverflow, { passive: true });
+    updateOverflow();
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateOverflow);
+    };
+  }, []);
 
   return (
     <section aria-labelledby="resource-hand-title" className="resource-hand">
@@ -706,13 +819,21 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
         <h2 id="resource-hand-title">Your Resources</h2>
         <span>{me.resourceCount} cards total</span>
       </div>
-      <ul className="resource-card-list">
+      <ul
+        aria-label={
+          resourceListOverflows
+            ? "Your resource cards. Use the left and right arrow keys to scroll."
+            : undefined
+        }
+        className="resource-card-list"
+        ref={resourceListRef}
+        tabIndex={resourceListOverflows ? 0 : undefined}
+      >
         {RESOURCE_ORDER.map((resource) => (
           <li
             aria-label={`${RESOURCE_LABELS[resource]}: ${me.resources[resource]}`}
             className={`resource-card resource-card-face resource-${resource}`}
             key={resource}
-            tabIndex={0}
           >
             <span className="resource-card-art" aria-hidden="true">
               <ResourceIcon decorative resource={resource} size={72} />
@@ -729,7 +850,6 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
         <li
           aria-label="Development cards are not available in this ruleset"
           className="resource-card resource-card-face resource-mystery is-unavailable"
-          tabIndex={0}
         >
           <span className="resource-card-art resource-card-mystery-icon" aria-hidden="true">
             ?
@@ -925,33 +1045,13 @@ function ActionDock({
     <section
       aria-label="Build and trade actions"
       className="action-dock action-dock-tile-layout"
-      data-action-layout="six-tile-reference"
+      data-action-layout="five-tile-reference"
     >
       <div className="action-heading">
         <strong>Build & Trade</strong>
         <span>Select a piece, then choose a glowing target.</span>
       </div>
       <TradeCenter disabled={pending} game={game} me={me} onCommand={onCommand} />
-      <ActionTile
-        ariaLabel="Development cards are not available in this ruleset"
-        art={
-          <img
-            alt=""
-            className="action-art"
-            draggable={false}
-            height={1254}
-            src="/game-assets/ui/development-deck-v1.avif"
-            width={1254}
-          />
-        }
-        caption="Not in ruleset"
-        count="—"
-        disabled
-        kind="development-deck"
-        onPress={() => undefined}
-        title="Dev Deck"
-        unavailable
-      />
       <div className="action-group build-actions">
         <BuildAction
           active={buildMode === "road"}
@@ -1012,41 +1112,29 @@ function ActionDock({
 function CompactBoardTargets({
   buildMode = null,
   game,
+  me,
   onCommand,
   pending,
 }: {
   buildMode?: BuildMode;
   game: PlayerGameView;
+  me: PrivatePlayerState;
   onCommand(command: GameCommand, message: string): void;
   pending: boolean;
 }) {
-  const targetMode = getTargetMode(game, buildMode);
-  const targets =
-    targetMode === "settlement"
-      ? game.legalActions.settlementVertexKeys.map((vertexKey, index) => ({
-          command: { kind: "place_settlement", vertexKey } as const,
-          label: `Settlement ${index + 1}`,
-          message: "Settlement placed.",
-        }))
-      : targetMode === "city"
-        ? game.legalActions.cityVertexKeys.map((vertexKey, index) => ({
-            command: { kind: "build_city", vertexKey } as const,
-            label: `City ${index + 1}`,
-            message: "City completed.",
-          }))
-        : targetMode === "road"
-          ? game.legalActions.roadEdgeKeys.map((edgeKey, index) => ({
-              command: { edgeKey, kind: "place_road" } as const,
-              label: `Road ${index + 1}`,
-              message: "Road placed.",
-            }))
-          : targetMode === "robber"
-            ? game.legalActions.robberTileIds.map((tileId, index) => ({
-                command: { kind: "move_robber", tileId } as const,
-                label: `Tile ${index + 1}`,
-                message: "Robber moved.",
-              }))
-            : [];
+  const boardLayout = useMemo(() => createBoardLayout(game.board.tiles), [game.board.tiles]);
+  const viewerTheme = getPlayerTheme(me);
+  const targets = useMemo(
+    () =>
+      createBoardCanvasTargetModels({
+        buildMode,
+        compactPlacement: true,
+        game,
+        layout: boardLayout,
+        viewerTheme,
+      }),
+    [boardLayout, buildMode, game, viewerTheme],
+  );
 
   if (targets.length === 0) {
     return null;
@@ -1058,13 +1146,15 @@ function CompactBoardTargets({
       <div>
         {targets.map((target) => (
           <Button
+            aria-label={target.label}
             className="compact-target-button"
+            data-compact-board-target-id={target.id}
             isDisabled={pending}
-            key={target.label}
-            onPress={() => onCommand(target.command, target.message)}
+            key={target.id}
+            onPress={() => onCommand(target.command, target.successMessage)}
             variant="secondary"
           >
-            {target.label}
+            {target.compactLabel}
           </Button>
         ))}
       </div>
@@ -1139,7 +1229,7 @@ function BuildAction({
   resources: Readonly<ResourceInventory>;
   theme: PieceTheme;
 }) {
-  const disabledReasonId = `build-${asset}-disabled-reason`;
+  const descriptionId = `build-${asset}-description`;
   const status =
     disabledReason === "Action in progress…"
       ? "Working…"
@@ -1151,7 +1241,7 @@ function BuildAction({
   return (
     <>
       <ActionTile
-        ariaDescribedBy={disabledReason ? disabledReasonId : undefined}
+        ariaDescribedBy={descriptionId}
         ariaLabel={
           disabledReason
             ? `Build ${label} unavailable`
@@ -1193,11 +1283,14 @@ function BuildAction({
         title={label}
         unavailable={disabledReason !== null}
       />
-      {disabledReason ? (
-        <span className="sr-only" id={disabledReasonId}>
-          {disabledReason}
-        </span>
-      ) : null}
+      <span className="sr-only" id={descriptionId}>
+        {count} {count === 1 ? `${label.toLowerCase()} piece` : `${label.toLowerCase()} pieces`}{" "}
+        remaining. Cost:{" "}
+        {costResources
+          .map((resource) => `${cost[resource]} ${RESOURCE_LABELS[resource]}`)
+          .join(", ")}
+        .{disabledReason ? ` ${disabledReason}.` : ""}
+      </span>
     </>
   );
 }
@@ -1266,13 +1359,17 @@ function getBuildDisabledReason({
 }
 
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
     if (!nextActionAt) {
+      setNow(null);
       return;
     }
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
+
+    const tick = () => setNow(Date.now());
+    tick();
+    const timer = window.setInterval(tick, 250);
     return () => window.clearInterval(timer);
   }, [nextActionAt]);
 
@@ -1280,19 +1377,44 @@ function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextAc
     return null;
   }
 
-  const seconds = Math.max(0, Math.ceil((nextActionAt - now) / 1_000));
+  const seconds = now === null ? null : Math.max(0, Math.ceil((nextActionAt - now) / 1_000));
   return (
     <div
-      aria-label={`${botThinking ? "Bot thinking" : "Turn time"}, ${seconds} seconds remaining`}
+      aria-label={
+        seconds === null
+          ? `${botThinking ? "Bot thinking" : "Turn time"}, timer starting`
+          : `${botThinking ? "Bot thinking" : "Turn time"}, ${seconds} seconds remaining`
+      }
       aria-live="off"
       className={botThinking ? "turn-clock is-bot" : "turn-clock"}
       role="timer"
     >
       {botThinking ? <Icon aria-hidden="true" icon={botIcon} /> : null}
       <span>{botThinking ? "Bot thinking" : "Turn time"}</span>
-      <strong>{seconds}s</strong>
+      <strong>{seconds === null ? "—" : `${seconds}s`}</strong>
     </div>
   );
+}
+
+function getPhaseStatusLabel(phase: PlayerGameView["phase"]): string {
+  switch (phase.kind) {
+    case "setup_settlement":
+      return "Place settlement";
+    case "setup_road":
+      return "Place road";
+    case "roll":
+      return "Roll dice";
+    case "discard":
+      return "Discard cards";
+    case "move_robber":
+      return "Move robber";
+    case "steal":
+      return "Choose player";
+    case "build_and_trade":
+      return "Build & trade";
+    case "finished":
+      return "Game complete";
+  }
 }
 
 function DiscardPanel({

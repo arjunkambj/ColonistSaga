@@ -10,6 +10,7 @@ import {
   type GameState,
   type ResourceInventory,
 } from "@colonistsaga/game";
+import { useEffect, useState } from "react";
 
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";
@@ -34,6 +35,17 @@ export function isUiPreviewMode(value: string | null): value is UiPreviewMode {
 }
 
 export function UiPreview({ mode }: { mode: UiPreviewMode }) {
+  const [previewDeadline, setPreviewDeadline] = useState<number>();
+
+  useEffect(() => {
+    if (mode !== "game" && mode !== "game-actions") {
+      setPreviewDeadline(undefined);
+      return;
+    }
+
+    setPreviewDeadline(Date.now() + 45_000);
+  }, [mode]);
+
   if (mode === "auth") {
     return <AuthScreenView onSignIn={async () => undefined} />;
   }
@@ -68,7 +80,7 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
       events={PREVIEW_EVENTS}
       game={createPreviewGame(mode === "game-actions")}
       isHost
-      nextActionAt={Date.now() + 45_000}
+      nextActionAt={previewDeadline}
       onLeave={async () => undefined}
       viewerProfileImageUrl="/game-assets/players/red-navigator-v1.png"
     />
@@ -247,7 +259,7 @@ function completePreviewSetup(initialState: GameState) {
   return state;
 }
 
-const previewNow = Date.now();
+const PREVIEW_EVENT_ANCHOR = Date.UTC(2026, 6, 19, 22, 30);
 const PREVIEW_EVENTS: RoomEventView[] = [
   "Arjun placed a Settlement",
   "Arjun received starting resources",
@@ -258,7 +270,7 @@ const PREVIEW_EVENTS: RoomEventView[] = [
   "Bot 4 placed a Settlement",
   "Bot 4 received starting resources",
 ].map((text, index) => ({
-  createdAt: previewNow - (8 - index) * 60_000,
+  createdAt: PREVIEW_EVENT_ANCHOR - (8 - index) * 60_000,
   sequence: index + 1,
   text,
 }));

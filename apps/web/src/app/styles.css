@@ -1701,6 +1701,12 @@ select {
   white-space: nowrap;
 }
 
+.phase-banner h1:focus-visible {
+  border-radius: 0.25rem;
+  outline: 3px solid rgba(255, 225, 127, 0.92);
+  outline-offset: 3px;
+}
+
 .phase-banner p:last-child {
   margin-bottom: 0;
   color: var(--muted);
@@ -1877,6 +1883,18 @@ select {
   transform: translate(-50%, -50%) rotate(var(--hit-rotation, 0deg));
 }
 
+.board-hit-target::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.board-hit-target.is-inspected::after {
+  opacity: 1;
+}
+
 .tile-hit-target {
   width: calc(var(--tile-size) * 0.72);
   aspect-ratio: 1;
@@ -1907,6 +1925,29 @@ select {
   aspect-ratio: 0.7;
 }
 
+.tile-hit-target::after {
+  inset: 4%;
+  border: 3px solid rgba(255, 245, 205, 0.88);
+  background: rgba(255, 224, 119, 0.08);
+  clip-path: inherit;
+  filter: drop-shadow(0 0 5px rgba(10, 48, 72, 0.74));
+}
+
+.port-hit-target::after,
+.piece-hit-target::after,
+.robber-hit-target::after {
+  inset: -10%;
+  border: 3px solid rgba(255, 239, 174, 0.92);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 3px rgba(8, 43, 71, 0.46),
+    0 0 12px rgba(255, 211, 81, 0.72);
+}
+
+.piece-hit-target-road::after {
+  inset: 12% -4%;
+}
+
 .board-hit-target:focus-visible {
   z-index: 30;
   outline: 3px solid rgba(255, 233, 155, 0.9);
@@ -1917,6 +1958,91 @@ select {
 .board-shell.is-interacting .board-hit-target,
 .board-shell.is-interacting .build-target {
   pointer-events: none;
+}
+
+.board-shell:focus-visible {
+  outline: 3px solid rgba(255, 238, 173, 0.94);
+  outline-offset: -5px;
+  box-shadow:
+    inset 0 0 0 6px rgba(9, 55, 87, 0.42),
+    inset 0 0 28px rgba(255, 211, 73, 0.22);
+}
+
+.board-placement-banner {
+  position: absolute;
+  z-index: 9250;
+  top: 4.55rem;
+  left: 50%;
+  display: flex;
+  width: min(31rem, calc(100% - 1.5rem));
+  min-height: 3.35rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.55rem 0.5rem 0.8rem;
+  border: 1px solid rgba(255, 230, 145, 0.68);
+  border-radius: 0.9rem;
+  background: linear-gradient(145deg, rgba(6, 69, 124, 0.94), rgba(3, 39, 88, 0.97));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 10px 26px rgba(0, 28, 72, 0.32);
+  color: #fff;
+  pointer-events: auto;
+  transform: translateX(-50%);
+  backdrop-filter: blur(16px) saturate(135%);
+}
+
+.board-placement-copy {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.06rem 0.55rem;
+}
+
+.board-placement-copy small {
+  grid-column: 1 / -1;
+  color: #ffd875;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.board-placement-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-placement-copy em {
+  color: #bce9ff;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.board-placement-cancel {
+  --button-bg: rgba(255, 255, 255, 0.1);
+  --button-bg-hover: rgba(255, 255, 255, 0.2);
+  min-height: 40px;
+  flex: 0 0 auto;
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-size: 0.68rem;
+}
+
+.board-placement-cancel kbd {
+  padding: 0.12rem 0.28rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.3rem;
+  background: rgba(1, 28, 65, 0.42);
+  color: #dff4ff;
+  font-family: inherit;
+  font-size: 0.54rem;
 }
 
 .board-navigation {
@@ -3144,7 +3270,8 @@ select {
   cursor: pointer;
 }
 
-.game-live-region {
+.game-live-region,
+.game-command-live-region {
   position: fixed;
   width: 1px;
   height: 1px;
@@ -4306,6 +4433,13 @@ select {
   overflow: visible;
 }
 
+.resource-card-list:focus-visible {
+  border-radius: 0.8rem;
+  outline: 3px solid rgba(255, 226, 132, 0.92);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(9, 54, 90, 0.34);
+}
+
 .resource-card-face {
   display: grid;
   min-width: 4.4rem;
@@ -4318,7 +4452,7 @@ select {
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.85),
     0 4px 10px rgba(73, 89, 120, 0.09);
-  cursor: help;
+  cursor: default;
   outline: none;
   transform-origin: bottom center;
   transition:
@@ -4936,6 +5070,16 @@ select {
 }
 
 @media (max-width: 840px) {
+  .game-settings-button,
+  .board-focus-button {
+    display: none;
+  }
+
+  .board-placement-banner {
+    top: 3.95rem;
+    width: min(29rem, calc(100% - 0.8rem));
+  }
+
   .player-summary {
     grid-template-areas:
       "avatar name victory"
@@ -4983,6 +5127,38 @@ select {
 }
 
 @media (max-width: 620px) {
+  .resource-hand .resource-card-list {
+    grid-template-columns: repeat(6, minmax(52px, 1fr));
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .resource-hand .resource-card-face {
+    min-width: 52px;
+  }
+
+  .board-placement-banner {
+    top: 3.75rem;
+    align-items: stretch;
+    gap: 0.4rem;
+    padding-left: 0.6rem;
+  }
+
+  .board-placement-copy {
+    grid-template-columns: 1fr;
+  }
+
+  .board-placement-copy small,
+  .board-placement-copy strong,
+  .board-placement-copy em {
+    grid-column: 1;
+  }
+
+  .board-placement-copy em {
+    font-size: 0.58rem;
+  }
+
   .player-table-supply {
     display: none;
   }
@@ -5216,6 +5392,21 @@ select {
   color: color-mix(in srgb, var(--player-color), #314257 52%);
   font-size: 0.62rem;
   font-weight: 850;
+}
+
+.player-turn-status b {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 900;
+}
+
+.player-turn-status small {
+  padding-left: 0.26rem;
+  border-left: 1px solid color-mix(in srgb, var(--player-color), transparent 66%);
+  color: inherit;
+  font-size: 0.54rem;
+  font-weight: 750;
+  opacity: 0.82;
 }
 
 .player-turn-status i {
@@ -5577,6 +5768,17 @@ select {
 }
 
 @media (max-width: 620px) {
+  .resource-hand .resource-card-list {
+    grid-template-columns: repeat(6, minmax(52px, 1fr));
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .resource-hand .resource-card-face {
+    min-width: 52px;
+  }
+
   .player-table-supply {
     display: none;
   }

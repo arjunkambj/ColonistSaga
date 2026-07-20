@@ -114,6 +114,7 @@ const BOARD_CANVAS_CONTAINER_STYLE: CSSProperties = {
 };
 
 const imagePromises = new Map<string, Promise<HTMLImageElement | null>>();
+const pieceSilhouetteCanvases = new Map<string, HTMLCanvasElement>();
 const tintedPieceCanvases = new Map<string, HTMLCanvasElement>();
 
 export const BoardCanvas = memo(function BoardCanvas({
@@ -184,6 +185,7 @@ function useCanvasLayer<Scene>(
   renderScene: SceneRenderer<Scene>,
 ) {
   const sceneRef = useRef(scene);
+  const scheduleDrawRef = useRef<() => void>(() => undefined);
   sceneRef.current = scene;
 
   useEffect(() => {
@@ -196,6 +198,11 @@ function useCanvasLayer<Scene>(
     let drawRevision = 0;
     let frameId = 0;
 
+    const draw = () => {
+      const revision = ++drawRevision;
+      void renderScene(canvas, sceneRef.current, () => cancelled || revision !== drawRevision);
+    };
+
     const scheduleDraw = () => {
       if (frameId !== 0) {
         cancelAnimationFrame(frameId);
@@ -203,27 +210,32 @@ function useCanvasLayer<Scene>(
 
       frameId = requestAnimationFrame(() => {
         frameId = 0;
-        const revision = ++drawRevision;
-        void renderScene(canvas, sceneRef.current, () => cancelled || revision !== drawRevision);
+        draw();
       });
     };
 
     const resizeObserver =
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleDraw);
+    scheduleDrawRef.current = scheduleDraw;
     resizeObserver?.observe(canvas);
     window.addEventListener("resize", scheduleDraw, { passive: true });
-    scheduleDraw();
+    draw();
 
     return () => {
       cancelled = true;
       drawRevision += 1;
+      scheduleDrawRef.current = () => undefined;
       resizeObserver?.disconnect();
       window.removeEventListener("resize", scheduleDraw);
       if (frameId !== 0) {
         cancelAnimationFrame(frameId);
       }
     };
-  }, [canvasRef, renderScene, sceneKey]);
+  }, [canvasRef, renderScene]);
+
+  useEffect(() => {
+    scheduleDrawRef.current();
+  }, [sceneKey]);
 }
 
 async function renderStaticScene(
@@ -385,7 +397,7 @@ function drawNumberToken(
   }
 
   const point = { x: tilePoint.x, y: tilePoint.y + tileSize * 0.11 };
-  const radius = Math.min(37, tileSize * 0.105);
+  const radius = Math.min(43, tileSize * 0.12);
   const isHot = number === 6 || number === 8;
 
   context.save();
@@ -418,18 +430,18 @@ function drawNumberToken(
   context.fill();
 
   context.fillStyle = isHot ? "#b72f27" : "#514150";
-  context.font = "800 31px ui-sans-serif, system-ui, sans-serif";
+  context.font = "850 35px ui-sans-serif, system-ui, sans-serif";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(String(number), point.x, point.y - 5);
 
   const pips = NUMBER_TOKEN_PIPS[number] ?? 0;
-  const pipGap = 7;
+  const pipGap = 8;
   const firstPipX = point.x - ((pips - 1) * pipGap) / 2;
   context.fillStyle = isHot ? "#c05743" : "#9b7953";
   for (let index = 0; index < pips; index += 1) {
     context.beginPath();
-    context.arc(firstPipX + index * pipGap, point.y + 14, 2.2, 0, Math.PI * 2);
+    context.arc(firstPipX + index * pipGap, point.y + 16, 3.2, 0, Math.PI * 2);
     context.fill();
   }
 }
@@ -479,8 +491,8 @@ function drawPort(
   skiffImage: HTMLImageElement | null,
   resourceImage: HTMLImageElement | null,
 ) {
-  const width = 64;
-  const height = 85;
+  const width = 82;
+  const height = 110;
 
   if (skiffImage) {
     context.save();
@@ -492,25 +504,25 @@ function drawPort(
   }
 
   if (trade === "any") {
-    drawAnchor(context, { x: point.x, y: point.y - 6 });
+    drawAnyResourceMark(context, { x: point.x, y: point.y - 12 });
   } else if (resourceImage) {
-    context.drawImage(resourceImage, point.x - 11, point.y - 17, 22, 22);
+    context.drawImage(resourceImage, point.x - 15, point.y - 27, 30, 30);
   }
 
   const label = trade === "any" ? "3:1" : "2:1";
   context.save();
-  context.font = "800 12px ui-sans-serif, system-ui, sans-serif";
-  const labelWidth = context.measureText(label).width + 8;
-  createRoundedRectPath(context, point.x - labelWidth / 2, point.y + 7, labelWidth, 17, 8);
-  context.fillStyle = "rgba(255, 248, 226, 0.94)";
-  context.shadowBlur = 3;
-  context.shadowColor = "rgba(74, 58, 39, 0.18)";
+  context.font = "850 16px ui-sans-serif, system-ui, sans-serif";
+  const labelWidth = context.measureText(label).width + 13;
+  createRoundedRectPath(context, point.x - labelWidth / 2, point.y + 7, labelWidth, 23, 11);
+  context.fillStyle = "rgba(255, 250, 233, 0.98)";
+  context.shadowBlur = 4;
+  context.shadowColor = "rgba(55, 49, 42, 0.26)";
   context.fill();
   context.shadowColor = "transparent";
-  context.fillStyle = "#40516a";
+  context.fillStyle = "#233b55";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(label, point.x, point.y + 15.5);
+  context.fillText(label, point.x, point.y + 18.5);
   context.restore();
 }
 
@@ -536,7 +548,7 @@ function drawRoads(
       image,
       path,
       placement,
-      128,
+      134,
       scene.playerThemes.get(road.playerId) ?? "red",
       placement.angle,
     );
@@ -561,7 +573,7 @@ function drawBuildings(
       image,
       path,
       point,
-      building.kind === "city" ? 96 : 84,
+      building.kind === "city" ? 108 : 94,
       scene.playerThemes.get(building.playerId) ?? "red",
     );
   }
@@ -582,7 +594,7 @@ function drawRobber(
   }
 
   const point = getTilePoint(scene.boardLayout, tile);
-  const size = 88;
+  const size = 94;
   context.save();
   context.shadowBlur = 5;
   context.shadowColor = "rgba(34, 46, 56, 0.42)";
@@ -618,7 +630,7 @@ function drawTargetRing(
   target: BoardCanvasTarget,
   placement: PixelCoordinate & { angle: number },
 ) {
-  const alpha = target.disabled ? 0.34 : target.highlighted ? 1 : 0.72;
+  const alpha = target.disabled ? 0.26 : target.highlighted ? 1 : 0.62;
 
   context.save();
   context.translate(placement.x, placement.y);
@@ -626,9 +638,7 @@ function drawTargetRing(
   context.globalAlpha = alpha;
   context.shadowBlur = target.highlighted ? 20 : 11;
   context.shadowColor = "rgba(255, 194, 45, 0.9)";
-  context.fillStyle = "rgba(255, 210, 100, 0.2)";
-  context.strokeStyle = target.highlighted ? "#fff1b0" : "rgba(255, 231, 155, 0.9)";
-  context.lineWidth = target.highlighted ? 4 : 3;
+  context.fillStyle = target.highlighted ? "rgba(255, 219, 108, 0.3)" : "rgba(255, 231, 166, 0.14)";
 
   if (target.asset === "road") {
     createRoundedRectPath(context, -56, -22, 112, 44, 22);
@@ -639,6 +649,11 @@ function drawTargetRing(
   }
 
   context.fill();
+  context.strokeStyle = "rgba(10, 43, 71, 0.78)";
+  context.lineWidth = target.highlighted ? 10 : 8;
+  context.stroke();
+  context.strokeStyle = target.highlighted ? "#fff4bd" : "rgba(255, 244, 204, 0.95)";
+  context.lineWidth = target.highlighted ? 4 : 3;
   context.stroke();
   context.restore();
 }
@@ -666,7 +681,7 @@ function drawTargetGhost(
   context.save();
   context.translate(placement.x, placement.y);
   context.rotate((placement.angle * Math.PI) / 180);
-  context.globalAlpha = target.disabled ? 0.18 : target.highlighted ? 0.9 : 0.48;
+  context.globalAlpha = target.disabled ? 0.14 : target.highlighted ? 0.92 : 0.4;
   context.shadowBlur = target.highlighted ? 12 : 5;
   context.shadowColor = "rgba(255, 199, 69, 0.72)";
   context.drawImage(preview, -size / 2, -size / 2, size, size);
@@ -705,15 +720,42 @@ function drawPlayerPiece(
   angle = 0,
 ) {
   const tintedPiece = getTintedPieceCanvas(image, path, theme, PLAYER_COLOR_VALUES[theme]);
+  const silhouette = getPieceSilhouetteCanvas(image, path);
+  const outlineSize = size + Math.max(7, size * 0.07);
 
   context.save();
   context.translate(point.x, point.y);
   context.rotate((angle * Math.PI) / 180);
-  context.shadowBlur = 5;
-  context.shadowColor = "rgba(34, 64, 88, 0.42)";
-  context.shadowOffsetY = 3;
+  context.shadowBlur = 8;
+  context.shadowColor = "rgba(15, 38, 58, 0.62)";
+  context.shadowOffsetY = 4;
+  context.drawImage(silhouette, -outlineSize / 2, -outlineSize / 2, outlineSize, outlineSize);
+  context.shadowColor = "transparent";
+  context.shadowOffsetY = 0;
   context.drawImage(tintedPiece, -size / 2, -size / 2, size, size);
   context.restore();
+}
+
+function getPieceSilhouetteCanvas(image: HTMLImageElement, path: string): HTMLCanvasElement {
+  const cached = pieceSilhouetteCanvases.get(path);
+  if (cached) {
+    return cached;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return canvas;
+  }
+
+  context.drawImage(image, 0, 0);
+  context.globalCompositeOperation = "source-in";
+  context.fillStyle = "rgba(255, 250, 226, 0.98)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  pieceSilhouetteCanvases.set(path, canvas);
+  return canvas;
 }
 
 function getTintedPieceCanvas(
@@ -738,32 +780,32 @@ function getTintedPieceCanvas(
 
   context.drawImage(image, 0, 0);
   context.globalCompositeOperation = "source-atop";
-  context.globalAlpha = 0.76;
+  context.globalAlpha = 0.68;
   context.fillStyle = color;
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.globalAlpha = 0.22;
+  context.globalCompositeOperation = "source-over";
+  context.globalAlpha = 0.38;
   context.drawImage(image, 0, 0);
   tintedPieceCanvases.set(key, canvas);
   return canvas;
 }
 
-function drawAnchor(context: CanvasRenderingContext2D, point: PixelCoordinate) {
+function drawAnyResourceMark(context: CanvasRenderingContext2D, point: PixelCoordinate) {
+  const colors = ["#3c9b55", "#d9643a", "#f3e2a1", "#e7ad2c", "#75889a"];
+
   context.save();
-  context.strokeStyle = "#53677a";
-  context.lineCap = "round";
-  context.lineJoin = "round";
-  context.lineWidth = 2.2;
-  context.beginPath();
-  context.arc(point.x, point.y - 7, 3, 0, Math.PI * 2);
-  context.moveTo(point.x, point.y - 4);
-  context.lineTo(point.x, point.y + 9);
-  context.moveTo(point.x - 8, point.y + 4);
-  context.quadraticCurveTo(point.x, point.y + 12, point.x + 8, point.y + 4);
-  context.moveTo(point.x - 8, point.y + 4);
-  context.lineTo(point.x - 6, point.y + 9);
-  context.moveTo(point.x + 8, point.y + 4);
-  context.lineTo(point.x + 6, point.y + 9);
-  context.stroke();
+  context.shadowBlur = 2;
+  context.shadowColor = "rgba(47, 55, 62, 0.25)";
+  colors.forEach((color, index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI * 2) / colors.length;
+    context.beginPath();
+    context.arc(point.x + Math.cos(angle) * 8, point.y + Math.sin(angle) * 8, 4.2, 0, Math.PI * 2);
+    context.fillStyle = color;
+    context.fill();
+    context.strokeStyle = "rgba(255, 251, 235, 0.95)";
+    context.lineWidth = 1.2;
+    context.stroke();
+  });
   context.restore();
 }
 
