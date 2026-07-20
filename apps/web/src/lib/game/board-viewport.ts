@@ -29,15 +29,24 @@ export const BOARD_VIEWPORT_SCALE = {
   step: 0.16,
 } as const;
 
+export const BOARD_VIEWPORT_PAN = {
+  fittedX: 0.28,
+  fittedY: 0.22,
+} as const;
+
 export function clampBoardViewport(
   viewport: BoardViewportState,
   bounds: BoardViewportBounds,
 ): BoardViewportState {
   const scale = clamp(viewport.scale, BOARD_VIEWPORT_SCALE.min, BOARD_VIEWPORT_SCALE.max);
   const overflow = Math.max(0, scale - 1);
-  const fittedPan = scale >= 1 ? 0.06 : 0;
-  const maxX = bounds.width * (fittedPan + overflow * 0.5);
-  const maxY = bounds.height * (fittedPan + overflow * 0.5);
+  const fittedProgress = clamp(
+    (scale - BOARD_VIEWPORT_SCALE.min) / (1 - BOARD_VIEWPORT_SCALE.min),
+    0,
+    1,
+  );
+  const maxX = bounds.width * (BOARD_VIEWPORT_PAN.fittedX * fittedProgress + overflow * 0.5);
+  const maxY = bounds.height * (BOARD_VIEWPORT_PAN.fittedY * fittedProgress + overflow * 0.5);
 
   return {
     scale,

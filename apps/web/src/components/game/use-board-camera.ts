@@ -464,6 +464,7 @@ export function useBoardCamera(): BoardCamera {
 
       const clampedViewport = clampBoardViewport(viewportRef.current, stageBoundsRef.current);
       setTransientViewport(clampedViewport);
+      commitViewport();
       rebasePointerGesture();
     };
 
@@ -508,7 +509,13 @@ export function useBoardCamera(): BoardCamera {
       gamePageRef.current?.classList.remove("is-board-interacting");
       gamePageRef.current = null;
     };
-  }, [handleNativeWheel, rebasePointerGesture, scheduleSceneWrite, setTransientViewport]);
+  }, [
+    commitViewport,
+    handleNativeWheel,
+    rebasePointerGesture,
+    scheduleSceneWrite,
+    setTransientViewport,
+  ]);
 
   return {
     boardSceneRef,

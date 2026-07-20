@@ -29,13 +29,12 @@ import minimizeIcon from "@iconify-icons/solar/minimize-square-outline";
 import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
 import { Icon } from "@iconify/react";
 import { useMutation } from "convex/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
-import { createBoardLayout } from "@/lib/game/board-layout";
-import { createBoardCanvasTargetModels, type BoardTargetMode } from "@/lib/game/board-canvas-model";
+import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
@@ -166,6 +165,19 @@ export function GameScreen({
     }
   };
 
+  const requestBotReplacement = (playerId: string) => {
+    const player = game.players.find((candidate) => candidate.id === playerId);
+    if (!player) {
+      return;
+    }
+
+    setConfirmation({
+      displayName: player.displayName,
+      kind: "replace",
+      playerId,
+    });
+  };
+
   const phaseCopy = getPhaseCopy(game.phase, activePlayer.id === me.id, activePlayer.displayName);
   const latestEvent = events.at(-1)?.text;
   const phaseLiveMessage = `${phaseCopy.title}. ${phaseCopy.detail}${latestEvent ? ` Latest table event: ${latestEvent}.` : ""}`;
@@ -264,7 +276,12 @@ export function GameScreen({
         </div>
       </header>
 
-      <aside className="game-sidebar" aria-label="Table status and game information">
+      <aside
+        aria-hidden={isBoardFocused || undefined}
+        aria-label="Table status and game information"
+        className="game-sidebar"
+        inert={isBoardFocused || undefined}
+      >
         <div
           aria-hidden={isBoardFocused || undefined}
           className="game-sidebar-panels"
@@ -279,16 +296,7 @@ export function GameScreen({
           activePlayerId={game.activePlayerId}
           activePhaseLabel={getPhaseStatusLabel(game.phase)}
           isHost={isHost}
-          onReplacePlayer={(playerId) => {
-            const player = game.players.find((candidate) => candidate.id === playerId);
-            if (player) {
-              setConfirmation({
-                displayName: player.displayName,
-                kind: "replace",
-                playerId,
-              });
-            }
-          }}
+          onReplacePlayer={requestBotReplacement}
           pendingReplacementId={pendingReplacementId}
           players={game.players}
           viewerProfileImageUrl={viewerProfileImageUrl}
@@ -322,7 +330,11 @@ export function GameScreen({
         pending={pendingCommand !== null}
       />
 
-      <footer className="game-footer">
+      <footer
+        aria-hidden={isBoardFocused || undefined}
+        className="game-footer"
+        inert={isBoardFocused || undefined}
+      >
         <ResourceHand me={me} />
 
         <ActionDock
@@ -333,13 +345,6 @@ export function GameScreen({
           onCommand={(command, message) => void sendCommand(command, message)}
           pending={pendingCommand !== null}
         />
-        <CompactBoardTargets
-          buildMode={buildMode}
-          game={game}
-          me={me}
-          onCommand={(command, message) => void sendCommand(command, message)}
-          pending={pendingCommand !== null}
-        />
       </footer>
 
       {gameInfoView ? (
@@ -347,7 +352,11 @@ export function GameScreen({
           code={code}
           events={events}
           game={game}
+          isHost={isHost}
           onClose={() => setGameInfoView(null)}
+          onReplacePlayer={requestBotReplacement}
+          pendingReplacementId={pendingReplacementId}
+          viewerProfileImageUrl={viewerProfileImageUrl}
           view={gameInfoView}
         />
       ) : null}
@@ -666,13 +675,21 @@ function MobileGameInfo({
   code,
   events,
   game,
+  isHost,
   onClose,
+  onReplacePlayer,
+  pendingReplacementId,
+  viewerProfileImageUrl,
   view,
 }: {
   code: string;
   events: RoomEventView[];
   game: PlayerGameView;
+  isHost: boolean;
   onClose(): void;
+  onReplacePlayer(playerId: string): void;
+  pendingReplacementId: string | null;
+  viewerProfileImageUrl: string | null;
   view: GameInfoView;
 }) {
   const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
@@ -680,7 +697,11 @@ function MobileGameInfo({
 
   return (
     <Modal>
-      <Modal.Backdrop isOpen onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}>
+      <Modal.Backdrop
+        className="mobile-game-info-backdrop"
+        isOpen
+        onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
+      >
         <Modal.Container>
           <Modal.Dialog
             aria-label={isHelp ? "Game help" : "Game information"}
@@ -775,6 +796,22 @@ function MobileGameInfo({
                       <dd>{game.settings.balancedDice ? "On" : "Off"}</dd>
                     </div>
                   </dl>
+                  <section
+                    aria-labelledby="mobile-game-info-players-title"
+                    className="mobile-game-info-players"
+                  >
+                    <h3 id="mobile-game-info-players-title">Players</h3>
+                    <PlayerStrip
+                      activePlayerId={game.activePlayerId}
+                      activePhaseLabel={getPhaseStatusLabel(game.phase)}
+                      isHost={isHost}
+                      onReplacePlayer={onReplacePlayer}
+                      pendingReplacementId={pendingReplacementId}
+                      players={game.players}
+                      viewerProfileImageUrl={viewerProfileImageUrl}
+                      victoryTarget={game.victoryPoints}
+                    />
+                  </section>
                   <BankPanel bank={game.bank} idPrefix="mobile-" />
                   <EventLog events={events} idPrefix="mobile-" />
                 </>
@@ -1106,59 +1143,6 @@ function ActionDock({
         title="End Turn"
       />
     </section>
-  );
-}
-
-function CompactBoardTargets({
-  buildMode = null,
-  game,
-  me,
-  onCommand,
-  pending,
-}: {
-  buildMode?: BuildMode;
-  game: PlayerGameView;
-  me: PrivatePlayerState;
-  onCommand(command: GameCommand, message: string): void;
-  pending: boolean;
-}) {
-  const boardLayout = useMemo(() => createBoardLayout(game.board.tiles), [game.board.tiles]);
-  const viewerTheme = getPlayerTheme(me);
-  const targets = useMemo(
-    () =>
-      createBoardCanvasTargetModels({
-        buildMode,
-        compactPlacement: true,
-        game,
-        layout: boardLayout,
-        viewerTheme,
-      }),
-    [boardLayout, buildMode, game, viewerTheme],
-  );
-
-  if (targets.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="compact-board-targets" role="group" aria-label="Safe board placement choices">
-      <strong>Choose:</strong>
-      <div>
-        {targets.map((target) => (
-          <Button
-            aria-label={target.label}
-            className="compact-target-button"
-            data-compact-board-target-id={target.id}
-            isDisabled={pending}
-            key={target.id}
-            onPress={() => onCommand(target.command, target.successMessage)}
-            variant="secondary"
-          >
-            {target.compactLabel}
-          </Button>
-        ))}
-      </div>
-    </div>
   );
 }
 

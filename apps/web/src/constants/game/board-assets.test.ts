@@ -5,6 +5,7 @@ import {
   BOARD_TILE,
   getTerrainAssetPath,
   getTerrainAssetVariant,
+  ISLAND_SHELF_ASSET_PATH,
   ROAD_ASSET_ROTATION_OFFSET,
   TERRAIN_ASSET,
 } from "./board-assets.ts";
@@ -30,6 +31,7 @@ test("the map and asset sheet share the final terrain revision", () => {
     getTerrainAssetPath("fields"),
     `/game-assets/terrain/fields.png?v=${TERRAIN_ASSET.revision}`,
   );
+  assert.equal(ISLAND_SHELF_ASSET_PATH, "/game-assets/ui/island-shelf-v1.png?v=tactile-v10");
 });
 
 test("terrain variants are deterministic and use alternate artwork", () => {

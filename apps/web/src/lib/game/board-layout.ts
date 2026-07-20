@@ -103,7 +103,7 @@ export function getPortPlacement(layout: BoardLayout, edgeKey: string): PortPlac
   const length = Math.hypot(relativeX, relativeY) || 1;
   const outward = { x: relativeX / length, y: relativeY / length };
   const tangent = { x: -outward.y, y: outward.x };
-  const outwardDistance = layout.tileRadius * 0.57;
+  const outwardDistance = layout.tileRadius * 0.64;
   const point = {
     x: edge.x + outward.x * outwardDistance,
     y: edge.y + outward.y * outwardDistance,

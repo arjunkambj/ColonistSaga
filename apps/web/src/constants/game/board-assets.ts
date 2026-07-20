@@ -10,7 +10,7 @@ export const TERRAIN_ASSET = {
   visibleWidth: 412,
 } as const;
 
-const TERRAIN_ASSET_VARIANTS = ["base", "alternate", "alternate-2"] as const;
+export const TERRAIN_ASSET_VARIANTS = ["base", "alternate", "alternate-2"] as const;
 
 export type TerrainAssetVariant = (typeof TERRAIN_ASSET_VARIANTS)[number];
 
@@ -26,5 +26,6 @@ export function getTerrainAssetPath(terrain: string, variant: TerrainAssetVarian
 
 export const OCEAN_BOARD_ASSET_PATH = "/game-assets/ui/ocean-board-canvas-v2.webp?v=tactile-v10";
 export const PORT_SKIFF_ASSET_PATH = "/game-assets/ui/port-skiff-v2.png?v=clarity-v11";
+export const ISLAND_SHELF_ASSET_PATH = "/game-assets/ui/island-shelf-v1.png?v=tactile-v10";
 
 export const ROAD_ASSET_ROTATION_OFFSET = 0 as const;

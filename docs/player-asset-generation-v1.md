@@ -1,7 +1,7 @@
 # ColonistSaga Player Portraits V1
 
-Generated July 18, 2026 with OpenAI's built-in image generation tool. These
-opaque 1:1 portraits were explored as player-seat characters while all names,
+Generated July 18–20, 2026 with OpenAI's built-in image generation tool. These
+opaque 1:1 portraits are the complete eight-seat character set; all names,
 status, scores, and controls remain code-rendered.
 
 ## Shared Prompt
@@ -36,6 +36,14 @@ Constraints: one original adult island explorer, friendly confident expression, 
 ## Project Files
 
 - `apps/web/public/game-assets/players/red-navigator-v1.png`
+- `apps/web/public/game-assets/players/blue-cartographer-v1.png`
+- `apps/web/public/game-assets/players/orange-builder-v1.png`
+- `apps/web/public/game-assets/players/green-botanist-v1.png`
+- `apps/web/public/game-assets/players/purple-astronomer-v1.png`
+- `apps/web/public/game-assets/players/teal-shipwright-v1.png`
+- `apps/web/public/game-assets/players/yellow-merchant-v1.png`
+- `apps/web/public/game-assets/players/pink-pathfinder-v1.png`
 
-The red fallback is generated. The other seven 256 × 256 RGBA portraits remain
-in the generation queue and are listed on the asset sheet.
+All eight portraits are generated 256 × 256 opaque PNGs. The seven-seat
+expansion was independently reviewed as a set and at 48–64 px; every portrait
+passed identity, seat-color, readability, and no-text checks.

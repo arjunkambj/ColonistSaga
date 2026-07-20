@@ -20,25 +20,45 @@ import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import type { RoomEventView } from "@/lib/game/types";
 
-export type UiPreviewMode = "action-preset" | "auth" | "game" | "game-actions" | "home";
+export type UiPreviewMode =
+  | "action-preset"
+  | "auth"
+  | "game"
+  | "game-actions"
+  | "game-setup"
+  | "home";
 
 const PREVIEW_MODES = new Set<UiPreviewMode>([
   "action-preset",
   "auth",
   "game",
   "game-actions",
+  "game-setup",
   "home",
 ]);
 
+const GAME_PREVIEW_MODES = new Set<UiPreviewMode>(["game", "game-actions", "game-setup"]);
+
+const PREVIEW_PLAYERS: GamePlayerInput[] = [
+  { displayName: "Arjun Kamboj", id: "player-1", isBot: false },
+  { displayName: "Bot 2", id: "player-2", isBot: true },
+  { displayName: "Bot 3", id: "player-3", isBot: true },
+  { displayName: "Bot 4", id: "player-4", isBot: true },
+];
+
 export function isUiPreviewMode(value: string | null): value is UiPreviewMode {
   return value !== null && PREVIEW_MODES.has(value as UiPreviewMode);
+}
+
+export function isGamePreviewMode(mode: UiPreviewMode): boolean {
+  return GAME_PREVIEW_MODES.has(mode);
 }
 
 export function UiPreview({ mode }: { mode: UiPreviewMode }) {
   const [previewDeadline, setPreviewDeadline] = useState<number>();
 
   useEffect(() => {
-    if (mode !== "game" && mode !== "game-actions") {
+    if (!isGamePreviewMode(mode)) {
       setPreviewDeadline(undefined);
       return;
     }
@@ -78,7 +98,11 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
       botThinking={false}
       code="NW9C4B"
       events={PREVIEW_EVENTS}
-      game={createPreviewGame(mode === "game-actions")}
+      game={
+        mode === "game-setup"
+          ? createSetupPreviewGame()
+          : createPreviewGame(mode === "game-actions")
+      }
       isHost
       nextActionAt={previewDeadline}
       onLeave={async () => undefined}
@@ -195,14 +219,8 @@ const ACTION_PRESET_TILES = [
 ] satisfies readonly ActionPresetPreviewTile[];
 
 function createPreviewGame(showActions: boolean) {
-  const players: GamePlayerInput[] = [
-    { displayName: "Arjun Kamboj", id: "player-1", isBot: false },
-    { displayName: "Bot 2", id: "player-2", isBot: true },
-    { displayName: "Bot 3", id: "player-3", isBot: true },
-    { displayName: "Bot 4", id: "player-4", isBot: true },
-  ];
   let state = completePreviewSetup(
-    createDefaultGame(players, "reference-ui-preview", {
+    createDefaultGame(PREVIEW_PLAYERS, "reference-ui-preview", {
       balancedDice: false,
       friendlyRobber: false,
       victoryPoints: 10,
@@ -231,6 +249,17 @@ function createPreviewGame(showActions: boolean) {
   };
 
   return toPlayerView(state, "player-1");
+}
+
+function createSetupPreviewGame() {
+  return toPlayerView(
+    createDefaultGame(PREVIEW_PLAYERS, "reference-setup-preview", {
+      balancedDice: false,
+      friendlyRobber: false,
+      victoryPoints: 10,
+    }),
+    "player-1",
+  );
 }
 
 function completePreviewSetup(initialState: GameState) {

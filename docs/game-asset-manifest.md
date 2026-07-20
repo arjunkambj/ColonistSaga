@@ -1,4 +1,4 @@
-# ColonistSaga v1 game asset manifest
+# ColonistSaga v2 game asset manifest
 
 ## Art direction
 
@@ -13,11 +13,12 @@ All generated gameplay art must:
 - use a consistent top-down three-quarter camera;
 - contain no words, numbers, logos, borders, UI chrome, or watermarks;
 - keep important detail away from crop edges;
-- have a transparent background and clean alpha edge;
+- use a clean alpha edge for isolated cutouts, or an intentional opaque
+  full-bleed canvas for cards and environment scenes;
 - remain legible at 64 px for icons and 160 px for board tiles;
 - use code-rendered labels and player colors for accessibility and localization.
 
-## Generate now: default Base board pack
+## Generated default board pack
 
 | ID                | File                          | Purpose                       | Target        |
 | ----------------- | ----------------------------- | ----------------------------- | ------------- |
@@ -50,6 +51,28 @@ all labels, offer values, response states, and controls remain code-rendered.
 The desert is the sixth terrain type but is not a resource. The resource system
 contains exactly five values: tree, brick, sheep, wheat, and stone.
 
+Each terrain type also has `-alternate` and `-alternate-2` variants, for 18
+generated terrain tiles in total. The live renderer selects them
+deterministically.
+
+## Generated visual expansion pack
+
+| Group                      | Count | Project location                | Output contract                              |
+| -------------------------- | ----: | ------------------------------- | -------------------------------------------- |
+| Resource cards             |     5 | `cards/resources/*-card-v1.png` | 512×768 opaque PNG                           |
+| Action cards               |     5 | `cards/actions/*-card-v1.png`   | 512×768 opaque PNG                           |
+| Development cards and back |     6 | `cards/development/*.png`       | 512×768 PNG                                  |
+| Player portraits           |     8 | `players/*-v1.png`              | 256×256 opaque PNG                           |
+| Award cutouts              |     2 | `awards/*-v1.png`               | 512×512 transparent PNG                      |
+| Result art                 |     2 | `results/*-v1.*`                | 3:1 transparent flourish + 16:9 opaque scene |
+| Optional ambience          |     3 | `ambience/*-v1.png`             | 384×384 transparent PNG                      |
+| Bank building              |     1 | `ui/bank-v1.png`                | 256×256 transparent PNG                      |
+
+The optional ambience remains catalog-only by default so it cannot compete
+with legal targets, pieces, ports, or number tokens. The game asset sheet is the
+complete visual inventory and includes the island shelf, ocean canvas, port
+skiff, all 18 terrain variants, and every expansion image above.
+
 ## Render in code
 
 These assets are deterministic shapes or text and should be SVG/CSS/canvas, not
@@ -62,28 +85,19 @@ generated bitmaps:
 - buttons, panels, timers, counters, trade arrows, modal chrome, and chat;
 - accessibility patterns that supplement terrain and player color.
 
-## Generate later, when the matching feature is implemented
+## Remaining production backlog
 
-- five full resource-card illustrations for tree, brick, sheep, wheat, and
-  stone, plus one shared unrevealed development-card face; their labels and
-  counts remain code-rendered;
-- one compact bank-building icon for the resource market and bank controls;
-- five full action-card illustrations for trade, road, settlement, city, and
-  end turn; their titles, costs, counts, and states remain code-rendered;
-- five full development-card illustrations and one hidden card back;
-- Longest Road and Largest Army award art;
-- seven remaining color-matched player portraits;
-- victory/result flourishes;
-- optional ambient ocean details such as rocks, foam, and coastal plants;
-- lightweight board/piece animations derived from the approved still assets.
+No still-image generation remains. Future implementation may derive lightweight
+board and piece motion from the approved still assets. The only unproduced media
+inventory is the focused audio backlog below.
 
 The focused music and sound-effect backlog is documented in
 [`docs/audio/audio-production-brief.md`](audio/audio-production-brief.md).
 
 ## Acceptance checks
 
-- Correct dimensions and RGBA mode.
-- Transparent corners with no chroma fringe.
+- Correct dimensions and RGB/RGBA mode for the asset contract.
+- Transparent cutouts and rounded card corners have no chroma fringe.
 - A single centered subject with at least 8% padding.
 - Terrain silhouettes align closely enough to use one shared clickable hex mask.
 - Every terrain alpha uses the exact visible bounds `x=50–461`, `y=77–434` on

@@ -28,13 +28,7 @@ const TERRAIN_LABELS: Readonly<Record<BoardTile["terrain"], string>> = {
 };
 
 interface BoardCanvasTargetPresentation {
-  readonly ariaHidden: boolean;
-  readonly compactLabel: string;
-  readonly compactPlacement: boolean;
-  readonly interactive: boolean;
   readonly label: string;
-  readonly marker: number;
-  readonly showMarker: boolean;
 }
 
 interface BoardCanvasTargetBase<
@@ -77,7 +71,6 @@ export type BoardCanvasTargetModel =
 
 export interface CreateBoardCanvasTargetModelsInput {
   readonly buildMode: BoardBuildMode;
-  readonly compactPlacement: boolean;
   readonly game: PlayerGameView;
   readonly layout: BoardLayout;
   readonly viewerTheme: PlayerColor;
@@ -85,7 +78,6 @@ export interface CreateBoardCanvasTargetModelsInput {
 
 export function createBoardCanvasTargetModels({
   buildMode,
-  compactPlacement,
   game,
   layout,
   viewerTheme,
@@ -94,13 +86,13 @@ export function createBoardCanvasTargetModels({
 
   switch (mode) {
     case "city":
-      return createCityTargets(game, layout, viewerTheme, compactPlacement);
+      return createCityTargets(game, layout, viewerTheme);
     case "road":
-      return createRoadTargets(game, layout, viewerTheme, compactPlacement);
+      return createRoadTargets(game, layout, viewerTheme);
     case "robber":
-      return createRobberTargets(game, layout, viewerTheme, compactPlacement);
+      return createRobberTargets(game, layout, viewerTheme);
     case "settlement":
-      return createSettlementTargets(game, layout, viewerTheme, compactPlacement);
+      return createSettlementTargets(game, layout, viewerTheme);
     case null:
       return [];
   }
@@ -126,11 +118,40 @@ export function resolveBoardTargetMode(
   }
 }
 
+export function findNearestBoardTarget<T extends Pick<BoardCanvasTargetModel, "point">>(
+  targets: readonly T[],
+  point: Readonly<PixelCoordinate>,
+): T | null {
+  return targets.reduce<T | null>((nearest, target) => {
+    if (!nearest) {
+      return target;
+    }
+
+    return distanceSquared(target.point, point) < distanceSquared(nearest.point, point)
+      ? target
+      : nearest;
+  }, null);
+}
+
+export function mapClientPointToBoard(
+  point: Readonly<PixelCoordinate>,
+  bounds: Readonly<{ height: number; left: number; top: number; width: number }>,
+  boardSize: Readonly<{ height: number; width: number }>,
+): PixelCoordinate | null {
+  if (bounds.width <= 0 || bounds.height <= 0) {
+    return null;
+  }
+
+  return {
+    x: ((point.x - bounds.left) / bounds.width) * boardSize.width,
+    y: ((point.y - bounds.top) / bounds.height) * boardSize.height,
+  };
+}
+
 function createSettlementTargets(
   game: PlayerGameView,
   layout: BoardLayout,
   theme: PlayerColor,
-  compactPlacement: boolean,
 ): readonly BoardCanvasSettlementTargetModel[] {
   const tilesByTopologyId = indexTilesByTopologyId(game.board.tiles);
   const targets = game.legalActions.settlementVertexKeys.flatMap((vertexKey) => {
@@ -160,13 +181,7 @@ function createSettlementTargets(
     successMessage: "Settlement placed.",
     theme,
     type: "vertex",
-    ...createTargetPresentation(
-      "settlement",
-      index,
-      targets.length,
-      terrainContext,
-      compactPlacement,
-    ),
+    ...createTargetPresentation("settlement", index, targets.length, terrainContext),
   }));
 }
 
@@ -174,7 +189,6 @@ function createCityTargets(
   game: PlayerGameView,
   layout: BoardLayout,
   theme: PlayerColor,
-  compactPlacement: boolean,
 ): readonly BoardCanvasCityTargetModel[] {
   const tilesByTopologyId = indexTilesByTopologyId(game.board.tiles);
   const targets = game.legalActions.cityVertexKeys.flatMap((vertexKey) => {
@@ -204,7 +218,7 @@ function createCityTargets(
     successMessage: "City completed.",
     theme,
     type: "vertex",
-    ...createTargetPresentation("city", index, targets.length, terrainContext, compactPlacement),
+    ...createTargetPresentation("city", index, targets.length, terrainContext),
   }));
 }
 
@@ -212,7 +226,6 @@ function createRoadTargets(
   game: PlayerGameView,
   layout: BoardLayout,
   theme: PlayerColor,
-  compactPlacement: boolean,
 ): readonly BoardCanvasRoadTargetModel[] {
   const tilesByTopologyId = indexTilesByTopologyId(game.board.tiles);
   const targets = game.legalActions.roadEdgeKeys.flatMap((edgeKey) => {
@@ -242,7 +255,7 @@ function createRoadTargets(
     successMessage: "Road placed.",
     theme,
     type: "edge",
-    ...createTargetPresentation("road", index, targets.length, terrainContext, compactPlacement),
+    ...createTargetPresentation("road", index, targets.length, terrainContext),
   }));
 }
 
@@ -250,7 +263,6 @@ function createRobberTargets(
   game: PlayerGameView,
   layout: BoardLayout,
   theme: PlayerColor,
-  compactPlacement: boolean,
 ): readonly BoardCanvasRobberTargetModel[] {
   const tilesById = new Map(game.board.tiles.map((tile) => [tile.id, tile] as const));
   const targets = game.legalActions.robberTileIds.flatMap((tileId) => {
@@ -271,7 +283,7 @@ function createRobberTargets(
     successMessage: "Robber moved.",
     theme,
     type: "tile",
-    ...createTargetPresentation("robber", index, targets.length, terrainContext, compactPlacement),
+    ...createTargetPresentation("robber", index, targets.length, terrainContext),
   }));
 }
 
@@ -280,18 +292,9 @@ function createTargetPresentation(
   index: number,
   optionCount: number,
   terrainContext: string,
-  compactPlacement: boolean,
 ): BoardCanvasTargetPresentation {
-  const marker = index + 1;
-
   return {
-    ariaHidden: compactPlacement,
-    compactLabel: `${getCompactTargetNoun(mode)} ${marker}`,
-    compactPlacement,
-    interactive: !compactPlacement,
-    label: `${getTargetActionLabel(mode, terrainContext)}; option ${marker} of ${optionCount}`,
-    marker,
-    showMarker: compactPlacement,
+    label: `${getTargetActionLabel(mode, terrainContext)}; option ${index + 1} of ${optionCount}`,
   };
 }
 
@@ -328,10 +331,6 @@ function formatList(values: readonly string[]): string {
   return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
 }
 
-function getCompactTargetNoun(mode: BoardTargetMode): string {
-  return mode === "robber" ? "Tile" : capitalize(mode);
-}
-
 function getTargetActionLabel(mode: BoardTargetMode, terrainContext: string): string {
   const adjacentContext = terrainContext ? ` beside ${terrainContext}` : "";
 
@@ -347,6 +346,6 @@ function getTargetActionLabel(mode: BoardTargetMode, terrainContext: string): st
   }
 }
 
-function capitalize(value: string): string {
-  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+function distanceSquared(first: Readonly<PixelCoordinate>, second: Readonly<PixelCoordinate>) {
+  return (first.x - second.x) ** 2 + (first.y - second.y) ** 2;
 }

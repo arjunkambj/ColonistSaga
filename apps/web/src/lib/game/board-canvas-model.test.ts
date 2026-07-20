@@ -5,6 +5,8 @@ import type { GamePhase, PlayerGameView } from "@colonistsaga/game";
 
 import {
   createBoardCanvasTargetModels,
+  findNearestBoardTarget,
+  mapClientPointToBoard,
   resolveBoardTargetMode,
   type BoardBuildMode,
 } from "./board-canvas-model.ts";
@@ -48,44 +50,63 @@ test("hides every target when the viewer is not the required actor", () => {
   assert.deepEqual(createModels(game, "settlement"), []);
 });
 
+test("selects the nearest spatial target when touch hit areas overlap", () => {
+  const targets = [
+    { id: "left", point: { x: 100, y: 100 } },
+    { id: "right", point: { x: 140, y: 100 } },
+  ];
+
+  assert.equal(findNearestBoardTarget(targets, { x: 111, y: 102 })?.id, "left");
+  assert.equal(findNearestBoardTarget(targets, { x: 136, y: 99 })?.id, "right");
+  assert.equal(findNearestBoardTarget([], { x: 120, y: 100 }), null);
+});
+
+test("maps client coordinates through a panned and zoomed board rectangle", () => {
+  const bounds = { height: 1650, left: -250, top: -75, width: 1500 };
+  const boardPoint = mapClientPointToBoard({ x: 500, y: 750 }, bounds, {
+    height: 1100,
+    width: 1000,
+  });
+
+  assert.deepEqual(boardPoint, { x: 500, y: 550 });
+  assert.equal(
+    mapClientPointToBoard(
+      { x: 500, y: 750 },
+      { height: 0, left: 0, top: 0, width: 0 },
+      { height: 1100, width: 1000 },
+    ),
+    null,
+  );
+});
+
 test("builds a settlement target with stable geometry and command data", () => {
   const game = createGame("setup_settlement", { settlementVertexKeys: [VERTEX_KEY] });
   const [target] = createModels(game, null);
 
   assert.deepEqual(target, {
     angle: 0,
-    ariaHidden: false,
     asset: "settlement",
     command: { kind: "place_settlement", vertexKey: VERTEX_KEY },
-    compactLabel: "Settlement 1",
-    compactPlacement: false,
     id: `settlement:${VERTEX_KEY}`,
-    interactive: true,
     label: "Place settlement at legal vertex beside Fields 5 and Forest 8; option 1 of 1",
     locationKey: VERTEX_KEY,
-    marker: 1,
     point: getVertexPoint(LAYOUT, VERTEX_KEY),
-    showMarker: false,
     successMessage: "Settlement placed.",
     theme: "teal",
     type: "vertex",
   });
 });
 
-test("builds a compact city target for the selected build mode", () => {
+test("builds a city target for the selected build mode", () => {
   const game = createGame("build_and_trade", { cityVertexKeys: [SHARED_VERTEX_KEY] });
-  const [target] = createModels(game, "city", true);
+  const [target] = createModels(game, "city");
 
   assert.equal(target?.asset, "city");
   assert.deepEqual(target?.command, { kind: "build_city", vertexKey: SHARED_VERTEX_KEY });
-  assert.equal(target?.compactLabel, "City 1");
   assert.equal(
     target?.label,
     "Upgrade city at legal vertex beside Fields 5 and Forest 8; option 1 of 1",
   );
-  assert.equal(target?.ariaHidden, true);
-  assert.equal(target?.interactive, false);
-  assert.equal(target?.showMarker, true);
   assert.equal(target?.theme, "teal");
 });
 
@@ -114,7 +135,6 @@ test("indexes tiles once to build ordered robber targets", () => {
       command: target.command,
       id: target.id,
       label: target.label,
-      marker: target.marker,
       point: target.point,
     })),
     [
@@ -122,21 +142,19 @@ test("indexes tiles once to build ordered robber targets", () => {
         command: { kind: "move_robber", tileId: "tile-b" },
         id: "robber:tile-b",
         label: "Move robber to Forest 8 tile; option 1 of 2",
-        marker: 1,
         point: getTilePoint(LAYOUT, TILES[1]!),
       },
       {
         command: { kind: "move_robber", tileId: "tile-a" },
         id: "robber:tile-a",
         label: "Move robber to Fields 5 tile; option 2 of 2",
-        marker: 2,
         point: getTilePoint(LAYOUT, TILES[0]!),
       },
     ],
   );
 });
 
-test("omits missing vertex, edge, and tile geometry and keeps markers contiguous", () => {
+test("omits missing vertex, edge, and tile geometry and keeps option labels contiguous", () => {
   const cases: readonly [BoardBuildMode, PlayerGameView][] = [
     [
       "settlement",
@@ -153,15 +171,13 @@ test("omits missing vertex, edge, and tile geometry and keeps markers contiguous
     const targets = createModels(game, buildMode);
 
     assert.equal(targets.length, 1);
-    assert.equal(targets[0]?.marker, 1);
     assert.equal(targets[0]?.label.endsWith("option 1 of 1"), true);
   }
 });
 
-function createModels(game: PlayerGameView, buildMode: BoardBuildMode, compactPlacement = false) {
+function createModels(game: PlayerGameView, buildMode: BoardBuildMode) {
   return createBoardCanvasTargetModels({
     buildMode,
-    compactPlacement,
     game,
     layout: LAYOUT,
     viewerTheme: "teal",

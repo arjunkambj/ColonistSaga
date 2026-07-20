@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  BOARD_VIEWPORT_PAN,
   BOARD_VIEWPORT_SCALE,
   DEFAULT_BOARD_VIEWPORT,
   clampBoardViewport,
@@ -34,17 +35,21 @@ test("keeps the cursor focus stable while zooming", () => {
   assert.deepEqual(zoomed, { scale: 1.5, x: -60, y: 40 });
 });
 
-test("limits drag distance to the visible zoomed board overflow", () => {
+test("limits drag distance while preserving useful fitted-board travel", () => {
   const viewport = { scale: 1.5, x: 0, y: 0 };
   const panned = panBoardViewport(viewport, { x: 1_000, y: -1_000 }, BOUNDS);
 
-  assert.deepEqual(panned, { scale: 1.5, x: 279, y: -186 });
+  assert.deepEqual(panned, { scale: 1.5, x: 477, y: -282 });
 });
 
-test("allows a small mouse drag at the default zoom", () => {
-  const panned = panBoardViewport(DEFAULT_BOARD_VIEWPORT, { x: 40, y: -30 }, BOUNDS);
+test("allows broad board repositioning at the default zoom", () => {
+  const panned = panBoardViewport(DEFAULT_BOARD_VIEWPORT, { x: 1_000, y: -1_000 }, BOUNDS);
 
-  assert.deepEqual(panned, { scale: 1, x: 40, y: -30 });
+  assert.deepEqual(panned, {
+    scale: 1,
+    x: BOUNDS.width * BOARD_VIEWPORT_PAN.fittedX,
+    y: -BOUNDS.height * BOARD_VIEWPORT_PAN.fittedY,
+  });
 });
 
 test("uses stationary stage coordinates for the zoom focus", () => {

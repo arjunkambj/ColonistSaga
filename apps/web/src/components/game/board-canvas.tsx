@@ -10,6 +10,7 @@ import {
 import { memo, useEffect, useRef, type CSSProperties, type RefObject } from "react";
 
 import {
+  ISLAND_SHELF_ASSET_PATH,
   PORT_SKIFF_ASSET_PATH,
   getTerrainAssetPath,
   type TerrainAssetVariant,
@@ -33,9 +34,7 @@ export interface BoardCanvasTarget {
   readonly asset: "city" | "road" | "robber" | "settlement";
   readonly disabled?: boolean;
   readonly highlighted?: boolean;
-  readonly marker?: number;
   readonly point: Readonly<PixelCoordinate>;
-  readonly showMarker?: boolean;
   readonly theme: PlayerColor;
 }
 
@@ -73,7 +72,6 @@ type SceneRenderer<Scene> = (
   isCancelled: () => boolean,
 ) => Promise<void>;
 
-const ISLAND_SHELF_ASSET_PATH = "/game-assets/ui/island-shelf-v1.png?v=tactile-v10";
 const MAX_CANVAS_PIXEL_RATIO = 3;
 const ROBBER_ASSET_PATH = "/game-assets/pieces/robber.png";
 
@@ -477,10 +475,8 @@ function drawDock(context: CanvasRenderingContext2D, start: PixelCoordinate, end
   context.save();
   context.lineCap = "round";
 
-  strokeLine(context, start, end, 20, "#8f5d27");
-  strokeLine(context, start, end, 15, "#d89b3d");
-  context.setLineDash([2, 10]);
-  strokeLine(context, start, end, 15, "rgba(125, 77, 29, 0.8)");
+  strokeLine(context, start, end, 10, "rgba(91, 57, 28, 0.46)");
+  strokeLine(context, start, end, 5, "rgba(216, 155, 61, 0.76)");
   context.restore();
 }
 
@@ -491,38 +487,38 @@ function drawPort(
   skiffImage: HTMLImageElement | null,
   resourceImage: HTMLImageElement | null,
 ) {
-  const width = 82;
-  const height = 110;
+  const width = 70;
+  const height = 94;
 
   if (skiffImage) {
     context.save();
-    context.shadowBlur = 6;
-    context.shadowColor = "rgba(39, 96, 122, 0.3)";
-    context.shadowOffsetY = 5;
+    context.shadowBlur = 4;
+    context.shadowColor = "rgba(39, 96, 122, 0.24)";
+    context.shadowOffsetY = 3;
     context.drawImage(skiffImage, point.x - width / 2, point.y - height / 2, width, height);
     context.restore();
   }
 
   if (trade === "any") {
-    drawAnyResourceMark(context, { x: point.x, y: point.y - 12 });
+    drawAnyResourceMark(context, { x: point.x, y: point.y - 10 });
   } else if (resourceImage) {
-    context.drawImage(resourceImage, point.x - 15, point.y - 27, 30, 30);
+    context.drawImage(resourceImage, point.x - 12, point.y - 23, 24, 24);
   }
 
   const label = trade === "any" ? "3:1" : "2:1";
   context.save();
-  context.font = "850 16px ui-sans-serif, system-ui, sans-serif";
-  const labelWidth = context.measureText(label).width + 13;
-  createRoundedRectPath(context, point.x - labelWidth / 2, point.y + 7, labelWidth, 23, 11);
-  context.fillStyle = "rgba(255, 250, 233, 0.98)";
-  context.shadowBlur = 4;
-  context.shadowColor = "rgba(55, 49, 42, 0.26)";
+  context.font = "850 14px ui-sans-serif, system-ui, sans-serif";
+  const labelWidth = context.measureText(label).width + 11;
+  createRoundedRectPath(context, point.x - labelWidth / 2, point.y + 5, labelWidth, 20, 10);
+  context.fillStyle = "rgba(255, 250, 233, 0.96)";
+  context.shadowBlur = 3;
+  context.shadowColor = "rgba(55, 49, 42, 0.2)";
   context.fill();
   context.shadowColor = "transparent";
   context.fillStyle = "#233b55";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(label, point.x, point.y + 18.5);
+  context.fillText(label, point.x, point.y + 15);
   context.restore();
 }
 
@@ -611,49 +607,73 @@ function drawTargets(
   for (const target of scene.targets) {
     const placement = { ...target.point, angle: target.angle };
 
-    drawTargetRing(context, target, placement);
+    if (!target.highlighted) {
+      drawTargetHint(context, target, placement);
+      continue;
+    }
+
+    drawHighlightedTarget(context, target, placement);
 
     const path = target.asset === "robber" ? ROBBER_ASSET_PATH : getPieceAssetPath(target.asset);
     const image = images.get(path) ?? null;
     if (image) {
       drawTargetGhost(context, target, placement, image, path);
     }
-
-    if (target.showMarker === true && target.marker !== undefined) {
-      drawTargetMarker(context, placement, target.marker, target.highlighted === true);
-    }
   }
 }
 
-function drawTargetRing(
+function drawTargetHint(
   context: CanvasRenderingContext2D,
   target: BoardCanvasTarget,
   placement: PixelCoordinate & { angle: number },
 ) {
-  const alpha = target.disabled ? 0.26 : target.highlighted ? 1 : 0.62;
-
   context.save();
   context.translate(placement.x, placement.y);
   context.rotate((placement.angle * Math.PI) / 180);
-  context.globalAlpha = alpha;
-  context.shadowBlur = target.highlighted ? 20 : 11;
-  context.shadowColor = "rgba(255, 194, 45, 0.9)";
-  context.fillStyle = target.highlighted ? "rgba(255, 219, 108, 0.3)" : "rgba(255, 231, 166, 0.14)";
+  context.globalAlpha = target.disabled ? 0.16 : 0.62;
+  context.fillStyle = "#ffe7a4";
 
   if (target.asset === "road") {
-    createRoundedRectPath(context, -56, -22, 112, 44, 22);
+    createRoundedRectPath(context, -15, -4, 30, 8, 4);
   } else {
-    const radius = target.asset === "robber" ? 68 : 36;
+    const radius = target.asset === "robber" ? 8 : 6;
     context.beginPath();
     context.arc(0, 0, radius, 0, Math.PI * 2);
   }
 
   context.fill();
-  context.strokeStyle = "rgba(10, 43, 71, 0.78)";
-  context.lineWidth = target.highlighted ? 10 : 8;
+  context.strokeStyle = "rgba(9, 49, 70, 0.7)";
+  context.lineWidth = 2;
   context.stroke();
-  context.strokeStyle = target.highlighted ? "#fff4bd" : "rgba(255, 244, 204, 0.95)";
-  context.lineWidth = target.highlighted ? 4 : 3;
+  context.restore();
+}
+
+function drawHighlightedTarget(
+  context: CanvasRenderingContext2D,
+  target: BoardCanvasTarget,
+  placement: PixelCoordinate & { angle: number },
+) {
+  context.save();
+  context.translate(placement.x, placement.y);
+  context.rotate((placement.angle * Math.PI) / 180);
+  context.globalAlpha = target.disabled ? 0.34 : 1;
+  context.shadowBlur = 16;
+  context.shadowColor = "rgba(255, 194, 45, 0.82)";
+  context.fillStyle = "rgba(255, 219, 108, 0.26)";
+
+  if (target.asset === "road") {
+    createRoundedRectPath(context, -50, -19, 100, 38, 19);
+  } else {
+    context.beginPath();
+    context.arc(0, 0, target.asset === "robber" ? 60 : 32, 0, Math.PI * 2);
+  }
+
+  context.fill();
+  context.strokeStyle = "rgba(9, 45, 67, 0.82)";
+  context.lineWidth = 6;
+  context.stroke();
+  context.strokeStyle = "#fff1bb";
+  context.lineWidth = 3;
   context.stroke();
   context.restore();
 }
@@ -681,32 +701,10 @@ function drawTargetGhost(
   context.save();
   context.translate(placement.x, placement.y);
   context.rotate((placement.angle * Math.PI) / 180);
-  context.globalAlpha = target.disabled ? 0.14 : target.highlighted ? 0.92 : 0.4;
-  context.shadowBlur = target.highlighted ? 12 : 5;
+  context.globalAlpha = target.disabled ? 0.18 : 0.94;
+  context.shadowBlur = 12;
   context.shadowColor = "rgba(255, 199, 69, 0.72)";
   context.drawImage(preview, -size / 2, -size / 2, size, size);
-  context.restore();
-}
-
-function drawTargetMarker(
-  context: CanvasRenderingContext2D,
-  placement: PixelCoordinate,
-  marker: number,
-  highlighted: boolean,
-) {
-  const point = { x: placement.x + 27, y: placement.y - 27 };
-  context.save();
-  context.beginPath();
-  context.arc(point.x, point.y, 13, 0, Math.PI * 2);
-  context.fillStyle = highlighted ? "#ffcf60" : "rgba(255, 196, 77, 0.92)";
-  context.shadowBlur = 8;
-  context.shadowColor = "rgba(98, 67, 18, 0.34)";
-  context.fill();
-  context.fillStyle = "#71491c";
-  context.font = "800 12px ui-sans-serif, system-ui, sans-serif";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(String(marker), point.x, point.y + 0.5);
   context.restore();
 }
 
@@ -936,18 +934,14 @@ function createDynamicSceneKey(scene: DynamicScene): string {
     renderScale: scene.renderScale,
     roads: scene.roads.map(({ edgeKey, playerId }) => [edgeKey, playerId]),
     robberTileId: scene.robberTileId,
-    targets: scene.targets.map(
-      ({ angle, asset, disabled, highlighted, marker, point, showMarker, theme }) => ({
-        angle,
-        asset,
-        disabled,
-        highlighted,
-        marker,
-        point,
-        showMarker,
-        theme,
-      }),
-    ),
+    targets: scene.targets.map(({ angle, asset, disabled, highlighted, point, theme }) => ({
+      angle,
+      asset,
+      disabled,
+      highlighted,
+      point,
+      theme,
+    })),
     tiles: scene.tiles.map(({ id, q, r }) => [id, q, r]),
   });
 }

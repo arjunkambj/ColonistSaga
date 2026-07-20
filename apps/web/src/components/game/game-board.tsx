@@ -22,6 +22,7 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
 
 import {
@@ -37,6 +38,8 @@ import { BOARD_VIEWPORT_SCALE, DEFAULT_BOARD_VIEWPORT } from "@/lib/game/board-v
 import { getTerrainAssetVariant } from "@/constants/game/board-assets";
 import {
   createBoardCanvasTargetModels,
+  findNearestBoardTarget,
+  mapClientPointToBoard,
   resolveBoardTargetMode,
   type BoardBuildMode,
   type BoardCanvasTargetModel,
@@ -85,7 +88,7 @@ interface InspectableBoardItemProps {
   inspection: BoardInspection;
   isInspected: boolean;
   isKeyboardTarget: boolean;
-  onInspect(id: string): void;
+  onInspect(id: string | null): void;
   onKeyboardFocus(id: string): void;
   onKeyboardNavigate(event: ReactKeyboardEvent<HTMLElement>, id: string): void;
 }
@@ -202,18 +205,16 @@ export function GameBoard({
   );
   const inspectionOrder = useMemo(() => [...inspectionById.keys()], [inspectionById]);
   const firstInspectionId = inspectionOrder[0] ?? null;
-  const compactPlacement = useCompactPlacementLayout();
   const targetMode = resolveBoardTargetMode(game, buildMode);
   const boardTargets = useMemo(
     () =>
       createBoardCanvasTargetModels({
         buildMode,
-        compactPlacement,
         game,
         layout: boardLayout,
         viewerTheme,
       }),
-    [boardLayout, buildMode, compactPlacement, game, viewerTheme],
+    [boardLayout, buildMode, game, viewerTheme],
   );
   const firstBoardTargetId = boardTargets[0]?.id ?? null;
   const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
@@ -225,14 +226,12 @@ export function GameBoard({
     : firstBoardTargetId;
   const canvasTargets = useMemo<readonly BoardCanvasTarget[]>(
     () =>
-      compactPlacement
-        ? []
-        : boardTargets.map((target) => ({
-            ...target,
-            disabled: pending,
-            highlighted: target.id === activeTargetId,
-          })),
-    [activeTargetId, boardTargets, compactPlacement, pending],
+      boardTargets.map((target) => ({
+        ...target,
+        disabled: pending,
+        highlighted: target.id === activeTargetId,
+      })),
+    [activeTargetId, boardTargets, pending],
   );
   const {
     boardSceneRef,
@@ -251,7 +250,15 @@ export function GameBoard({
     stopPointerGesture,
     zoomOutputRef,
   } = useBoardCamera();
-  const previousCompactPlacementRef = useRef(compactPlacement);
+  const findPointerTarget = (clientX: number, clientY: number) => {
+    const bounds = boardSceneRef.current?.getBoundingClientRect();
+    if (!bounds) {
+      return null;
+    }
+
+    const boardPoint = mapClientPointToBoard({ x: clientX, y: clientY }, bounds, BOARD_CANVAS);
+    return boardPoint ? findNearestBoardTarget(boardTargets, boardPoint) : null;
+  };
   const previousTargetModeRef = useRef<typeof targetMode>(null);
   const [inspectedItemId, setInspectedItemId] = useState<string | null>(null);
   const [keyboardInspectionId, setKeyboardInspectionId] = useState<string | null>(
@@ -269,9 +276,7 @@ export function GameBoard({
   }, [firstInspectionId, keyboardInspectionExists]);
 
   useEffect(() => {
-    const compactPlacementChanged = previousCompactPlacementRef.current !== compactPlacement;
     const previousTargetMode = previousTargetModeRef.current;
-    previousCompactPlacementRef.current = compactPlacement;
     previousTargetModeRef.current = targetMode;
 
     if (previousTargetMode !== null && targetMode === null) {
@@ -279,27 +284,19 @@ export function GameBoard({
       return;
     }
 
-    if (
-      targetMode === null ||
-      (previousTargetMode === targetMode && !compactPlacementChanged) ||
-      firstBoardTargetId === null
-    ) {
+    if (targetMode === null || previousTargetMode === targetMode || firstBoardTargetId === null) {
       return;
     }
 
     setKeyboardTargetId(firstBoardTargetId);
-    const firstTarget = compactPlacement
-      ? [...document.querySelectorAll<HTMLElement>("[data-compact-board-target-id]")].find(
-          (element) => element.dataset.compactBoardTargetId === firstBoardTargetId,
-        )
-      : [
-          ...(boardShellRef.current?.querySelectorAll<HTMLElement>("[data-board-target-id]") ?? []),
-        ].find((element) => element.dataset.boardTargetId === firstBoardTargetId);
+    const firstTarget = [
+      ...(boardShellRef.current?.querySelectorAll<HTMLElement>("[data-board-target-id]") ?? []),
+    ].find((element) => element.dataset.boardTargetId === firstBoardTargetId);
     firstTarget?.focus();
-  }, [boardShellRef, compactPlacement, firstBoardTargetId, onPlacementExit, targetMode]);
+  }, [boardShellRef, firstBoardTargetId, onPlacementExit, targetMode]);
 
-  const inspectBoardItem = (id: string) => {
-    if (isInteracting()) {
+  const inspectBoardItem = (id: string | null) => {
+    if (id !== null && isInteracting()) {
       return;
     }
     setInspectedItemId(id);
@@ -418,25 +415,11 @@ export function GameBoard({
       tabIndex={0}
     >
       {targetMode && boardTargets.length > 0 ? (
-        <div aria-live="polite" className="board-placement-banner" role="status">
-          <span className="board-placement-copy">
-            <small>Placement mode</small>
-            <strong>{getTargetModeLabel(targetMode)}</strong>
-            <em>
-              {boardTargets.length} legal {boardTargets.length === 1 ? "location" : "locations"}
-            </em>
-          </span>
-          {buildMode !== null && onCancelBuildMode ? (
-            <Button
-              className="board-placement-cancel"
-              onPress={onCancelBuildMode}
-              size="sm"
-              variant="ghost"
-            >
-              Cancel <kbd>Esc</kbd>
-            </Button>
-          ) : null}
-        </div>
+        <p aria-live="polite" className="sr-only" role="status">
+          {getTargetModeLabel(targetMode)}. {boardTargets.length} legal
+          {boardTargets.length === 1 ? " location" : " locations"}.
+          {buildMode !== null && onCancelBuildMode ? " Press Escape to cancel." : null}
+        </p>
       ) : null}
       <div className="board-navigation">
         <span className="board-gesture-hint">
@@ -607,7 +590,13 @@ export function GameBoard({
               disabled={pending}
               isKeyboardTarget={target.id === effectiveKeyboardTargetId}
               key={target.id}
-              onClick={() => onCommand(target.command, target.successMessage)}
+              onClick={(event) => {
+                const selectedTarget =
+                  event.detail === 0
+                    ? target
+                    : (findPointerTarget(event.clientX, event.clientY) ?? target);
+                onCommand(selectedTarget.command, selectedTarget.successMessage);
+              }}
               onFocus={(id) => {
                 setFocusedTargetId(id);
                 if (id) {
@@ -616,6 +605,9 @@ export function GameBoard({
               }}
               onHover={setHoveredTargetId}
               onKeyboardNavigate={navigateBuildTargets}
+              onPointerMove={(clientX, clientY) => {
+                setHoveredTargetId(findPointerTarget(clientX, clientY)?.id ?? null);
+              }}
               target={target}
             />
           ))}
@@ -649,10 +641,16 @@ function BoardHitTarget({
       className={getInspectableClassName(`board-hit-target ${className}`, isInspected)}
       data-board-inspection-id={inspection.id}
       data-board-inspectable={kind}
+      onBlur={() => onInspect(null)}
       onFocus={() => onKeyboardFocus(inspection.id)}
       onKeyDown={(event) => onKeyboardNavigate(event, inspection.id)}
       onPointerDown={() => onInspect(inspection.id)}
       onPointerEnter={() => onInspect(inspection.id)}
+      onPointerLeave={(event) => {
+        if (document.activeElement !== event.currentTarget) {
+          onInspect(null);
+        }
+      }}
       role="img"
       style={{ ...getPointStyle(point), "--hit-rotation": `${angle}deg` } as CSSProperties}
       tabIndex={isKeyboardTarget ? 0 : -1}
@@ -667,47 +665,40 @@ function BuildTarget({
   onFocus,
   onHover,
   onKeyboardNavigate,
+  onPointerMove,
   target,
 }: {
   disabled: boolean;
   isKeyboardTarget: boolean;
-  onClick(): void;
+  onClick(event: ReactMouseEvent<HTMLButtonElement>): void;
   onFocus(id: string | null): void;
   onHover(id: string | null): void;
   onKeyboardNavigate(event: ReactKeyboardEvent<HTMLButtonElement>, id: string): void;
+  onPointerMove(clientX: number, clientY: number): void;
   target: BoardCanvasTargetModel;
 }) {
   return (
     <button
-      aria-hidden={target.ariaHidden || undefined}
       aria-label={target.label}
       className={`build-target target-${target.type} target-${target.asset} player-${target.theme}`}
       data-board-target-id={target.id}
-      data-marker={target.marker}
       disabled={disabled}
       onBlur={() => onFocus(null)}
-      onClick={target.interactive ? onClick : undefined}
+      onClick={onClick}
       onFocus={() => onFocus(target.id)}
       onKeyDown={(event) => onKeyboardNavigate(event, target.id)}
-      onPointerEnter={() => onHover(target.id)}
+      onPointerEnter={(event) => onPointerMove(event.clientX, event.clientY)}
       onPointerLeave={() => onHover(null)}
+      onPointerMove={(event) => onPointerMove(event.clientX, event.clientY)}
       style={
         {
           ...getPointStyle(target.point),
-          "--target-label-rotation": `${-target.angle}deg`,
           "--target-rotation": `${target.angle}deg`,
         } as CSSProperties
       }
-      tabIndex={target.interactive && isKeyboardTarget ? 0 : -1}
+      tabIndex={isKeyboardTarget ? 0 : -1}
       type="button"
-    >
-      <span
-        aria-hidden="true"
-        className="build-target-marker"
-        data-marker={target.marker}
-        style={{ display: target.showMarker ? undefined : "none" }}
-      />
-    </button>
+    />
   );
 }
 
@@ -899,20 +890,6 @@ function getKeyboardPanDelta(key: string): { x: number; y: number } | null {
     default:
       return null;
   }
-}
-
-function useCompactPlacementLayout(): boolean {
-  const [isCompact, setIsCompact] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-height: 560px) and (orientation: landscape)");
-    const update = () => setIsCompact(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
-
-  return isCompact;
 }
 
 function getTargetModeLabel(

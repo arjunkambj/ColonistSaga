@@ -11,8 +11,10 @@ import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
   getTerrainAssetPath,
+  ISLAND_SHELF_ASSET_PATH,
   OCEAN_BOARD_ASSET_PATH,
   PORT_SKIFF_ASSET_PATH,
+  TERRAIN_ASSET_VARIANTS,
 } from "@/constants/game/board-assets";
 
 import { AssetCard, type AssetCardItem } from "./asset-card";
@@ -78,6 +80,21 @@ const SOUND_EFFECT_ASSETS = [
 
 const selectAssets = (assets: readonly AssetItem[], names: readonly string[]) =>
   assets.filter((asset) => names.includes(asset.name));
+
+const TERRAIN_TYPES = [
+  ["Fields", "fields", "Wheat-producing farmland hex."],
+  ["Forest", "forest", "Tree-producing woodland hex."],
+  ["Hills", "hills", "Brick-producing clay hills hex."],
+  ["Mountains", "mountains", "Stone-producing mountain hex."],
+  ["Pasture", "pasture", "Sheep-producing grassland hex."],
+  ["Desert", "desert", "Non-producing robber hex."],
+] as const;
+
+const TERRAIN_VARIANT_LABELS = {
+  alternate: "Alternate 1",
+  "alternate-2": "Alternate 2",
+  base: "Base",
+} as const;
 
 const SOUND_EFFECT_SUBCATEGORIES = [
   {
@@ -158,21 +175,16 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Terrain tiles",
-    description: "The six top-down hex illustrations in the base board pack.",
-    assets: [
-      ["Fields", "Wheat-producing farmland hex.", getTerrainAssetPath("fields")],
-      ["Forest", "Tree-producing woodland hex.", getTerrainAssetPath("forest")],
-      ["Hills", "Brick-producing clay hills hex.", getTerrainAssetPath("hills")],
-      ["Mountains", "Stone-producing mountain hex.", getTerrainAssetPath("mountains")],
-      ["Pasture", "Sheep-producing grassland hex.", getTerrainAssetPath("pasture")],
-      ["Desert", "Non-producing robber hex.", getTerrainAssetPath("desert")],
-    ].map(([name, description, path]) => ({
-      name,
-      description,
-      format: "PNG · 512×512",
-      path,
-      status: "generated" as const,
-    })),
+    description: "All 18 top-down hex illustrations used by the deterministic board renderer.",
+    assets: TERRAIN_TYPES.flatMap(([name, terrain, description]) =>
+      TERRAIN_ASSET_VARIANTS.map((variant) => ({
+        name: `${name} · ${TERRAIN_VARIANT_LABELS[variant]}`,
+        description,
+        format: "PNG · 512×512",
+        path: getTerrainAssetPath(terrain, variant),
+        status: "generated" as const,
+      })),
+    ),
   },
   {
     name: "Bottom resource icons",
@@ -195,20 +207,42 @@ const ASSET_CATEGORIES = [
     name: "Resource cards",
     description: "Full portrait card artwork for resources and the unrevealed development card.",
     assets: [
-      ["Tree card", "Forest-and-timber card artwork."],
-      ["Brick card", "Clay-hills-and-brick card artwork."],
-      ["Sheep card", "Pasture-and-sheep card artwork."],
-      ["Wheat card", "Golden-fields-and-wheat card artwork."],
-      ["Stone card", "Mountain-and-stone card artwork."],
+      [
+        "Tree card",
+        "Forest-and-timber card artwork.",
+        "/game-assets/cards/resources/tree-card-v1.png",
+      ],
+      [
+        "Brick card",
+        "Clay-hills-and-brick card artwork.",
+        "/game-assets/cards/resources/brick-card-v1.png",
+      ],
+      [
+        "Sheep card",
+        "Pasture-and-sheep card artwork.",
+        "/game-assets/cards/resources/sheep-card-v1.png",
+      ],
+      [
+        "Wheat card",
+        "Golden-fields-and-wheat card artwork.",
+        "/game-assets/cards/resources/wheat-card-v1.png",
+      ],
+      [
+        "Stone card",
+        "Mountain-and-stone card artwork.",
+        "/game-assets/cards/resources/stone-card-v1.png",
+      ],
       [
         "General development card",
         "Shared unrevealed card face for development-card hand and deck counts.",
+        "/game-assets/cards/development/hidden-card-back-v1.png",
       ],
-    ].map(([name, description]) => ({
+    ].map(([name, description, path]) => ({
       name,
       description: `${description} Labels and counts remain code-rendered.`,
-      format: "Target · 512×768 RGBA",
-      status: "needed" as const,
+      format: "PNG · 512×768",
+      path,
+      status: "generated" as const,
     })),
   },
   {
@@ -253,8 +287,9 @@ const ASSET_CATEGORIES = [
       {
         name: "Bank icon",
         description: "Bank-building symbol for the resource market and bank controls.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256 · transparent",
+        path: "/game-assets/ui/bank-v1.png",
+        status: "generated",
       },
       {
         name: "Development card icon",
@@ -276,16 +311,37 @@ const ASSET_CATEGORIES = [
     name: "Placement & action cards",
     description: "Full card artwork for the bottom action dock, beyond the compact icons.",
     assets: [
-      ["Trade card", "Market scene for opening bank or player trade."],
-      ["Road card", "Road-building card for edge placement."],
-      ["Settlement card", "House card for settlement placement."],
-      ["City card", "City-upgrade card for replacing a settlement."],
-      ["End turn card", "Hourglass card for completing the active turn."],
-    ].map(([name, description]) => ({
+      [
+        "Trade card",
+        "Market scene for opening bank or player trade.",
+        "/game-assets/cards/actions/trade-card-v1.png",
+      ],
+      [
+        "Road card",
+        "Road-building card for edge placement.",
+        "/game-assets/cards/actions/road-card-v1.png",
+      ],
+      [
+        "Settlement card",
+        "House card for settlement placement.",
+        "/game-assets/cards/actions/settlement-card-v1.png",
+      ],
+      [
+        "City card",
+        "City-upgrade card for replacing a settlement.",
+        "/game-assets/cards/actions/city-card-v1.png",
+      ],
+      [
+        "End turn card",
+        "Hourglass card for completing the active turn.",
+        "/game-assets/cards/actions/end-turn-card-v1.png",
+      ],
+    ].map(([name, description, path]) => ({
       name,
       description: `${description} Title, cost, count, and state remain code-rendered.`,
-      format: "Target · 512×768 RGBA",
-      status: "needed" as const,
+      format: "PNG · 512×768",
+      path,
+      status: "generated" as const,
     })),
   },
   {
@@ -297,6 +353,13 @@ const ASSET_CATEGORIES = [
         description: "Small boat used to dress board ports.",
         format: "PNG · 384×512",
         path: PORT_SKIFF_ASSET_PATH,
+        status: "generated",
+      },
+      {
+        name: "Island shelf",
+        description: "Soft island silhouette beneath the playable terrain cluster.",
+        format: "PNG · transparent",
+        path: ISLAND_SHELF_ASSET_PATH,
         status: "generated",
       },
       {
@@ -322,44 +385,51 @@ const ASSET_CATEGORIES = [
       {
         name: "Blue cartographer",
         description: "Blue-seat island cartographer.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/blue-cartographer-v1.png",
+        status: "generated",
       },
       {
         name: "Orange builder",
         description: "Orange-seat village builder.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/orange-builder-v1.png",
+        status: "generated",
       },
       {
         name: "Green botanist",
         description: "Green-seat island botanist.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/green-botanist-v1.png",
+        status: "generated",
       },
       {
         name: "Purple astronomer",
         description: "Purple-seat island astronomer.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/purple-astronomer-v1.png",
+        status: "generated",
       },
       {
         name: "Teal shipwright",
         description: "Teal-seat harbor shipwright.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/teal-shipwright-v1.png",
+        status: "generated",
       },
       {
         name: "Yellow merchant",
         description: "Yellow-seat island merchant.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/yellow-merchant-v1.png",
+        status: "generated",
       },
       {
         name: "Pink pathfinder",
         description: "Pink-seat island pathfinder.",
-        format: "Target · 256×256 RGBA",
-        status: "needed",
+        format: "PNG · 256×256",
+        path: "/game-assets/players/pink-pathfinder-v1.png",
+        status: "generated",
       },
     ],
   },
@@ -367,17 +437,42 @@ const ASSET_CATEGORIES = [
     name: "Development cards",
     description: "Full portrait illustrations for development-card details and reveal states.",
     assets: [
-      ["Knight card", "Armored island guardian illustration."],
-      ["Road building card", "Road-building expedition illustration."],
-      ["Year of plenty card", "Abundant island harvest illustration."],
-      ["Monopoly card", "Merchant treasury illustration."],
-      ["Victory point card", "Hidden victory achievement illustration."],
-      ["Hidden card back", "Shared concealed development-card back."],
-    ].map(([name, description]) => ({
+      [
+        "Knight card",
+        "Armored island guardian illustration.",
+        "/game-assets/cards/development/knight-v1.png",
+      ],
+      [
+        "Road building card",
+        "Road-building expedition illustration.",
+        "/game-assets/cards/development/road-building-v1.png",
+      ],
+      [
+        "Year of plenty card",
+        "Abundant island harvest illustration.",
+        "/game-assets/cards/development/year-of-plenty-v1.png",
+      ],
+      [
+        "Monopoly card",
+        "Merchant treasury illustration.",
+        "/game-assets/cards/development/monopoly-v1.png",
+      ],
+      [
+        "Victory point card",
+        "Hidden victory achievement illustration.",
+        "/game-assets/cards/development/victory-point-v1.png",
+      ],
+      [
+        "Hidden card back",
+        "Shared concealed development-card back.",
+        "/game-assets/cards/development/hidden-card-back-v1.png",
+      ],
+    ].map(([name, description, path]) => ({
       name,
       description,
-      format: "Target · portrait RGBA",
-      status: "needed" as const,
+      format: "PNG · 512×768",
+      path,
+      status: "generated" as const,
     })),
   },
   {
@@ -387,26 +482,31 @@ const ASSET_CATEGORIES = [
       {
         name: "Longest Road",
         description: "Award illustration for the longest connected route.",
-        format: "Target · square RGBA",
-        status: "needed",
+        format: "PNG · 512×512 · transparent",
+        path: "/game-assets/awards/longest-road-v1.png",
+        status: "generated",
       },
       {
         name: "Largest Army",
         description: "Award illustration for the strongest knight force.",
-        format: "Target · square RGBA",
-        status: "needed",
+        format: "PNG · 512×512 · transparent",
+        path: "/game-assets/awards/largest-army-v1.png",
+        status: "generated",
       },
       {
         name: "Victory flourish",
         description: "Celebratory crown, rays, and confetti treatment.",
-        format: "Target · wide RGBA",
-        status: "needed",
+        format: "PNG · 1536×512 · transparent",
+        path: "/game-assets/results/victory-flourish-v1.png",
+        status: "generated",
       },
       {
         name: "Result scene",
         description: "End-of-game island tableau behind the scoreboard.",
-        format: "Target · 16:9 WebP",
-        status: "needed",
+        fit: "cover",
+        format: "WebP · 1536×864",
+        path: "/game-assets/results/result-scene-v1.webp",
+        status: "generated",
       },
     ],
   },
@@ -416,21 +516,24 @@ const ASSET_CATEGORIES = [
     assets: [
       {
         name: "Coastal rocks",
-        description: "Small isolated rock clusters for open ocean spaces.",
-        format: "Target · transparent PNG",
-        status: "needed",
+        description: "Optional isolated rock cluster kept out of the default live board.",
+        format: "PNG · 384×384 · transparent",
+        path: "/game-assets/ambience/coastal-rocks-v1.png",
+        status: "generated",
       },
       {
         name: "Foam accents",
-        description: "Subtle shoreline and wake accent set.",
-        format: "Target · transparent PNG",
-        status: "needed",
+        description: "Optional shoreline accent set kept out of the default live board.",
+        format: "PNG · 384×384 · transparent",
+        path: "/game-assets/ambience/foam-accents-v1.png",
+        status: "generated",
       },
       {
         name: "Coastal plants",
-        description: "Compact flowers and grasses for board edges.",
-        format: "Target · transparent PNG",
-        status: "needed",
+        description: "Optional flower-and-grass cluster kept out of the default live board.",
+        format: "PNG · 384×384 · transparent",
+        path: "/game-assets/ambience/coastal-plants-v1.png",
+        status: "generated",
       },
     ],
   },
@@ -548,7 +651,7 @@ export default function AssetSheetPage() {
             />
             <SummaryItem
               icon={<Icon aria-hidden="true" icon={clockIcon} />}
-              label="Need to generate"
+              label="Pending production"
               tone="needed"
               value={assetTotals.needed}
             />
