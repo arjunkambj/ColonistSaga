@@ -2366,3 +2366,26 @@
     opacity: 0.72;
   }
 }
+
+.reference-game .action-card-art {
+  width: 2.35rem;
+  height: 3.5rem;
+  border: 1px solid rgba(224, 249, 255, 0.66);
+  border-radius: 0.42rem;
+  object-fit: cover;
+  object-position: 50% 27%;
+}
+
+@media (min-width: 1241px) and (min-height: 561px) {
+  .reference-game .action-card-art {
+    width: 2.75rem;
+    height: 4.1rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .reference-game .action-card-art {
+    width: 2rem;
+    height: 3rem;
+  }
+}

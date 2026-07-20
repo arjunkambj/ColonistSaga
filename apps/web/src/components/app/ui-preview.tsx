@@ -10,14 +10,19 @@ import {
   type GameState,
   type ResourceInventory,
 } from "@colonistsaga/game";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
-import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
+import {
+  ACTION_CARD_ASSET_PATHS,
+  DEVELOPMENT_CARD_BACK_ASSET_PATH,
+  getCardRuntimeAssetPath,
+} from "@/constants/game/card-assets";
 import type { RoomEventView } from "@/lib/game/types";
 
 export type UiPreviewMode =
@@ -131,13 +136,16 @@ function ActionPresetPreview() {
             <ActionTile
               ariaLabel={`${tile.title} action-card preset`}
               art={
-                <img
+                <Image
                   alt=""
-                  className="action-art"
+                  className="action-art action-card-art"
+                  data-card-asset={tile.src}
                   draggable={false}
-                  height={256}
-                  src={tile.src}
-                  width={256}
+                  height={768}
+                  loading="eager"
+                  sizes="7.5rem"
+                  src={getCardRuntimeAssetPath(tile.src)}
+                  width={512}
                 />
               }
               caption={tile.caption}
@@ -173,7 +181,7 @@ const ACTION_PRESET_TILES = [
     caption: "Bank or players",
     kind: "trade",
     meta: "Open market",
-    src: "/game-assets/ui/market-trade-v1.png",
+    src: ACTION_CARD_ASSET_PATHS.trade,
     title: "Trade",
   },
   {
@@ -181,7 +189,7 @@ const ACTION_PRESET_TILES = [
     count: "—",
     kind: "development-deck",
     meta: "Deck preview",
-    src: "/game-assets/ui/development-deck-v1.avif",
+    src: DEVELOPMENT_CARD_BACK_ASSET_PATH,
     title: "Dev Deck",
     unavailable: true,
   },
@@ -190,7 +198,7 @@ const ACTION_PRESET_TILES = [
     count: 13,
     kind: "road",
     meta: "1 wood · 1 brick",
-    src: getPieceAssetPath("road"),
+    src: ACTION_CARD_ASSET_PATHS.road,
     title: "Road",
   },
   {
@@ -198,7 +206,7 @@ const ACTION_PRESET_TILES = [
     count: 3,
     kind: "settlement",
     meta: "Wood · brick · sheep · wheat",
-    src: getPieceAssetPath("settlement"),
+    src: ACTION_CARD_ASSET_PATHS.settlement,
     title: "Settlement",
   },
   {
@@ -206,14 +214,14 @@ const ACTION_PRESET_TILES = [
     count: 4,
     kind: "city",
     meta: "2 wheat · 3 stone",
-    src: getPieceAssetPath("city"),
+    src: ACTION_CARD_ASSET_PATHS.city,
     title: "City",
   },
   {
     caption: "Pass play clockwise",
     kind: "end-turn",
     meta: "Turn complete",
-    src: "/game-assets/ui/end-turn-hourglass-v1.png",
+    src: ACTION_CARD_ASSET_PATHS.endTurn,
     title: "End Turn",
   },
 ] satisfies readonly ActionPresetPreviewTile[];

@@ -10,6 +10,12 @@ import type { ReactNode } from "react";
 import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
+  ACTION_CARD_ASSET_PATHS,
+  DEVELOPMENT_CARD_ASSETS,
+  DEVELOPMENT_CARD_BACK_ASSET_PATH,
+  RESOURCE_CARD_ASSET_PATHS,
+} from "@/constants/game/card-assets";
+import {
   getTerrainAssetPath,
   ISLAND_SHELF_ASSET_PATH,
   OCEAN_BOARD_ASSET_PATH,
@@ -205,38 +211,13 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Resource cards",
-    description: "Full portrait card artwork for resources and the unrevealed development card.",
+    description: "Full portrait card artwork used by the private resource hand.",
     assets: [
-      [
-        "Tree card",
-        "Forest-and-timber card artwork.",
-        "/game-assets/cards/resources/tree-card-v1.png",
-      ],
-      [
-        "Brick card",
-        "Clay-hills-and-brick card artwork.",
-        "/game-assets/cards/resources/brick-card-v1.png",
-      ],
-      [
-        "Sheep card",
-        "Pasture-and-sheep card artwork.",
-        "/game-assets/cards/resources/sheep-card-v1.png",
-      ],
-      [
-        "Wheat card",
-        "Golden-fields-and-wheat card artwork.",
-        "/game-assets/cards/resources/wheat-card-v1.png",
-      ],
-      [
-        "Stone card",
-        "Mountain-and-stone card artwork.",
-        "/game-assets/cards/resources/stone-card-v1.png",
-      ],
-      [
-        "General development card",
-        "Shared unrevealed card face for development-card hand and deck counts.",
-        "/game-assets/cards/development/hidden-card-back-v1.png",
-      ],
+      ["Tree card", "Forest-and-timber card artwork.", RESOURCE_CARD_ASSET_PATHS.tree],
+      ["Brick card", "Clay-hills-and-brick card artwork.", RESOURCE_CARD_ASSET_PATHS.brick],
+      ["Sheep card", "Pasture-and-sheep card artwork.", RESOURCE_CARD_ASSET_PATHS.sheep],
+      ["Wheat card", "Golden-fields-and-wheat card artwork.", RESOURCE_CARD_ASSET_PATHS.wheat],
+      ["Stone card", "Mountain-and-stone card artwork.", RESOURCE_CARD_ASSET_PATHS.stone],
     ].map(([name, description, path]) => ({
       name,
       description: `${description} Labels and counts remain code-rendered.`,
@@ -247,7 +228,8 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Placement & action icons",
-    description: "Compact artwork used inside board-placement and bottom action controls.",
+    description:
+      "Live board-piece artwork plus compact action alternatives retained as visual references.",
     assets: [
       {
         name: "Road icon",
@@ -279,7 +261,7 @@ const ASSET_CATEGORIES = [
       },
       {
         name: "Trade icon",
-        description: "Market artwork for domestic and bank trading controls.",
+        description: "Alternate compact market artwork; the live trade control uses its full card.",
         format: "PNG · 256×256",
         path: "/game-assets/ui/market-trade-v1.png",
         status: "generated",
@@ -293,14 +275,14 @@ const ASSET_CATEGORIES = [
       },
       {
         name: "Development card icon",
-        description: "General stacked-card artwork for the development-deck action.",
+        description: "Alternate stacked-card artwork retained for development-deck reference.",
         format: "AVIF · 512×512 · transparent",
         path: "/game-assets/ui/development-deck-v1.avif",
         status: "generated",
       },
       {
         name: "End turn icon",
-        description: "Hourglass artwork for the end-turn control.",
+        description: "Alternate compact hourglass artwork; the live control uses its full card.",
         format: "PNG · 256×256",
         path: "/game-assets/ui/end-turn-hourglass-v1.png",
         status: "generated",
@@ -314,27 +296,19 @@ const ASSET_CATEGORIES = [
       [
         "Trade card",
         "Market scene for opening bank or player trade.",
-        "/game-assets/cards/actions/trade-card-v1.png",
+        ACTION_CARD_ASSET_PATHS.trade,
       ],
-      [
-        "Road card",
-        "Road-building card for edge placement.",
-        "/game-assets/cards/actions/road-card-v1.png",
-      ],
+      ["Road card", "Road-building card for edge placement.", ACTION_CARD_ASSET_PATHS.road],
       [
         "Settlement card",
         "House card for settlement placement.",
-        "/game-assets/cards/actions/settlement-card-v1.png",
+        ACTION_CARD_ASSET_PATHS.settlement,
       ],
-      [
-        "City card",
-        "City-upgrade card for replacing a settlement.",
-        "/game-assets/cards/actions/city-card-v1.png",
-      ],
+      ["City card", "City-upgrade card for replacing a settlement.", ACTION_CARD_ASSET_PATHS.city],
       [
         "End turn card",
         "Hourglass card for completing the active turn.",
-        "/game-assets/cards/actions/end-turn-card-v1.png",
+        ACTION_CARD_ASSET_PATHS.endTurn,
       ],
     ].map(([name, description, path]) => ({
       name,
@@ -435,45 +409,23 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Development cards",
-    description: "Full portrait illustrations for development-card details and reveal states.",
+    description: "Full portrait illustrations used by the in-game development-deck reference.",
     assets: [
-      [
-        "Knight card",
-        "Armored island guardian illustration.",
-        "/game-assets/cards/development/knight-v1.png",
-      ],
-      [
-        "Road building card",
-        "Road-building expedition illustration.",
-        "/game-assets/cards/development/road-building-v1.png",
-      ],
-      [
-        "Year of plenty card",
-        "Abundant island harvest illustration.",
-        "/game-assets/cards/development/year-of-plenty-v1.png",
-      ],
-      [
-        "Monopoly card",
-        "Merchant treasury illustration.",
-        "/game-assets/cards/development/monopoly-v1.png",
-      ],
-      [
-        "Victory point card",
-        "Hidden victory achievement illustration.",
-        "/game-assets/cards/development/victory-point-v1.png",
-      ],
-      [
-        "Hidden card back",
-        "Shared concealed development-card back.",
-        "/game-assets/cards/development/hidden-card-back-v1.png",
-      ],
-    ].map(([name, description, path]) => ({
-      name,
-      description,
-      format: "PNG · 512×768",
-      path,
-      status: "generated" as const,
-    })),
+      ...DEVELOPMENT_CARD_ASSETS.map((card) => ({
+        name: `${card.label} card`,
+        description: card.description,
+        format: "PNG · 512×768",
+        path: card.path,
+        status: "generated" as const,
+      })),
+      {
+        name: "Hidden card back",
+        description: "Shared concealed development-card back used by the hand reference trigger.",
+        format: "PNG · 512×768",
+        path: DEVELOPMENT_CARD_BACK_ASSET_PATH,
+        status: "generated" as const,
+      },
+    ],
   },
   {
     name: "Awards & results",

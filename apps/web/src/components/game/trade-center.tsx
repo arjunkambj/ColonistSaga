@@ -21,6 +21,8 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useState } from "react";
 
+import { ACTION_CARD_ASSET_PATHS, getCardRuntimeAssetPath } from "@/constants/game/card-assets";
+
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { ActionTile } from "./action-tile";
 
@@ -49,11 +51,14 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
         art={
           <Image
             alt=""
-            className="action-art"
+            className="action-art action-card-art"
+            data-card-asset={ACTION_CARD_ASSET_PATHS.trade}
             draggable={false}
-            height={256}
-            src="/game-assets/ui/market-trade-v1.png"
-            width={256}
+            height={768}
+            loading="eager"
+            sizes="4rem"
+            src={getCardRuntimeAssetPath(ACTION_CARD_ASSET_PATHS.trade)}
+            width={512}
           />
         }
         caption={game.tradeOffer ? "Offer open" : "Bank or players"}

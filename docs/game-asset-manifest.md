@@ -73,6 +73,18 @@ with legal targets, pieces, ports, or number tokens. The game asset sheet is the
 complete visual inventory and includes the island shelf, ocean canvas, port
 skiff, all 18 terrain variants, and every expansion image above.
 
+All 16 unique generated card images share one runtime path catalog in
+`apps/web/src/constants/game/card-assets.ts`. The five resource cards render in
+the private hand, the five action cards render in the existing action dock, and
+the hidden development-card back opens an in-game reference for the five card
+faces. The reference explicitly states that development-card mechanics are not
+enabled in the current ruleset.
+
+Because the web client is statically exported and cannot use the Next image
+optimizer, gameplay loads 320×480 WebP renditions from `cards/runtime/` rather
+than the 9.5 MB source PNG set. The complete runtime card pack is roughly 412 KB;
+the asset sheet continues to preview the full-resolution sources.
+
 ## Render in code
 
 These assets are deterministic shapes or text and should be SVG/CSS/canvas, not

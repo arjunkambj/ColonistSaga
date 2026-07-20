@@ -29,19 +29,26 @@ import minimizeIcon from "@iconify-icons/solar/minimize-square-outline";
 import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
 import { Icon } from "@iconify/react";
 import { useMutation } from "convex/react";
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
+import {
+  ACTION_CARD_ASSET_PATHS,
+  getCardRuntimeAssetPath,
+  RESOURCE_CARD_ASSET_PATHS,
+} from "@/constants/game/card-assets";
 import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
 import { ActionTile } from "./action-tile";
+import { DevelopmentDeckGuide } from "./development-deck-guide";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
-import { PieceIcon, type PieceAsset, type PieceTheme } from "./piece-icon";
+import { PieceIcon } from "./piece-icon";
 import { TradeCenter } from "./trade-center";
 
 type GameConfirmation =
@@ -824,6 +831,30 @@ function MobileGameInfo({
   );
 }
 
+function GameCardArtwork({
+  className,
+  path,
+  sizes,
+}: {
+  className: string;
+  path: string;
+  sizes: string;
+}) {
+  return (
+    <Image
+      alt=""
+      className={className}
+      data-card-asset={path}
+      draggable={false}
+      height={768}
+      loading="eager"
+      sizes={sizes}
+      src={getCardRuntimeAssetPath(path)}
+      width={512}
+    />
+  );
+}
+
 function ResourceHand({ me }: { me: PrivatePlayerState }) {
   const theme = getPlayerTheme(me);
   const resourceListRef = useRef<HTMLUListElement>(null);
@@ -873,7 +904,11 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
             key={resource}
           >
             <span className="resource-card-art" aria-hidden="true">
-              <ResourceIcon decorative resource={resource} size={72} />
+              <GameCardArtwork
+                className="resource-card-image"
+                path={RESOURCE_CARD_ASSET_PATHS[resource]}
+                sizes="4.5rem"
+              />
             </span>
             <span className="resource-card-copy">
               <span className="resource-card-label">{RESOURCE_LABELS[resource]}</span>
@@ -884,21 +919,7 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
             </span>
           </li>
         ))}
-        <li
-          aria-label="Development cards are not available in this ruleset"
-          className="resource-card resource-card-face resource-mystery is-unavailable"
-        >
-          <span className="resource-card-art resource-card-mystery-icon" aria-hidden="true">
-            ?
-          </span>
-          <span className="resource-card-copy">
-            <span className="resource-card-label">Dev cards</span>
-            <span className="resource-card-quantity">
-              <strong>—</strong>
-              <small>not in ruleset</small>
-            </span>
-          </span>
-        </li>
+        <DevelopmentDeckGuide />
       </ul>
       <div className="piece-supply" aria-labelledby="piece-supply-title" role="group">
         <span className="piece-supply-title" id="piece-supply-title">
@@ -951,7 +972,6 @@ function ActionDock({
   pending: boolean;
 }) {
   const legal = game.legalActions;
-  const viewerTheme = getPlayerTheme(me);
   if (!legal.isRequiredActor) {
     return (
       <section className="action-dock is-waiting" aria-label="Turn actions">
@@ -1018,13 +1038,10 @@ function ActionDock({
         <ActionTile
           ariaLabel="End turn unavailable until the dice are rolled"
           art={
-            <img
-              alt=""
-              className="action-art"
-              draggable={false}
-              height={256}
-              src="/game-assets/ui/end-turn-hourglass-v1.png"
-              width={256}
+            <GameCardArtwork
+              className="action-art action-card-art"
+              path={ACTION_CARD_ASSET_PATHS.endTurn}
+              sizes="4rem"
             />
           }
           caption={`Turn ${game.turnNumber}`}
@@ -1099,7 +1116,6 @@ function ActionDock({
           label="Road"
           onPress={() => onBuildMode(buildMode === "road" ? null : "road")}
           resources={me.resources}
-          theme={viewerTheme}
         />
         <BuildAction
           active={buildMode === "settlement"}
@@ -1110,7 +1126,6 @@ function ActionDock({
           label="Settlement"
           onPress={() => onBuildMode(buildMode === "settlement" ? null : "settlement")}
           resources={me.resources}
-          theme={viewerTheme}
         />
         <BuildAction
           active={buildMode === "city"}
@@ -1121,19 +1136,15 @@ function ActionDock({
           label="City"
           onPress={() => onBuildMode(buildMode === "city" ? null : "city")}
           resources={me.resources}
-          theme={viewerTheme}
         />
       </div>
       <ActionTile
         ariaLabel="End Turn"
         art={
-          <img
-            alt=""
-            className="action-art"
-            draggable={false}
-            height={256}
-            src="/game-assets/ui/end-turn-hourglass-v1.png"
-            width={256}
+          <GameCardArtwork
+            className="action-art action-card-art"
+            path={ACTION_CARD_ASSET_PATHS.endTurn}
+            sizes="4rem"
           />
         }
         className="button button-end-turn"
@@ -1201,17 +1212,15 @@ function BuildAction({
   label,
   onPress,
   resources,
-  theme,
 }: {
   active: boolean;
-  asset: PieceAsset;
+  asset: "city" | "road" | "settlement";
   count: number;
   cost: Readonly<ResourceInventory>;
   disabledReason: string | null;
   label: string;
   onPress(): void;
   resources: Readonly<ResourceInventory>;
-  theme: PieceTheme;
 }) {
   const descriptionId = `build-${asset}-description`;
   const status =
@@ -1233,7 +1242,13 @@ function BuildAction({
               ? `Cancel ${label.toLowerCase()} placement`
               : `Build ${label}`
         }
-        art={<PieceIcon asset={asset} className="action-piece" theme={theme} />}
+        art={
+          <GameCardArtwork
+            className="action-art action-card-art"
+            path={ACTION_CARD_ASSET_PATHS[asset]}
+            sizes="4rem"
+          />
+        }
         caption={
           <span
             className={`build-action-status${disabledReason ? " is-blocked" : active ? " is-active" : ""}`}
