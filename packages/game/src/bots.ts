@@ -8,10 +8,14 @@ import {
   getSettlementVertexKeys,
 } from "./rules";
 import { emptyInventory, hasResources, totalResources } from "./resources";
-import { DEFAULT_TOPOLOGY } from "./topology";
+import { getBoardTopology } from "./topology";
 import type { BankTradeOption, GameCommand, GameState, PlayerId, ResourceInventory } from "./types";
 
 type StrategicBotDifficulty = "hard" | "medium";
+
+function boardTopology(state: GameState) {
+  return getBoardTopology(state.board.tiles);
+}
 
 function requirePlayer(state: GameState, playerId: PlayerId) {
   const player = state.players.find((candidate) => candidate.id === playerId);
@@ -31,7 +35,7 @@ function vertexProductionScore(
   const resources = new Set<string>();
   let pips = 0;
 
-  for (const tileId of DEFAULT_TOPOLOGY.vertexTileIds[vertexKey] ?? []) {
+  for (const tileId of boardTopology(state).vertexTileIds[vertexKey] ?? []) {
     const tile = state.board.tiles.find((candidate) => candidate.id === tileId);
     const resource = tile ? TERRAIN_RESOURCE[tile.terrain] : null;
 
@@ -69,7 +73,7 @@ function chooseRoad(
   const openSettlementVertices = new Set(getSettlementVertexKeys(state, playerId, false));
 
   return highestScoringKey(edgeKeys, (edgeKey) => {
-    const endpoints = DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? [];
+    const endpoints = boardTopology(state).edgeVertices[edgeKey] ?? [];
     return endpoints.reduce((score, vertexKey) => {
       const isOpenDestination = openSettlementVertices.has(vertexKey);
       return (
@@ -104,7 +108,7 @@ function createDiscard(resources: ResourceInventory, count: number) {
 }
 
 function robberTileScore(state: GameState, playerId: PlayerId, tileId: string) {
-  const vertices = new Set(DEFAULT_TOPOLOGY.tileById[tileId]?.vertexKeys ?? []);
+  const vertices = new Set(boardTopology(state).tileById[tileId]?.vertexKeys ?? []);
   const tile = state.board.tiles.find((candidate) => candidate.id === tileId);
   const numberScore = tile?.numberToken ? (NUMBER_TOKEN_PIPS[tile.numberToken] ?? 0) : 0;
 

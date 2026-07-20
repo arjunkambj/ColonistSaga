@@ -1,6 +1,7 @@
 "use client";
 
 import type { BaseGameSettings } from "@colonistsaga/game";
+import { getGameMapDefinition } from "@colonistsaga/game/maps";
 import { Button } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import crownIcon from "@iconify-icons/game-icons/crown";
@@ -284,7 +285,7 @@ export function LobbyScreen({
               </div>
               <div>
                 <small>Map</small>
-                <strong>{settingsDraft.settings.map.replaceAll("-", " ")}</strong>
+                <strong>{getGameMapDefinition(settingsDraft.settings.map).label}</strong>
               </div>
               <div>
                 <small>Victory</small>

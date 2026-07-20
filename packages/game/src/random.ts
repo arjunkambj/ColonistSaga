@@ -37,6 +37,28 @@ export function deterministicInteger(
   };
 }
 
+export function deterministicShuffle<Value>(values: readonly Value[], seed: string): Value[] {
+  const shuffled = [...values];
+  let randomIndex = 0;
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const draw = deterministicInteger(seed, randomIndex, index + 1);
+    randomIndex = draw.nextIndex;
+    const target = draw.value;
+    const currentValue = shuffled[index];
+    const targetValue = shuffled[target];
+
+    if (currentValue === undefined || targetValue === undefined) {
+      throw new Error("Values could not be shuffled");
+    }
+
+    shuffled[index] = targetValue;
+    shuffled[target] = currentValue;
+  }
+
+  return shuffled;
+}
+
 export function createBalancedDiceBag(seed: string, randomIndex: number) {
   const bag: DiceRoll[] = Array.from({ length: 6 }, (_, firstIndex) =>
     Array.from({ length: 6 }, (_, secondIndex) => ({

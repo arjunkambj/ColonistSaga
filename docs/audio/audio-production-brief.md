@@ -11,16 +11,16 @@ the underlying playback system exists.
 
 ## Shipped music
 
-| Asset | Runtime file | Use | Format |
-| --- | --- | --- | --- |
+| Asset      | Runtime file                                | Use                                         | Format                         |
+| ---------- | ------------------------------------------- | ------------------------------------------- | ------------------------------ |
 | Home music | `apps/web/public/music/main-loby-music.mp3` | Signed-in home screen, after a user gesture | Stereo MP3, 44.1 kHz, 256 kbps |
 
 The player controls this loop with the existing Music Volume setting.
 
 ## Required next music
 
-| Asset | Use | Requirement |
-| --- | --- | --- |
+| Asset            | Use                                                | Requirement                                                                                    |
+| ---------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | In-game ambience | Normal turns: dice, resources, building, and trade | One optional 120–150 second, low-fatigue instrumental loop with no dramatic rise or result cue |
 
 Its generation request is in
@@ -36,16 +36,16 @@ Implement these only alongside a sound-effects preference and a confirmed
 playback system. Each cue needs a visual equivalent; no rule state may rely on
 audio.
 
-| Cue | Covers | Requirement |
-| --- | --- | --- |
-| Interface press | Buttons, tabs, steppers, toggles | Short, quiet, optional local feedback |
-| Action feedback | Confirmed action or invalid action | Use only after confirmed state for game actions |
-| Your turn | Required actor changes to the viewer | Play once per handoff, never during replay or reconnect |
-| Dice result | Confirmed roll total | One compact roll-and-settle cue, no pre-result loop |
-| Resource change | Viewer gains or loses a bundle | One cue per state change, not one per resource type |
-| Piece placed | Road, settlement, city | One shared placement cue |
-| Robber alert | Seven, discard, robber sequence | Brief and informative, never alarming |
-| Trade resolved | Bank or player trade completed | Confirm the final state, not every offer or cancellation |
+| Cue             | Covers                               | Requirement                                              |
+| --------------- | ------------------------------------ | -------------------------------------------------------- |
+| Interface press | Buttons, tabs, steppers, toggles     | Short, quiet, optional local feedback                    |
+| Action feedback | Confirmed action or invalid action   | Use only after confirmed state for game actions          |
+| Your turn       | Required actor changes to the viewer | Play once per handoff, never during replay or reconnect  |
+| Dice result     | Confirmed roll total                 | One compact roll-and-settle cue, no pre-result loop      |
+| Resource change | Viewer gains or loses a bundle       | One cue per state change, not one per resource type      |
+| Piece placed    | Road, settlement, city               | One shared placement cue                                 |
+| Robber alert    | Seven, discard, robber sequence      | Brief and informative, never alarming                    |
+| Trade resolved  | Bank or player trade completed       | Confirm the final state, not every offer or cancellation |
 
 Use isolated 48 kHz, 24-bit WAV source files and a compressed runtime copy.
 Keep UI cues mono, under 700 ms, and free of music, speech, casino tones, or

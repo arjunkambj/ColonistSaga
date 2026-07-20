@@ -7,8 +7,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
-import { getTerrainAssetPath } from "@/constants/game/board-assets";
+import {
+  getTerrainAssetPath,
+  OCEAN_BOARD_ASSET_PATH,
+  PORT_SKIFF_ASSET_PATH,
+} from "@/constants/game/board-assets";
 
 import { AssetCard, type AssetCardItem } from "./asset-card";
 import styles from "./asset-sheet.module.css";
@@ -119,7 +124,7 @@ const ASSET_CATEGORIES = [
         description: "Quiet turquoise water backdrop beneath the playable board.",
         fit: "cover",
         format: "WebP · 1586×992",
-        path: "/game-assets/ui/ocean-board-canvas-v2.webp",
+        path: OCEAN_BOARD_ASSET_PATH,
         status: "generated",
       },
     ],
@@ -155,36 +160,12 @@ const ASSET_CATEGORIES = [
     name: "Terrain tiles",
     description: "The six top-down hex illustrations in the base board pack.",
     assets: [
-      [
-        "Fields",
-        "Wheat-producing farmland hex.",
-        getTerrainAssetPath("fields"),
-      ],
-      [
-        "Forest",
-        "Tree-producing woodland hex.",
-        getTerrainAssetPath("forest"),
-      ],
-      [
-        "Hills",
-        "Brick-producing clay hills hex.",
-        getTerrainAssetPath("hills"),
-      ],
-      [
-        "Mountains",
-        "Stone-producing mountain hex.",
-        getTerrainAssetPath("mountains"),
-      ],
-      [
-        "Pasture",
-        "Sheep-producing grassland hex.",
-        getTerrainAssetPath("pasture"),
-      ],
-      [
-        "Desert",
-        "Non-producing robber hex.",
-        getTerrainAssetPath("desert"),
-      ],
+      ["Fields", "Wheat-producing farmland hex.", getTerrainAssetPath("fields")],
+      ["Forest", "Tree-producing woodland hex.", getTerrainAssetPath("forest")],
+      ["Hills", "Brick-producing clay hills hex.", getTerrainAssetPath("hills")],
+      ["Mountains", "Stone-producing mountain hex.", getTerrainAssetPath("mountains")],
+      ["Pasture", "Sheep-producing grassland hex.", getTerrainAssetPath("pasture")],
+      ["Desert", "Non-producing robber hex.", getTerrainAssetPath("desert")],
     ].map(([name, description, path]) => ({
       name,
       description,
@@ -238,21 +219,21 @@ const ASSET_CATEGORIES = [
         name: "Road icon",
         description: "Road placement icon and player-tintable board piece.",
         format: "PNG · 512×512",
-        path: "/game-assets/pieces/road.png",
+        path: getPieceAssetPath("road"),
         status: "generated",
       },
       {
         name: "Settlement icon",
         description: "House placement icon and player-tintable board piece.",
         format: "PNG · 512×512",
-        path: "/game-assets/pieces/settlement.png",
+        path: getPieceAssetPath("settlement"),
         status: "generated",
       },
       {
         name: "City icon",
         description: "City upgrade icon and player-tintable board piece.",
         format: "PNG · 512×512",
-        path: "/game-assets/pieces/city.png",
+        path: getPieceAssetPath("city"),
         status: "generated",
       },
       {
@@ -315,7 +296,7 @@ const ASSET_CATEGORIES = [
         name: "Port skiff",
         description: "Small boat used to dress board ports.",
         format: "PNG · 384×512",
-        path: "/game-assets/ui/port-skiff-v1.png",
+        path: PORT_SKIFF_ASSET_PATH,
         status: "generated",
       },
       {

@@ -930,6 +930,19 @@
   -webkit-backdrop-filter: blur(18px) saturate(138%);
 }
 
+.reference-game.is-board-interacting .icon-button,
+.reference-game.is-board-interacting .side-card,
+.reference-game.is-board-interacting .player-summary,
+.reference-game.is-board-interacting .phase-banner,
+.reference-game.is-board-interacting .resource-hand,
+.reference-game.is-board-interacting .action-dock,
+.reference-game.is-board-interacting .game-header .compact-brand,
+.reference-game.is-board-interacting .game-room-meta,
+.reference-game.is-board-interacting .game-header-actions {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .reference-game .icon-button {
   color: #edf9ff;
 }
@@ -1563,31 +1576,28 @@
     border: 0;
     border-radius: 0;
     background:
-      radial-gradient(ellipse at 37% 48%, rgba(14, 190, 226, 0.13), transparent 44%),
-      linear-gradient(145deg, rgba(2, 72, 153, 0.5), rgba(0, 24, 72, 0.72)),
-      url("/game-assets/ui/ocean-board-canvas-v2.webp") center / cover no-repeat,
-      #064c94;
-    box-shadow: inset 0 0 10rem rgba(0, 24, 73, 0.48);
+      radial-gradient(ellipse at 37% 48%, rgba(213, 255, 247, 0.2), transparent 46%),
+      linear-gradient(145deg, rgba(0, 121, 184, 0.08), rgba(0, 67, 148, 0.18)),
+      url("/game-assets/ui/ocean-board-canvas-v2.webp?v=tactile-v10") center / cover no-repeat,
+      #23bfe0;
+    box-shadow: inset 0 0 9rem rgba(0, 67, 132, 0.14);
   }
 
   .reference-game .board-shell::before {
     background:
-      linear-gradient(rgba(0, 48, 122, 0.24), rgba(0, 31, 91, 0.34)),
-      radial-gradient(ellipse at 38% 49%, rgba(75, 229, 243, 0.22), transparent 43%),
-      linear-gradient(90deg, transparent 64%, rgba(0, 28, 76, 0.25) 76%, rgba(0, 24, 68, 0.44));
+      linear-gradient(rgba(31, 153, 207, 0.04), rgba(0, 91, 172, 0.1)),
+      radial-gradient(ellipse at 38% 49%, rgba(193, 255, 245, 0.2), transparent 43%),
+      linear-gradient(90deg, transparent 64%, rgba(0, 80, 145, 0.08) 76%, rgba(0, 45, 110, 0.18));
   }
 
-  .reference-game .game-board {
+  .reference-game .board-stage {
     top: -2rem;
     width: min(59vw, 72vh);
     margin-left: 8.5vw;
-    transform: translate3d(var(--board-x, 0), var(--board-y, 0), 0) scale(var(--board-scale, 1));
   }
 
   .reference-game .ocean-glow {
-    inset: 11% 3%;
-    background: rgba(94, 238, 238, 0.23);
-    filter: blur(46px);
+    inset: 7% 2% 6%;
   }
 
   .reference-game .game-header {

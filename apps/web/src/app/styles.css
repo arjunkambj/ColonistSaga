@@ -1808,7 +1808,7 @@ select {
   overflow: hidden;
   background:
     linear-gradient(rgba(77, 204, 216, 0.08), rgba(28, 155, 190, 0.12)),
-    url("/game-assets/ui/ocean-board-canvas-v2.webp") center / cover no-repeat,
+    url("/game-assets/ui/ocean-board-canvas-v2.webp?v=tactile-v10") center / cover no-repeat,
     #4bcce5;
   box-shadow:
     inset 0 0 70px rgba(20, 121, 151, 0.16),
@@ -1831,18 +1831,92 @@ select {
   pointer-events: none;
 }
 
-.game-board {
+.board-stage {
   position: relative;
   width: min(100cqw, calc(100cqh * 0.9091));
   isolation: isolate;
+}
+
+.game-board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  isolation: isolate;
   transform: translate3d(var(--board-x, 0), var(--board-y, 0), 0) scale(var(--board-scale, 1));
   transform-origin: center;
-  transition: transform 130ms ease-out;
+  backface-visibility: hidden;
   will-change: transform;
 }
 
-.board-shell.is-dragging .game-board {
-  transition: none;
+.board-canvas-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.board-canvas-static {
+  z-index: 0;
+}
+
+.board-canvas-dynamic {
+  z-index: 1;
+}
+
+.board-hit-target {
+  position: absolute;
+  z-index: 10;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: inherit;
+  outline: none;
+  transform: translate(-50%, -50%) rotate(var(--hit-rotation, 0deg));
+}
+
+.tile-hit-target {
+  width: calc(var(--tile-size) * 0.72);
+  aspect-ratio: 1;
+  clip-path: polygon(50% 2%, 92% 25%, 92% 75%, 50% 98%, 8% 75%, 8% 25%);
+}
+
+.port-hit-target {
+  width: clamp(42px, 7%, 64px);
+  aspect-ratio: 3 / 4;
+}
+
+.piece-hit-target {
+  width: 7%;
+  aspect-ratio: 1;
+}
+
+.piece-hit-target-road {
+  width: 10.6%;
+  aspect-ratio: 2 / 1;
+}
+
+.piece-hit-target-city {
+  width: 8%;
+}
+
+.robber-hit-target {
+  width: 7.3%;
+  aspect-ratio: 0.7;
+}
+
+.board-hit-target:focus-visible {
+  z-index: 30;
+  outline: 3px solid rgba(255, 233, 155, 0.9);
+  outline-offset: 3px;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 75, 0.92));
+}
+
+.board-shell.is-interacting .board-hit-target,
+.board-shell.is-interacting .build-target {
+  pointer-events: none;
 }
 
 .board-navigation {
@@ -1921,10 +1995,11 @@ select {
 .ocean-glow {
   position: absolute;
   z-index: 0;
-  inset: 17% 11%;
-  border-radius: 50%;
-  background: rgba(238, 255, 247, 0.18);
-  filter: blur(40px);
+  inset: 8% 3% 7%;
+  background: url("/game-assets/ui/island-shelf-v1.png?v=tactile-v10") center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(231, 255, 247, 0.7))
+    drop-shadow(0 16px 12px rgba(0, 70, 108, 0.3));
+  opacity: 0.95;
 }
 
 .tile-position {
@@ -1940,6 +2015,7 @@ select {
   display: block;
   width: 100%;
   height: 100%;
+  filter: drop-shadow(0 1px 1px rgba(91, 65, 31, 0.14));
   object-fit: contain;
   transition: filter 140ms ease;
   user-select: none;
@@ -2115,7 +2191,7 @@ select {
   background: var(--player-color);
   mask: var(--piece-mask) center / contain no-repeat;
   mix-blend-mode: color;
-  opacity: 0.96;
+  opacity: 1;
 }
 
 .road-piece {
@@ -3305,7 +3381,7 @@ select {
     grid-template-columns: minmax(0, 1fr) minmax(220px, 250px);
   }
 
-  .game-board {
+  .board-stage {
     width: min(100cqw, calc((100cqh - 1rem) * 0.9091));
   }
 
@@ -4390,7 +4466,7 @@ select {
 }
 
 .board-inspectable {
-  cursor: help;
+  cursor: inherit;
   outline: none;
 }
 
@@ -4400,10 +4476,8 @@ select {
 
 .tile-position.is-inspected .terrain-tile,
 .tile-position:focus-visible .terrain-tile {
-  filter:
-    brightness(1.04)
-    drop-shadow(0 0 4px rgba(255, 241, 179, 0.94))
-    drop-shadow(0 0 7px rgba(255, 196, 67, 0.72));
+  filter: brightness(1.04) drop-shadow(0 1px 1px rgba(91, 65, 31, 0.14))
+    drop-shadow(0 0 4px rgba(255, 241, 179, 0.94)) drop-shadow(0 0 7px rgba(255, 196, 67, 0.72));
 }
 
 .port-token.is-inspected,
@@ -4420,10 +4494,8 @@ select {
   width: max(46px, 5.8%);
   height: max(46px, 5.8%);
   border-radius: 50%;
-  filter: drop-shadow(0 0 5px rgba(255, 199, 69, 0.58));
-  transition:
-    filter 140ms ease,
-    transform 140ms ease;
+  filter: none;
+  transition: filter 140ms ease;
 }
 
 .build-target::before {
@@ -4431,14 +4503,14 @@ select {
   inset: 27%;
   border: 2px solid rgba(255, 231, 155, 0.82);
   border-radius: 50%;
-  background: rgba(255, 210, 100, 0.2);
-  box-shadow:
-    0 0 0 0.2rem rgba(255, 209, 89, 0.08),
-    0 0 10px rgba(255, 197, 59, 0.48);
+  background: transparent;
+  box-shadow: none;
   content: "";
+  opacity: 0;
   transition:
     background-color 140ms ease,
     inset 140ms ease,
+    opacity 140ms ease,
     box-shadow 140ms ease;
 }
 
@@ -4476,6 +4548,7 @@ select {
   box-shadow:
     0 0 0 0.28rem rgba(255, 209, 89, 0.12),
     0 0 18px rgba(255, 197, 59, 0.72);
+  opacity: 1;
 }
 
 .build-target:hover .build-target-preview,
@@ -4530,6 +4603,13 @@ select {
   color: #41536a;
   pointer-events: none;
   backdrop-filter: blur(16px);
+}
+
+.game-page.is-board-interacting .board-navigation > div,
+.game-page.is-board-interacting .board-gesture-hint,
+.game-page.is-board-interacting .board-inspector {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .board-inspector.is-idle {
@@ -4622,7 +4702,7 @@ select {
     padding: 3.6rem calc(var(--hud-rail) + 0.85rem) 5.9rem 0.45rem;
   }
 
-  .game-board {
+  .board-stage {
     width: min(100cqw, calc(100cqh * 0.9091));
   }
 
@@ -4998,7 +5078,7 @@ select {
     display: none;
   }
 
-  .game-board {
+  .board-stage {
     width: min(90cqw, calc((100cqh - 1rem) * 0.9091));
   }
 

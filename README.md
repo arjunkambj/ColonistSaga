@@ -1,12 +1,12 @@
 # ColonistSaga
 
-ColonistSaga is a real-time, reconnect-safe three-to-eight-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. The current game supports one canonical 19-hex Base layout; custom layouts and expansions are deferred.
+ColonistSaga is a real-time, reconnect-safe three-to-eight-player island board game built with Next.js, Convex, and a deterministic TypeScript rules engine. Hosts can choose 19-, 30-, 37-, or 44-tile map sizes independently of the table's seat count.
 
 ## Features
 
 - Quick Play against two to seven paced deterministic bots with Easy, Medium, and Hard strategies.
 - Private three-to-eight-seat rooms with atomic bot, timer, victory-target, discard, dice, robber, and bank-visibility settings.
-- Canonical 19-tile board, nine port-aware bank ratios, domestic trade offers, snake setup, production, robber/discard/steal, construction, and a configurable victory target.
+- Seeded random boards with selectable 4-, 5–6-, 7–8-, and 9–10-player map sizes, random deserts, separated red number tokens, dynamic ports, domestic trade offers, snake setup, production, robber/discard/steal, construction, and a configurable victory target.
 - Server-authoritative, revisioned commands with idempotent retries.
 - Hexclave-authenticated player sessions and reactive reconnect through Convex.
 - Private player hands and server-only random state.

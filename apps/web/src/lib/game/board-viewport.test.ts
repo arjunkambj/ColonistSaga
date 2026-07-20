@@ -5,7 +5,11 @@ import {
   BOARD_VIEWPORT_SCALE,
   DEFAULT_BOARD_VIEWPORT,
   clampBoardViewport,
+  getBoardViewportFocus,
+  getBoardViewportTransform,
+  normalizeBoardWheelDelta,
   panBoardViewport,
+  pinchBoardViewport,
   zoomBoardViewport,
 } from "./board-viewport.ts";
 
@@ -41,4 +45,39 @@ test("allows a small mouse drag at the default zoom", () => {
   const panned = panBoardViewport(DEFAULT_BOARD_VIEWPORT, { x: 40, y: -30 }, BOUNDS);
 
   assert.deepEqual(panned, { scale: 1, x: 40, y: -30 });
+});
+
+test("uses stationary stage coordinates for the zoom focus", () => {
+  const stageBounds = { height: 600, left: 50, top: 100, width: 900 };
+
+  assert.deepEqual(getBoardViewportFocus({ x: 620, y: 320 }, stageBounds), {
+    x: 120,
+    y: -80,
+  });
+});
+
+test("combines pinch zoom and centroid pan in one viewport update", () => {
+  const pinched = pinchBoardViewport(
+    DEFAULT_BOARD_VIEWPORT,
+    1.5,
+    { x: 100, y: 40 },
+    { x: 130, y: 55 },
+    BOUNDS,
+  );
+
+  assert.deepEqual(pinched, { scale: 1.5, x: -20, y: -5 });
+});
+
+test("normalizes pixel, line, and page wheel deltas", () => {
+  assert.equal(normalizeBoardWheelDelta(12, 0, 600), 12);
+  assert.equal(normalizeBoardWheelDelta(3, 1, 600), 48);
+  assert.equal(normalizeBoardWheelDelta(-1, 2, 600), -600);
+  assert.equal(normalizeBoardWheelDelta(-1, 2, 600, 80), -80);
+});
+
+test("serializes the camera viewport as one compositor transform", () => {
+  assert.equal(
+    getBoardViewportTransform({ scale: 1.25, x: 18, y: -7 }),
+    "translate3d(18px, -7px, 0) scale(1.25)",
+  );
 });

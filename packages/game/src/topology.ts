@@ -58,12 +58,12 @@ export function axialToPixel(coordinate: AxialCoordinate, size: number): PixelCo
   };
 }
 
-function createTileCoordinates() {
+export function createHexCoordinates(radius: number) {
   const coordinates: AxialCoordinate[] = [];
 
-  for (let r = -2; r <= 2; r += 1) {
-    for (let q = -2; q <= 2; q += 1) {
-      if (Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r)) <= 2) {
+  for (let r = -radius; r <= radius; r += 1) {
+    for (let q = -radius; q <= radius; q += 1) {
+      if (Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r)) <= radius) {
         coordinates.push({ q, r });
       }
     }
@@ -76,12 +76,12 @@ function addRecordValue(record: Record<string, string[]>, key: string, value: st
   record[key] = [...(record[key] ?? []), value];
 }
 
-function createBoardTopology(): BoardTopology {
+export function createBoardTopology(coordinates: readonly AxialCoordinate[]): BoardTopology {
   const vertexPositions: Record<string, VertexPosition> = {};
   const vertexTileIds: Record<string, string[]> = {};
   const edgeTileIds: Record<string, string[]> = {};
   const edgeVertices: Record<string, readonly [string, string]> = {};
-  const tiles = createTileCoordinates().map(({ q, r }) => {
+  const tiles = coordinates.map(({ q, r }) => {
     const id = getTileId({ q, r });
     const vertexKeys = CORNER_X.map((xOffset, corner) => {
       const yOffset = CORNER_Y[corner];
@@ -151,4 +151,19 @@ function createBoardTopology(): BoardTopology {
   };
 }
 
-export const DEFAULT_TOPOLOGY = createBoardTopology();
+const topologyCache = new Map<string, BoardTopology>();
+
+export function getBoardTopology(coordinates: readonly AxialCoordinate[]): BoardTopology {
+  const key = coordinates.map(getTileId).sort().join("|");
+  const cached = topologyCache.get(key);
+
+  if (cached) {
+    return cached;
+  }
+
+  const topology = createBoardTopology(coordinates);
+  topologyCache.set(key, topology);
+  return topology;
+}
+
+export const DEFAULT_TOPOLOGY = getBoardTopology(createHexCoordinates(2));

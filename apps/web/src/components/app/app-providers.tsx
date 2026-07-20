@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { isUiPreviewMode, UiPreview } from "@/components/app/ui-preview";
 import { FullPageStatus } from "@/components/ui/full-page-status";
-import { createHexclaveClientApp } from "@/hexclave/client";
+import { getHexclaveClientApp } from "@/hexclave/client";
 
 export interface AppProvidersProps {
   children: ReactNode;
@@ -40,7 +40,7 @@ export function AppProviders({
       return null;
     }
 
-    const hexclave = createHexclaveClientApp(hexclaveProjectId, hexclavePublishableClientKey);
+    const hexclave = getHexclaveClientApp(hexclaveProjectId, hexclavePublishableClientKey);
     const convex = new ConvexReactClient(convexUrl);
     convex.setAuth(hexclave.getConvexClientAuth({}));
 

@@ -63,7 +63,11 @@ export function serializeCommand(command: GameCommand): string {
   }
 }
 
-export function commandText(command: GameCommand, displayName: string, nextState: GameState): string {
+export function commandText(
+  command: GameCommand,
+  displayName: string,
+  nextState: GameState,
+): string {
   switch (command.kind) {
     case "place_settlement":
       return `${displayName} placed a settlement.`;

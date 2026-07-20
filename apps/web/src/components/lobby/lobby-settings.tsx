@@ -304,7 +304,7 @@ export function LobbySettings({
             onChange={(value) => updateSetting("map", value as GameMapId)}
             value={settings.map}
           >
-            <Label className="lobby-settings-label">Map</Label>
+            <Label className="lobby-settings-label">Map Size</Label>
             <Select.Trigger
               aria-describedby={`${id}-map-description`}
               className="lobby-settings-select"

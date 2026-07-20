@@ -7,11 +7,11 @@ import { createTestGame } from "./test-helpers";
 function productionFixture() {
   const state = createTestGame();
   const tile = state.board.tiles.find(
-    (candidate) => candidate.terrain === "fields" && candidate.numberToken === 8,
+    (candidate) => candidate.terrain === "fields" && candidate.numberToken !== null,
   );
 
   if (!tile) {
-    throw new Error("Fixture requires an eight fields tile");
+    throw new Error("Fixture requires a numbered fields tile");
   }
 
   const [settlementVertex, cityVertex] = DEFAULT_TOPOLOGY.tileById[tile.id]?.vertexKeys ?? [];
@@ -45,8 +45,8 @@ function productionFixture() {
 
 describe("resource production", () => {
   it("pays one for a settlement and two for a city", () => {
-    const { state } = productionFixture();
-    const produced = distributeResourcesForRoll(state, 8);
+    const { state, tile } = productionFixture();
+    const produced = distributeResourcesForRoll(state, tile.numberToken!);
 
     expect(produced.players[0]?.resources.wheat).toBe(1);
     expect(produced.players[1]?.resources.wheat).toBe(2);
@@ -57,7 +57,7 @@ describe("resource production", () => {
     const { state, tile } = productionFixture();
     const produced = distributeResourcesForRoll(
       { ...state, board: { ...state.board, robberTileId: tile.id } },
-      8,
+      tile.numberToken!,
     );
 
     expect(produced.players[0]?.resources.wheat).toBe(0);
@@ -66,8 +66,11 @@ describe("resource production", () => {
   });
 
   it("pays nobody when multiple claimants exceed the bank supply", () => {
-    const { state } = productionFixture();
-    const produced = distributeResourcesForRoll({ ...state, bank: { ...state.bank, wheat: 2 } }, 8);
+    const { state, tile } = productionFixture();
+    const produced = distributeResourcesForRoll(
+      { ...state, bank: { ...state.bank, wheat: 2 } },
+      tile.numberToken!,
+    );
 
     expect(produced.players[0]?.resources.wheat).toBe(0);
     expect(produced.players[1]?.resources.wheat).toBe(0);
@@ -75,7 +78,7 @@ describe("resource production", () => {
   });
 
   it("gives the remaining supply when only one player has a claim", () => {
-    const { state } = productionFixture();
+    const { state, tile } = productionFixture();
     const oneClaimant = {
       ...state,
       bank: { ...state.bank, wheat: 1 },
@@ -86,7 +89,7 @@ describe("resource production", () => {
         ),
       },
     };
-    const produced = distributeResourcesForRoll(oneClaimant, 8);
+    const produced = distributeResourcesForRoll(oneClaimant, tile.numberToken!);
 
     expect(produced.players[1]?.resources.wheat).toBe(1);
     expect(produced.bank.wheat).toBe(0);

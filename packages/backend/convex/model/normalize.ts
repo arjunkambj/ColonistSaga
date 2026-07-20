@@ -1,5 +1,5 @@
 import type { BaseGameSettings } from "@colonistsaga/game";
-import { mapSupportsPlayerCount } from "@colonistsaga/game/maps";
+import { getGameMapDefinition, mapSupportsPlayerCount } from "@colonistsaga/game/maps";
 
 import { ROOM_CODE_LENGTH } from "./constants";
 import { fail } from "./errors";
@@ -75,12 +75,10 @@ export function validateGameSettings(settings: BaseGameSettings): BaseGameSettin
   if (![0, 30, 60, 90, 120].includes(settings.turnTimerSeconds)) {
     fail("INVALID_SETTINGS", "Turn timer must be 0, 30, 60, 90, or 120 seconds.");
   }
-  if (settings.map !== "base") {
-    fail("INVALID_SETTINGS", "Map must be the Base Map.");
-  }
   if (!mapSupportsPlayerCount(settings.map, settings.maxPlayers)) {
-    fail("INVALID_SETTINGS", "The Base Map supports three to eight players.");
+    fail("INVALID_SETTINGS", "Choose a supported map size and a table with three to eight seats.");
   }
+  getGameMapDefinition(settings.map);
   return { ...settings };
 }
 

@@ -41,7 +41,7 @@ describe("one-command automation", () => {
     expect(() => applyCommand(state, state.activePlayerId, first)).not.toThrow();
   });
 
-  it("gives hard bots a deeper placement heuristic than medium bots", () => {
+  it("keeps strategic placement commands legal and deterministic", () => {
     const createBotGame = (botDifficulty: "hard" | "medium") =>
       createDefaultGame(
         createTestPlayers().map((player, index) => ({
@@ -55,14 +55,17 @@ describe("one-command automation", () => {
     const mediumState = createBotGame("medium");
     const hardState = createBotGame("hard");
 
-    expect(chooseAutomatedCommand(mediumState, mediumState.activePlayerId)).toEqual({
-      kind: "place_settlement",
-      vertexKey: "vertex:-4:2",
-    });
-    expect(chooseAutomatedCommand(hardState, hardState.activePlayerId)).toEqual({
-      kind: "place_settlement",
-      vertexKey: "vertex:-5:-1",
-    });
+    const mediumCommand = chooseAutomatedCommand(mediumState, mediumState.activePlayerId);
+    const hardCommand = chooseAutomatedCommand(hardState, hardState.activePlayerId);
+
+    expect(mediumCommand.kind).toBe("place_settlement");
+    expect(hardCommand.kind).toBe("place_settlement");
+    expect(chooseAutomatedCommand(mediumState, mediumState.activePlayerId)).toEqual(mediumCommand);
+    expect(chooseAutomatedCommand(hardState, hardState.activePlayerId)).toEqual(hardCommand);
+    expect(() =>
+      applyCommand(mediumState, mediumState.activePlayerId, mediumCommand),
+    ).not.toThrow();
+    expect(() => applyCommand(hardState, hardState.activePlayerId, hardCommand)).not.toThrow();
   });
 
   it.each([

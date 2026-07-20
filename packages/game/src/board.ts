@@ -1,6 +1,16 @@
 import { TERRAIN_RESOURCE } from "./constants";
-import { DEFAULT_TOPOLOGY, getTileId } from "./topology";
+import { getGameMapDefinition } from "./maps";
+import { deterministicShuffle } from "./random";
+import {
+  axialToPixel,
+  createHexCoordinates,
+  getBoardTopology,
+  getTileId,
+  type BoardTopology,
+} from "./topology";
+import { TERRAIN_TYPES } from "./types";
 import type {
+  AxialCoordinate,
   BoardState,
   GameMapId,
   PortDescriptor,
@@ -9,10 +19,8 @@ import type {
   TileState,
 } from "./types";
 
-interface TileDefinition {
+export interface TileDefinition extends AxialCoordinate {
   numberToken: number | null;
-  q: number;
-  r: number;
   terrain: TerrainType;
 }
 
@@ -38,10 +46,121 @@ export const DEFAULT_TILE_DEFINITIONS: readonly TileDefinition[] = [
   { numberToken: 11, q: 0, r: 2, terrain: "pasture" },
 ];
 
-function edgeAngle(edgeKey: string) {
-  const [firstVertexKey, secondVertexKey] = DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? [];
-  const first = firstVertexKey ? DEFAULT_TOPOLOGY.vertexPositions[firstVertexKey] : undefined;
-  const second = secondVertexKey ? DEFAULT_TOPOLOGY.vertexPositions[secondVertexKey] : undefined;
+const PORT_RESOURCE_ORDER: readonly ResourceType[] = ["tree", "brick", "sheep", "wheat", "stone"];
+
+function coordinateRadius({ q, r }: AxialCoordinate): number {
+  return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
+}
+
+function selectEvenly<Value>(values: readonly Value[], count: number): Value[] {
+  return Array.from({ length: count }, (_, index) => {
+    const value = values[Math.floor((index * values.length) / count)];
+    if (value === undefined) {
+      throw new Error("Could not select a map value");
+    }
+    return value;
+  });
+}
+
+function createMapCoordinates(tileCount: number): AxialCoordinate[] {
+  if (tileCount === 19) {
+    return createHexCoordinates(2);
+  }
+
+  if (tileCount === 37) {
+    return createHexCoordinates(3);
+  }
+
+  const innerRadius = tileCount < 37 ? 2 : 3;
+  const inner = createHexCoordinates(innerRadius);
+  const ring = createHexCoordinates(innerRadius + 1)
+    .filter((coordinate) => coordinateRadius(coordinate) === innerRadius + 1)
+    .sort((first, second) => {
+      const firstPoint = axialToPixel(first, 1);
+      const secondPoint = axialToPixel(second, 1);
+      return Math.atan2(firstPoint.y, firstPoint.x) - Math.atan2(secondPoint.y, secondPoint.x);
+    });
+
+  return [...inner, ...selectEvenly(ring, tileCount - inner.length)];
+}
+
+function createTerrainPool(mapId: GameMapId): TerrainType[] {
+  const { terrainCounts, tileCount } = getGameMapDefinition(mapId);
+  const terrains = TERRAIN_TYPES.flatMap((terrain) =>
+    Array.from({ length: terrainCounts[terrain] }, () => terrain),
+  );
+
+  if (terrains.length !== tileCount) {
+    throw new Error(`The ${mapId} terrain distribution does not contain ${tileCount} tiles`);
+  }
+
+  return terrains;
+}
+
+function assignNumberTokens(
+  terrainTiles: readonly Omit<TileState, "numberToken">[],
+  mapId: GameMapId,
+  seed: string,
+  topology: BoardTopology,
+): TileState[] {
+  const producingTiles = terrainTiles.filter((tile) => TERRAIN_RESOURCE[tile.terrain] !== null);
+  const numberTokens = getGameMapDefinition(mapId).numberTokens;
+
+  if (producingTiles.length !== numberTokens.length) {
+    throw new Error(`The ${mapId} map needs ${producingTiles.length} number tokens`);
+  }
+
+  const redNumbers = numberTokens.filter((number) => number === 6 || number === 8);
+  const regularNumbers = numberTokens.filter((number) => number !== 6 && number !== 8);
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const redTiles: typeof producingTiles = [];
+    const candidates = deterministicShuffle(producingTiles, `${seed}:red-tiles:${attempt}`);
+
+    for (const candidate of candidates) {
+      const candidateEdges = new Set(topology.tileById[candidate.id]?.edgeKeys ?? []);
+      const touchesRedTile = redTiles.some((redTile) =>
+        topology.tileById[redTile.id]?.edgeKeys.some((edgeKey) => candidateEdges.has(edgeKey)),
+      );
+
+      if (!touchesRedTile) {
+        redTiles.push(candidate);
+      }
+      if (redTiles.length === redNumbers.length) {
+        break;
+      }
+    }
+
+    if (redTiles.length !== redNumbers.length) {
+      continue;
+    }
+
+    const redTileIds = new Set(redTiles.map((tile) => tile.id));
+    const shuffledRedNumbers = deterministicShuffle(redNumbers, `${seed}:red-numbers`);
+    const shuffledRegularNumbers = deterministicShuffle(regularNumbers, `${seed}:numbers`);
+    let redIndex = 0;
+    let regularIndex = 0;
+
+    return terrainTiles.map(
+      (tile): TileState => ({
+        ...tile,
+        numberToken:
+          TERRAIN_RESOURCE[tile.terrain] === null
+            ? null
+            : redTileIds.has(tile.id)
+              ? (shuffledRedNumbers[redIndex++] ?? null)
+              : (shuffledRegularNumbers[regularIndex++] ?? null),
+      }),
+    );
+  }
+
+  throw new Error(`Could not create a balanced number layout for ${mapId}`);
+}
+
+function edgeAngle(topology: BoardTopology, edgeKey: string): number {
+  const [firstVertexKey, secondVertexKey] = topology.edgeVertices[edgeKey] ?? [];
+  const first = firstVertexKey ? topology.vertexPositions[firstVertexKey] : undefined;
+  const second = secondVertexKey ? topology.vertexPositions[secondVertexKey] : undefined;
 
   if (!first || !second) {
     throw new Error(`Missing coastline geometry for ${edgeKey}`);
@@ -52,59 +171,67 @@ function edgeAngle(edgeKey: string) {
   return Math.atan2(midpointY, midpointX);
 }
 
-const PORT_EDGE_INDEXES = [0, 3, 7, 10, 13, 17, 20, 23, 27] as const;
-const PORT_TRADES: readonly ("any" | ResourceType)[] = [
-  "any",
-  "tree",
-  "any",
-  "brick",
-  "any",
-  "sheep",
-  "any",
-  "wheat",
-  "stone",
-];
+function createPortTrades(portCount: number, seed: string): ("any" | ResourceType)[] {
+  const genericCount = Math.floor(portCount / 2);
+  const resourceCount = portCount - genericCount;
+  const resourceTrades = Array.from(
+    { length: resourceCount },
+    (_, index) => PORT_RESOURCE_ORDER[index % PORT_RESOURCE_ORDER.length]!,
+  );
 
-const orderedCoastEdges = [...DEFAULT_TOPOLOGY.coastEdgeKeys].sort(
-  (first, second) => edgeAngle(first) - edgeAngle(second),
-);
+  return deterministicShuffle(
+    [...Array.from({ length: genericCount }, () => "any" as const), ...resourceTrades],
+    `${seed}:ports`,
+  );
+}
 
-export const DEFAULT_PORTS: readonly PortDescriptor[] = PORT_EDGE_INDEXES.map(
-  (edgeIndex, index) => {
-    const edgeKey = orderedCoastEdges[edgeIndex];
-    const trade = PORT_TRADES[index];
+function createPorts(topology: BoardTopology, mapId: GameMapId, seed: string): PortDescriptor[] {
+  const { portCount } = getGameMapDefinition(mapId);
+  const coastEdges = [...topology.coastEdgeKeys].sort(
+    (first, second) => edgeAngle(topology, first) - edgeAngle(topology, second),
+  );
+  const trades = createPortTrades(portCount, seed);
 
-    if (!edgeKey || !trade) {
-      throw new Error("Default port configuration is incomplete");
-    }
-
-    return { edgeKey, id: `port:${index}`, trade };
-  },
-);
-
-export function createDefaultBoard(): BoardState {
-  const tiles: TileState[] = DEFAULT_TILE_DEFINITIONS.map((tile) => ({
-    ...tile,
-    id: getTileId(tile),
+  return selectEvenly(coastEdges, portCount).map((edgeKey, index) => ({
+    edgeKey,
+    id: `port:${index}`,
+    trade: trades[index] ?? "any",
   }));
+}
+
+export const DEFAULT_PORTS: readonly PortDescriptor[] = createPorts(
+  getBoardTopology(DEFAULT_TILE_DEFINITIONS),
+  "base",
+  "default-board",
+);
+
+export function createBoard(mapId: GameMapId, seed = "default-board"): BoardState {
+  const coordinates = createMapCoordinates(getGameMapDefinition(mapId).tileCount);
+  const topology = getBoardTopology(coordinates);
+  const terrains = deterministicShuffle(createTerrainPool(mapId), `${seed}:terrain`);
+  const terrainTiles = coordinates.map((coordinate, index) => {
+    const terrain = terrains[index];
+    if (!terrain) {
+      throw new Error(`Missing terrain for ${getTileId(coordinate)}`);
+    }
+    return { ...coordinate, id: getTileId(coordinate), terrain };
+  });
+  const tiles = assignNumberTokens(terrainTiles, mapId, seed, topology);
   const desert = tiles.find((tile) => TERRAIN_RESOURCE[tile.terrain] === null);
 
   if (!desert) {
-    throw new Error("Default board requires a desert tile");
+    throw new Error(`${mapId} requires a desert tile`);
   }
 
   return {
     buildings: [],
-    ports: DEFAULT_PORTS.map((port) => ({ ...port })),
+    ports: createPorts(topology, mapId, seed),
     roads: [],
     robberTileId: desert.id,
     tiles,
   };
 }
 
-export function createBoard(mapId: GameMapId): BoardState {
-  switch (mapId) {
-    case "base":
-      return createDefaultBoard();
-  }
+export function createDefaultBoard(seed = "default-board"): BoardState {
+  return createBoard("base", seed);
 }

@@ -3,6 +3,7 @@ import {
   PLAYER_COLORS,
   TERRAIN_RESOURCE,
   type GameCommand,
+  type PlayerColor,
   type PlayerGameView,
   type PlayerViewState,
   type ResourceType,
@@ -16,38 +17,34 @@ import scanIcon from "@iconify-icons/solar/scanner-outline";
 import { Icon } from "@iconify/react";
 import {
   useEffect,
-  useRef,
+  useMemo,
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
 } from "react";
 
 import {
   BOARD_CANVAS,
+  createBoardLayout,
   getEdgePlacement,
   getPointStyle,
   getPortPlacement,
   getTilePoint,
   getVertexPoint,
 } from "@/lib/game/board-layout";
+import { BOARD_VIEWPORT_SCALE, DEFAULT_BOARD_VIEWPORT } from "@/lib/game/board-viewport";
+import { getTerrainAssetVariant } from "@/constants/game/board-assets";
 import {
-  BOARD_VIEWPORT_SCALE,
-  DEFAULT_BOARD_VIEWPORT,
-  panBoardViewport,
-  zoomBoardViewport,
-  type BoardViewportState,
-} from "@/lib/game/board-viewport";
-import {
-  getTerrainAssetPath,
-  ROAD_ASSET_ROTATION_OFFSET,
-  TERRAIN_ASSET,
-} from "@/constants/game/board-assets";
-import { getPieceAssetPath } from "./piece-icon";
+  createBoardCanvasTargetModels,
+  resolveBoardTargetMode,
+  type BoardBuildMode,
+  type BoardCanvasTargetModel,
+} from "@/lib/game/board-canvas-model";
+import { BoardCanvas, type BoardCanvasTarget } from "./board-canvas";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
+import { useBoardCamera } from "./use-board-camera";
 
-export type BuildMode = "city" | "road" | "settlement" | null;
+export type BuildMode = BoardBuildMode;
 
 const TERRAIN_LABELS: Readonly<Record<TerrainType, string>> = {
   desert: "Desert",
@@ -65,9 +62,8 @@ const PIECE_LABELS = {
 const KEYBOARD_PAN_STEP = 48;
 
 type BoardPieceAsset = keyof typeof PIECE_LABELS;
-type BuildPreviewAsset = BoardPieceAsset | "robber";
 type BoardTile = PlayerGameView["board"]["tiles"][number];
-type PlayerTheme = (typeof PLAYER_COLORS)[number];
+type PlayerTheme = PlayerColor;
 
 interface BoardInspectionDetail {
   label: string;
@@ -93,13 +89,6 @@ interface InspectableBoardItemProps {
   onKeyboardNavigate(event: ReactKeyboardEvent<HTMLElement>, id: string): void;
 }
 
-interface BoardDragState {
-  origin: BoardViewportState;
-  pointerId: number;
-  startX: number;
-  startY: number;
-}
-
 export function GameBoard({
   buildMode,
   game,
@@ -113,62 +102,143 @@ export function GameBoard({
   onCommand(command: GameCommand, successMessage: string): void;
   pending: boolean;
 }) {
-  const playerDetailsById = new Map(
-    game.players.map((player) => [
-      player.id,
-      { displayName: player.displayName, theme: getPlayerTheme(player) },
-    ]),
+  const playerDetailsById = useMemo(
+    () =>
+      new Map(
+        game.players.map((player) => [
+          player.id,
+          { displayName: player.displayName, theme: getPlayerTheme(player) },
+        ]),
+      ),
+    [game.players],
   );
+  const playerThemes = useMemo(
+    () => new Map(game.players.map((player) => [player.id, getPlayerTheme(player)])),
+    [game.players],
+  );
+  const boardLayout = useMemo(() => createBoardLayout(game.board.tiles), [game.board.tiles]);
+  const terrainVariants = useMemo(() => {
+    const occurrences = new Map<TerrainType, number>();
+
+    return game.board.tiles.map((tile) => {
+      const occurrence = occurrences.get(tile.terrain) ?? 0;
+      occurrences.set(tile.terrain, occurrence + 1);
+      return getTerrainAssetVariant(occurrence);
+    });
+  }, [game.board.tiles]);
   const viewerTheme = playerDetailsById.get(game.viewerPlayerId)?.theme ?? "red";
-  const ports = game.board.ports.flatMap((port) => {
-    const placement = getPortPlacement(port.edgeKey);
-    return placement ? [{ ...port, placement }] : [];
-  });
-  const tileInspections = game.board.tiles.map((tile) =>
-    createTileInspection(tile, tile.id === game.board.robberTileId),
+  const ports = useMemo(
+    () =>
+      game.board.ports.flatMap((port) => {
+        const placement = getPortPlacement(boardLayout, port.edgeKey);
+        return placement ? [{ ...port, placement }] : [];
+      }),
+    [boardLayout, game.board.ports],
   );
-  const portInspections = ports.map((port) => createPortInspection(port.id, port.trade));
-  const roadInspections = game.board.roads.map((road) => {
-    const owner = playerDetailsById.get(road.playerId);
-    return createPieceInspection(
-      `road:${road.edgeKey}`,
-      "road",
-      owner?.displayName ?? "Unknown player",
-      owner?.theme ?? "red",
-    );
-  });
-  const buildingInspections = game.board.buildings.map((building) => {
-    const owner = playerDetailsById.get(building.playerId);
-    return createPieceInspection(
-      `building:${building.vertexKey}`,
-      building.kind,
-      owner?.displayName ?? "Unknown player",
-      owner?.theme ?? "red",
-    );
-  });
-  const robberTile = game.board.tiles.find((tile) => tile.id === game.board.robberTileId) ?? null;
-  const robberInspection = robberTile ? createRobberInspection(robberTile) : null;
-  const inspectionById = new Map(
-    [
-      ...tileInspections,
-      ...portInspections,
-      ...roadInspections,
-      ...buildingInspections,
-      ...(robberInspection ? [robberInspection] : []),
-    ].map((inspection) => [inspection.id, inspection]),
+  const tileInspections = useMemo(
+    () =>
+      game.board.tiles.map((tile) =>
+        createTileInspection(tile, tile.id === game.board.robberTileId),
+      ),
+    [game.board.robberTileId, game.board.tiles],
   );
-  const inspectionOrder = [...inspectionById.keys()];
+  const portInspections = useMemo(
+    () => ports.map((port) => createPortInspection(port.id, port.trade)),
+    [ports],
+  );
+  const roadInspections = useMemo(
+    () =>
+      game.board.roads.map((road) => {
+        const owner = playerDetailsById.get(road.playerId);
+        return createPieceInspection(
+          `road:${road.edgeKey}`,
+          "road",
+          owner?.displayName ?? "Unknown player",
+          owner?.theme ?? "red",
+        );
+      }),
+    [game.board.roads, playerDetailsById],
+  );
+  const buildingInspections = useMemo(
+    () =>
+      game.board.buildings.map((building) => {
+        const owner = playerDetailsById.get(building.playerId);
+        return createPieceInspection(
+          `building:${building.vertexKey}`,
+          building.kind,
+          owner?.displayName ?? "Unknown player",
+          owner?.theme ?? "red",
+        );
+      }),
+    [game.board.buildings, playerDetailsById],
+  );
+  const tilesById = useMemo(
+    () => new Map(game.board.tiles.map((tile) => [tile.id, tile])),
+    [game.board.tiles],
+  );
+  const robberTile = tilesById.get(game.board.robberTileId) ?? null;
+  const robberInspection = useMemo(
+    () => (robberTile ? createRobberInspection(robberTile) : null),
+    [robberTile],
+  );
+  const inspectionById = useMemo(
+    () =>
+      new Map(
+        [
+          ...tileInspections,
+          ...portInspections,
+          ...roadInspections,
+          ...buildingInspections,
+          ...(robberInspection ? [robberInspection] : []),
+        ].map((inspection) => [inspection.id, inspection]),
+      ),
+    [buildingInspections, portInspections, roadInspections, robberInspection, tileInspections],
+  );
+  const inspectionOrder = useMemo(() => [...inspectionById.keys()], [inspectionById]);
   const firstInspectionId = inspectionOrder[0] ?? null;
-  const targetMode = getTargetMode(game, buildMode);
   const compactPlacement = useCompactPlacementLayout();
-  const boardShellRef = useRef<HTMLElement>(null);
-  const boardDragRef = useRef<BoardDragState | null>(null);
-  const [boardViewport, setBoardViewport] = useState(DEFAULT_BOARD_VIEWPORT);
+  const boardTargets = useMemo(
+    () =>
+      createBoardCanvasTargetModels({
+        buildMode,
+        compactPlacement,
+        game,
+        layout: boardLayout,
+        viewerTheme,
+      }),
+    [boardLayout, buildMode, compactPlacement, game, viewerTheme],
+  );
+  const canvasTargets = useMemo<readonly BoardCanvasTarget[]>(
+    () =>
+      compactPlacement
+        ? []
+        : boardTargets.map((target) => ({
+            ...target,
+            disabled: pending,
+          })),
+    [boardTargets, compactPlacement, pending],
+  );
+  const {
+    boardSceneRef,
+    boardShellRef,
+    boardStageRef,
+    boardViewport,
+    cancelPointerGesture,
+    changeZoomBy,
+    handleClickCapture,
+    handleLostPointerCapture,
+    isInteracting,
+    movePointerGesture,
+    panBoardBy,
+    resetBoardViewport,
+    startPointerGesture,
+    stopPointerGesture,
+    zoomOutputRef,
+  } = useBoardCamera();
   const [inspectedItemId, setInspectedItemId] = useState<string | null>(null);
   const [keyboardInspectionId, setKeyboardInspectionId] = useState<string | null>(
     firstInspectionId,
   );
-  const [isDraggingBoard, setIsDraggingBoard] = useState(false);
   const inspectedItem = inspectedItemId ? (inspectionById.get(inspectedItemId) ?? null) : null;
   const keyboardInspectionExists = keyboardInspectionId
     ? inspectionById.has(keyboardInspectionId)
@@ -180,22 +250,10 @@ export function GameBoard({
     }
   }, [firstInspectionId, keyboardInspectionExists]);
 
-  const getBounds = () => ({
-    height: boardShellRef.current?.clientHeight ?? 1,
-    width: boardShellRef.current?.clientWidth ?? 1,
-  });
-
-  const changeZoomBy = (amount: number) => {
-    setBoardViewport((current) =>
-      zoomBoardViewport(current, current.scale + amount, { x: 0, y: 0 }, getBounds()),
-    );
-  };
-
-  const panBoardBy = (x: number, y: number) => {
-    setBoardViewport((current) => panBoardViewport(current, { x, y }, getBounds()));
-  };
-
   const inspectBoardItem = (id: string) => {
+    if (isInteracting()) {
+      return;
+    }
     setInspectedItemId(id);
   };
 
@@ -257,7 +315,7 @@ export function GameBoard({
 
     if (event.key === "0") {
       event.preventDefault();
-      setBoardViewport(DEFAULT_BOARD_VIEWPORT);
+      resetBoardViewport();
       return;
     }
 
@@ -267,70 +325,17 @@ export function GameBoard({
     }
   };
 
-  const handleWheel = (event: ReactWheelEvent<HTMLElement>) => {
-    event.preventDefault();
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const focus = {
-      x: event.clientX - bounds.left - bounds.width / 2,
-      y: event.clientY - bounds.top - bounds.height / 2,
-    };
-    setBoardViewport((current) =>
-      zoomBoardViewport(current, current.scale * Math.exp(-event.deltaY * 0.0012), focus, bounds),
-    );
-  };
-
-  const startDraggingBoard = (event: ReactPointerEvent<HTMLElement>) => {
-    if (
-      event.button !== 0 ||
-      (event.target instanceof Element && event.target.closest("button, .board-navigation"))
-    ) {
-      return;
-    }
-    event.currentTarget.setPointerCapture(event.pointerId);
-    boardDragRef.current = {
-      origin: boardViewport,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-    setIsDraggingBoard(true);
-  };
-
-  const dragBoard = (event: ReactPointerEvent<HTMLElement>) => {
-    const drag = boardDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) {
-      return;
-    }
-    setBoardViewport(
-      panBoardViewport(
-        drag.origin,
-        { x: event.clientX - drag.startX, y: event.clientY - drag.startY },
-        getBounds(),
-      ),
-    );
-  };
-
-  const stopDraggingBoard = (event: ReactPointerEvent<HTMLElement>) => {
-    if (boardDragRef.current?.pointerId !== event.pointerId) {
-      return;
-    }
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    boardDragRef.current = null;
-    setIsDraggingBoard(false);
-  };
-
   return (
     <section
       aria-label="Game board. Hover a board item for visual details, or Tab into the board items and use arrow keys to inspect them. When the board itself is focused, drag or use arrow keys to pan, use the mouse wheel or plus and minus keys to zoom, and press zero to reset."
-      className={isDraggingBoard ? "board-shell is-dragging" : "board-shell"}
+      className="board-shell"
+      onClickCapture={handleClickCapture}
       onKeyDown={handleKeyDown}
-      onPointerCancel={stopDraggingBoard}
-      onPointerDown={startDraggingBoard}
-      onPointerMove={dragBoard}
-      onPointerUp={stopDraggingBoard}
-      onWheel={handleWheel}
+      onLostPointerCapture={handleLostPointerCapture}
+      onPointerCancel={cancelPointerGesture}
+      onPointerDown={startPointerGesture}
+      onPointerMove={movePointerGesture}
+      onPointerUp={stopPointerGesture}
       ref={boardShellRef}
       tabIndex={0}
     >
@@ -352,7 +357,7 @@ export function GameBoard({
           >
             <Icon aria-hidden="true" icon={minusIcon} />
           </Button>
-          <output aria-label="Current board zoom" className="board-zoom-level">
+          <output aria-label="Current board zoom" className="board-zoom-level" ref={zoomOutputRef}>
             {Math.round(boardViewport.scale * 100)}%
           </output>
           <Button
@@ -375,7 +380,7 @@ export function GameBoard({
               boardViewport.y === DEFAULT_BOARD_VIEWPORT.y
             }
             isIconOnly
-            onPress={() => setBoardViewport(DEFAULT_BOARD_VIEWPORT)}
+            onPress={resetBoardViewport}
             size="sm"
             variant="secondary"
           >
@@ -384,458 +389,201 @@ export function GameBoard({
         </div>
       </div>
       <div
-        className="game-board"
-        style={
-          {
-            "--board-scale": boardViewport.scale,
-            "--board-x": `${boardViewport.x}px`,
-            "--board-y": `${boardViewport.y}px`,
-            "--tile-size": `${(BOARD_CANVAS.tileSize / BOARD_CANVAS.width) * 100}%`,
-            aspectRatio: `${BOARD_CANVAS.width} / ${BOARD_CANVAS.height}`,
-          } as CSSProperties
-        }
+        className="board-stage"
+        ref={boardStageRef}
+        style={{ aspectRatio: `${BOARD_CANVAS.width} / ${BOARD_CANVAS.height}` }}
       >
-        <div className="ocean-glow" aria-hidden="true" />
-
-        {game.board.tiles.map((tile, index) => {
-          const point = getTilePoint(tile);
-          const layer = Math.round(point.y);
-          const tileInspection = tileInspections[index];
-          if (!tileInspection) {
-            return null;
+        <div
+          className="game-board"
+          ref={boardSceneRef}
+          style={
+            {
+              "--tile-size": `${(boardLayout.tileSize / BOARD_CANVAS.width) * 100}%`,
+            } as CSSProperties
           }
-          return (
-            <div
-              aria-label={tileInspection.accessibleLabel}
-              className={getInspectableClassName(
-                "tile-position",
-                tileInspection.id === inspectedItemId,
-              )}
-              data-board-inspection-id={tileInspection.id}
-              data-board-inspectable="tile"
-              key={tile.id}
-              onFocus={() => focusBoardItem(tileInspection.id)}
-              onKeyDown={(event) => navigateBoardItems(event, tileInspection.id)}
-              onPointerDown={() => inspectBoardItem(tileInspection.id)}
-              onPointerEnter={() => inspectBoardItem(tileInspection.id)}
-              role="img"
-              style={
-                {
-                  ...getPointStyle(point),
-                  "--tile-layer": layer,
-                  pointerEvents: "auto",
-                } as CSSProperties
-              }
-              tabIndex={tileInspection.id === keyboardInspectionId ? 0 : -1}
-            >
-              <img
-                alt=""
-                className="terrain-tile"
-                draggable={false}
-                height={TERRAIN_ASSET.size}
-                src={getTerrainAssetPath(tile.terrain)}
-                width={TERRAIN_ASSET.size}
-              />
-              {tile.numberToken === null ? null : (
-                <NumberToken number={tile.numberToken} terrain={tile.terrain} />
-              )}
-            </div>
-          );
-        })}
-
-        <svg
-          aria-hidden="true"
-          className="port-docks"
-          viewBox={`0 0 ${BOARD_CANVAS.width} ${BOARD_CANVAS.height}`}
         >
-          {ports.flatMap((port) =>
-            port.placement.docks.map((dock, index) => (
-              <g key={`${port.id}:dock:${index}`}>
-                <line
-                  className="port-dock-outline"
-                  x1={dock.start.x}
-                  x2={dock.end.x}
-                  y1={dock.start.y}
-                  y2={dock.end.y}
-                />
-                <line
-                  className="port-dock-planks"
-                  x1={dock.start.x}
-                  x2={dock.end.x}
-                  y1={dock.start.y}
-                  y2={dock.end.y}
-                />
-                <line
-                  className="port-dock-seams"
-                  x1={dock.start.x}
-                  x2={dock.end.x}
-                  y1={dock.start.y}
-                  y2={dock.end.y}
-                />
-              </g>
-            )),
-          )}
-        </svg>
-
-        {ports.map((port, index) => {
-          const inspection = portInspections[index];
-          return inspection ? (
-            <Port
-              inspection={inspection}
-              isInspected={inspection.id === inspectedItemId}
-              isKeyboardTarget={inspection.id === keyboardInspectionId}
-              key={port.id}
-              onInspect={inspectBoardItem}
-              onKeyboardFocus={focusBoardItem}
-              onKeyboardNavigate={navigateBoardItems}
-              point={port.placement}
-              trade={port.trade}
-            />
-          ) : null;
-        })}
-
-        {game.board.roads.map((road, index) => {
-          const point = getEdgePlacement(road.edgeKey);
-          const inspection = roadInspections[index];
-          if (!point || !inspection) {
-            return null;
-          }
-          return (
-            <Piece
-              angle={point.angle}
-              asset="road"
-              inspection={inspection}
-              isInspected={inspection.id === inspectedItemId}
-              isKeyboardTarget={inspection.id === keyboardInspectionId}
-              key={road.edgeKey}
-              onInspect={inspectBoardItem}
-              onKeyboardFocus={focusBoardItem}
-              onKeyboardNavigate={navigateBoardItems}
-              point={point}
-              theme={playerDetailsById.get(road.playerId)?.theme ?? "red"}
-            />
-          );
-        })}
-
-        {game.board.buildings.map((building, index) => {
-          const point = getVertexPoint(building.vertexKey);
-          const inspection = buildingInspections[index];
-          if (!point || !inspection) {
-            return null;
-          }
-          return (
-            <Piece
-              asset={building.kind}
-              inspection={inspection}
-              isInspected={inspection.id === inspectedItemId}
-              isKeyboardTarget={inspection.id === keyboardInspectionId}
-              key={building.vertexKey}
-              onInspect={inspectBoardItem}
-              onKeyboardFocus={focusBoardItem}
-              onKeyboardNavigate={navigateBoardItems}
-              point={point}
-              theme={playerDetailsById.get(building.playerId)?.theme ?? "red"}
-            />
-          );
-        })}
-
-        {robberInspection && robberTile ? (
-          <Robber
-            inspection={robberInspection}
-            isInspected={robberInspection.id === inspectedItemId}
-            isKeyboardTarget={robberInspection.id === keyboardInspectionId}
-            onInspect={inspectBoardItem}
-            onKeyboardFocus={focusBoardItem}
-            onKeyboardNavigate={navigateBoardItems}
-            tile={robberTile}
+          <BoardCanvas
+            board={game.board}
+            boardLayout={boardLayout}
+            playerThemes={playerThemes}
+            renderScale={boardViewport.scale}
+            targets={canvasTargets}
+            terrainVariants={terrainVariants}
           />
-        ) : null}
 
-        {targetMode === "settlement"
-          ? game.legalActions.settlementVertexKeys.map((vertexKey, index) => {
-              const point = getVertexPoint(vertexKey);
-              return point ? (
-                <BuildTarget
-                  asset="settlement"
-                  compactPlacement={compactPlacement}
-                  disabled={pending}
-                  key={vertexKey}
-                  label={`Place settlement at legal location ${index + 1}`}
-                  marker={index + 1}
-                  onClick={() =>
-                    onCommand({ kind: "place_settlement", vertexKey }, "Settlement placed.")
-                  }
-                  point={point}
-                  theme={viewerTheme}
-                  type="vertex"
-                />
-              ) : null;
-            })
-          : null}
+          {game.board.tiles.map((tile, index) => {
+            const inspection = tileInspections[index];
+            if (!inspection) {
+              return null;
+            }
+            return (
+              <BoardHitTarget
+                className="tile-hit-target"
+                inspection={inspection}
+                isInspected={inspection.id === inspectedItemId}
+                isKeyboardTarget={inspection.id === keyboardInspectionId}
+                key={tile.id}
+                kind="tile"
+                onInspect={inspectBoardItem}
+                onKeyboardFocus={focusBoardItem}
+                onKeyboardNavigate={navigateBoardItems}
+                point={getTilePoint(boardLayout, tile)}
+              />
+            );
+          })}
 
-        {targetMode === "city"
-          ? game.legalActions.cityVertexKeys.map((vertexKey, index) => {
-              const point = getVertexPoint(vertexKey);
-              return point ? (
-                <BuildTarget
-                  asset="city"
-                  compactPlacement={compactPlacement}
-                  disabled={pending}
-                  key={vertexKey}
-                  label={`Upgrade city at legal location ${index + 1}`}
-                  marker={index + 1}
-                  onClick={() => onCommand({ kind: "build_city", vertexKey }, "City completed.")}
-                  point={point}
-                  theme={viewerTheme}
-                  type="vertex"
-                />
-              ) : null;
-            })
-          : null}
+          {ports.map((port, index) => {
+            const inspection = portInspections[index];
+            return inspection ? (
+              <BoardHitTarget
+                className="port-hit-target"
+                inspection={inspection}
+                isInspected={inspection.id === inspectedItemId}
+                isKeyboardTarget={inspection.id === keyboardInspectionId}
+                key={port.id}
+                kind="port"
+                onInspect={inspectBoardItem}
+                onKeyboardFocus={focusBoardItem}
+                onKeyboardNavigate={navigateBoardItems}
+                point={port.placement}
+              />
+            ) : null;
+          })}
 
-        {targetMode === "road"
-          ? game.legalActions.roadEdgeKeys.map((edgeKey, index) => {
-              const point = getEdgePlacement(edgeKey);
-              return point ? (
-                <BuildTarget
-                  angle={point.angle}
-                  asset="road"
-                  compactPlacement={compactPlacement}
-                  disabled={pending}
-                  key={edgeKey}
-                  label={`Place road at legal edge ${index + 1}`}
-                  marker={index + 1}
-                  onClick={() => onCommand({ edgeKey, kind: "place_road" }, "Road placed.")}
-                  point={point}
-                  theme={viewerTheme}
-                  type="edge"
-                />
-              ) : null;
-            })
-          : null}
+          {game.board.roads.map((road, index) => {
+            const point = getEdgePlacement(boardLayout, road.edgeKey);
+            const inspection = roadInspections[index];
+            return point && inspection ? (
+              <BoardHitTarget
+                angle={point.angle}
+                className="piece-hit-target piece-hit-target-road"
+                inspection={inspection}
+                isInspected={inspection.id === inspectedItemId}
+                isKeyboardTarget={inspection.id === keyboardInspectionId}
+                key={road.edgeKey}
+                kind="piece"
+                onInspect={inspectBoardItem}
+                onKeyboardFocus={focusBoardItem}
+                onKeyboardNavigate={navigateBoardItems}
+                point={point}
+              />
+            ) : null;
+          })}
 
-        {targetMode === "robber"
-          ? game.legalActions.robberTileIds.map((tileId, index) => {
-              const tile = game.board.tiles.find((candidate) => candidate.id === tileId);
-              if (!tile) {
-                return null;
-              }
-              return (
-                <BuildTarget
-                  asset="robber"
-                  compactPlacement={compactPlacement}
-                  disabled={pending}
-                  key={tileId}
-                  label={`Move robber to legal tile ${index + 1}`}
-                  marker={index + 1}
-                  onClick={() => onCommand({ kind: "move_robber", tileId }, "Robber moved.")}
-                  point={getTilePoint(tile)}
-                  theme={viewerTheme}
-                  type="tile"
-                />
-              );
-            })
-          : null}
+          {game.board.buildings.map((building, index) => {
+            const point = getVertexPoint(boardLayout, building.vertexKey);
+            const inspection = buildingInspections[index];
+            return point && inspection ? (
+              <BoardHitTarget
+                className={`piece-hit-target piece-hit-target-${building.kind}`}
+                inspection={inspection}
+                isInspected={inspection.id === inspectedItemId}
+                isKeyboardTarget={inspection.id === keyboardInspectionId}
+                key={building.vertexKey}
+                kind="piece"
+                onInspect={inspectBoardItem}
+                onKeyboardFocus={focusBoardItem}
+                onKeyboardNavigate={navigateBoardItems}
+                point={point}
+              />
+            ) : null;
+          })}
+
+          {robberInspection && robberTile ? (
+            <BoardHitTarget
+              className="robber-hit-target"
+              inspection={robberInspection}
+              isInspected={robberInspection.id === inspectedItemId}
+              isKeyboardTarget={robberInspection.id === keyboardInspectionId}
+              kind="robber"
+              onInspect={inspectBoardItem}
+              onKeyboardFocus={focusBoardItem}
+              onKeyboardNavigate={navigateBoardItems}
+              point={getTilePoint(boardLayout, robberTile)}
+            />
+          ) : null}
+
+          {boardTargets.map((target) => (
+            <BuildTarget
+              disabled={pending}
+              key={target.id}
+              onClick={() => onCommand(target.command, target.successMessage)}
+              target={target}
+            />
+          ))}
+        </div>
       </div>
       <BoardInspector inspection={inspectedItem} />
     </section>
   );
 }
 
-function NumberToken({ number, terrain }: { number: number; terrain: string }) {
-  const pips = NUMBER_TOKEN_PIPS[number] ?? 0;
-  const isHot = number === 6 || number === 8;
-  return (
-    <span
-      aria-label={`${terrain} produces on ${number}; ${pips} probability pips`}
-      className={isHot ? "number-token is-hot" : "number-token"}
-      role="img"
-    >
-      <strong>{number}</strong>
-      <span aria-hidden="true">{"•".repeat(pips)}</span>
-    </span>
-  );
-}
-
-function Port({
-  inspection,
-  isInspected,
-  isKeyboardTarget,
-  onInspect,
-  onKeyboardFocus,
-  onKeyboardNavigate,
-  point,
-  trade,
-}: InspectableBoardItemProps & {
-  point: { x: number; y: number };
-  trade: "any" | ResourceType;
-}) {
-  return (
-    <span
-      aria-label={inspection.accessibleLabel}
-      className={getInspectableClassName("port-token", isInspected)}
-      data-board-inspection-id={inspection.id}
-      data-board-inspectable="port"
-      onFocus={() => onKeyboardFocus(inspection.id)}
-      onKeyDown={(event) => onKeyboardNavigate(event, inspection.id)}
-      onPointerDown={() => onInspect(inspection.id)}
-      onPointerEnter={() => onInspect(inspection.id)}
-      role="img"
-      style={getPointStyle(point)}
-      tabIndex={isKeyboardTarget ? 0 : -1}
-    >
-      <img
-        alt=""
-        className="port-skiff"
-        draggable={false}
-        height={512}
-        src="/game-assets/ui/port-skiff-v1.png"
-        width={384}
-      />
-      <span aria-hidden="true" className="port-emblem">
-        {trade === "any" ? "⚓" : <ResourceIcon decorative resource={trade} size={22} />}
-      </span>
-      <strong>{trade === "any" ? "3:1" : "2:1"}</strong>
-    </span>
-  );
-}
-
-function Piece({
+function BoardHitTarget({
   angle = 0,
-  asset,
+  className,
   inspection,
   isInspected,
   isKeyboardTarget,
+  kind,
   onInspect,
   onKeyboardFocus,
   onKeyboardNavigate,
   point,
-  theme,
 }: InspectableBoardItemProps & {
   angle?: number;
-  asset: BoardPieceAsset;
+  className: string;
+  kind: "piece" | "port" | "robber" | "tile";
   point: { x: number; y: number };
-  theme: PlayerTheme;
 }) {
-  const rotation = asset === "road" ? angle + ROAD_ASSET_ROTATION_OFFSET : 0;
-  const assetPath = getPieceAssetPath(asset);
   return (
     <span
       aria-label={inspection.accessibleLabel}
-      className={getInspectableClassName(`board-piece ${asset}-piece player-${theme}`, isInspected)}
+      className={getInspectableClassName(`board-hit-target ${className}`, isInspected)}
       data-board-inspection-id={inspection.id}
-      data-board-inspectable="piece"
+      data-board-inspectable={kind}
       onFocus={() => onKeyboardFocus(inspection.id)}
       onKeyDown={(event) => onKeyboardNavigate(event, inspection.id)}
       onPointerDown={() => onInspect(inspection.id)}
       onPointerEnter={() => onInspect(inspection.id)}
       role="img"
-      style={{ ...getPointStyle(point), "--piece-rotation": `${rotation}deg` } as CSSProperties}
+      style={{ ...getPointStyle(point), "--hit-rotation": `${angle}deg` } as CSSProperties}
       tabIndex={isKeyboardTarget ? 0 : -1}
-    >
-      <img alt="" draggable={false} height={512} src={assetPath} width={512} />
-      <span
-        aria-hidden="true"
-        className="piece-color"
-        style={{ "--piece-mask": `url(${assetPath})` } as CSSProperties}
-      />
-    </span>
-  );
-}
-
-function Robber({
-  inspection,
-  isInspected,
-  isKeyboardTarget,
-  onInspect,
-  onKeyboardFocus,
-  onKeyboardNavigate,
-  tile,
-}: InspectableBoardItemProps & { tile: PlayerGameView["board"]["tiles"][number] }) {
-  return (
-    <span
-      aria-label={inspection.accessibleLabel}
-      className={getInspectableClassName("board-piece robber-piece", isInspected)}
-      data-board-inspection-id={inspection.id}
-      data-board-inspectable="robber"
-      onFocus={() => onKeyboardFocus(inspection.id)}
-      onKeyDown={(event) => onKeyboardNavigate(event, inspection.id)}
-      onPointerDown={() => onInspect(inspection.id)}
-      onPointerEnter={() => onInspect(inspection.id)}
-      role="img"
-      style={getPointStyle(getTilePoint(tile))}
-      tabIndex={isKeyboardTarget ? 0 : -1}
-    >
-      <img alt="" draggable={false} height={256} src="/game-assets/pieces/robber.png" width={256} />
-    </span>
+    />
   );
 }
 
 function BuildTarget({
-  angle = 0,
-  asset,
-  compactPlacement,
   disabled,
-  label,
-  marker,
   onClick,
-  point,
-  theme,
-  type,
+  target,
 }: {
-  angle?: number;
-  asset: BuildPreviewAsset;
-  compactPlacement: boolean;
   disabled: boolean;
-  label: string;
-  marker: number;
   onClick(): void;
-  point: { x: number; y: number };
-  theme: PlayerTheme;
-  type: "edge" | "tile" | "vertex";
+  target: BoardCanvasTargetModel;
 }) {
-  const assetPath =
-    asset === "robber" ? "/game-assets/pieces/robber.png" : getPieceAssetPath(asset);
-
   return (
     <button
-      aria-hidden={compactPlacement || undefined}
-      aria-label={label}
-      className={`build-target target-${type} target-${asset} player-${theme}`}
-      data-marker={marker}
+      aria-hidden={target.ariaHidden || undefined}
+      aria-label={target.label}
+      className={`build-target target-${target.type} target-${target.asset} player-${target.theme}`}
+      data-marker={target.marker}
       disabled={disabled}
-      onClick={compactPlacement ? undefined : onClick}
+      onClick={target.interactive ? onClick : undefined}
       style={
         {
-          ...getPointStyle(point),
-          "--target-label-rotation": `${-angle}deg`,
-          "--target-rotation": `${angle}deg`,
+          ...getPointStyle(target.point),
+          "--target-label-rotation": `${-target.angle}deg`,
+          "--target-rotation": `${target.angle}deg`,
         } as CSSProperties
       }
-      tabIndex={compactPlacement ? -1 : undefined}
+      tabIndex={target.interactive ? undefined : -1}
       type="button"
     >
-      <img
-        alt=""
-        aria-hidden="true"
-        className="build-target-preview"
-        draggable={false}
-        height={asset === "robber" ? 256 : 512}
-        src={assetPath}
-        width={asset === "robber" ? 256 : 512}
-      />
-      {asset === "robber" ? null : (
-        <i
-          aria-hidden="true"
-          className="build-target-preview-color piece-color"
-          style={{ "--piece-mask": `url(${assetPath})` } as CSSProperties}
-        />
-      )}
       <span
         aria-hidden="true"
         className="build-target-marker"
-        data-marker={marker}
-        style={{ display: compactPlacement ? undefined : "none" }}
+        data-marker={target.marker}
+        style={{ display: target.showMarker ? undefined : "none" }}
       />
     </button>
   );
@@ -1022,19 +770,7 @@ function useCompactPlacementLayout(): boolean {
 }
 
 export function getTargetMode(game: PlayerGameView, buildMode: BuildMode) {
-  if (!game.legalActions.isRequiredActor) {
-    return null;
-  }
-  if (game.phase.kind === "setup_settlement") {
-    return "settlement";
-  }
-  if (game.phase.kind === "setup_road") {
-    return "road";
-  }
-  if (game.phase.kind === "move_robber") {
-    return "robber";
-  }
-  return buildMode;
+  return resolveBoardTargetMode(game, buildMode);
 }
 
 export function getPlayerTheme(player: PlayerViewState) {

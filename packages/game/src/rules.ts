@@ -17,7 +17,7 @@ import {
   subtractResources,
   totalResources,
 } from "./resources";
-import { DEFAULT_TOPOLOGY } from "./topology";
+import { getBoardTopology } from "./topology";
 import { GameRuleError, RESOURCE_TYPES } from "./types";
 import type {
   GameCommand,
@@ -75,6 +75,10 @@ function roadAt(state: GameState, edgeKey: string) {
   return state.board.roads.find((road) => road.edgeKey === edgeKey);
 }
 
+function boardTopology(state: Pick<GameState, "board">) {
+  return getBoardTopology(state.board.tiles);
+}
+
 function playerOwnsPort(
   state: Pick<GameState, "board">,
   playerId: PlayerId,
@@ -85,7 +89,7 @@ function playerOwnsPort(
       return false;
     }
 
-    const portVertices = DEFAULT_TOPOLOGY.edgeVertices[port.edgeKey] ?? [];
+    const portVertices = boardTopology(state).edgeVertices[port.edgeKey] ?? [];
     return portVertices.some((vertexKey) => buildingAt(state, vertexKey)?.playerId === playerId);
   });
 }
@@ -106,28 +110,28 @@ export function getBankTradeRatio(
   return playerOwnsPort(state, playerId, "any") ? ANY_PORT_TRADE_RATIO : BANK_TRADE_RATIO;
 }
 
-function isKnownVertex(vertexKey: string) {
-  return DEFAULT_TOPOLOGY.vertexPositions[vertexKey] !== undefined;
+function isKnownVertex(state: GameState, vertexKey: string) {
+  return boardTopology(state).vertexPositions[vertexKey] !== undefined;
 }
 
-function isKnownEdge(edgeKey: string) {
-  return DEFAULT_TOPOLOGY.edgeVertices[edgeKey] !== undefined;
+function isKnownEdge(state: GameState, edgeKey: string) {
+  return boardTopology(state).edgeVertices[edgeKey] !== undefined;
 }
 
 function followsDistanceRule(state: GameState, vertexKey: string) {
-  return (DEFAULT_TOPOLOGY.vertexNeighbors[vertexKey] ?? []).every(
+  return (boardTopology(state).vertexNeighbors[vertexKey] ?? []).every(
     (neighbor) => !buildingAt(state, neighbor),
   );
 }
 
 function hasPlayerRoadAtVertex(state: GameState, playerId: PlayerId, vertexKey: string) {
-  return (DEFAULT_TOPOLOGY.vertexEdges[vertexKey] ?? []).some(
+  return (boardTopology(state).vertexEdges[vertexKey] ?? []).some(
     (edgeKey) => roadAt(state, edgeKey)?.playerId === playerId,
   );
 }
 
 function roadConnectsToPlayer(state: GameState, playerId: PlayerId, edgeKey: string) {
-  return (DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? []).some((vertexKey) => {
+  return (boardTopology(state).edgeVertices[edgeKey] ?? []).some((vertexKey) => {
     const building = buildingAt(state, vertexKey);
 
     if (building?.playerId === playerId) {
@@ -149,7 +153,7 @@ export function getSettlementVertexKeys(
 ) {
   requirePlayer(state, playerId);
 
-  return DEFAULT_TOPOLOGY.vertexKeys.filter(
+  return boardTopology(state).vertexKeys.filter(
     (vertexKey) =>
       !buildingAt(state, vertexKey) &&
       followsDistanceRule(state, vertexKey) &&
@@ -160,7 +164,7 @@ export function getSettlementVertexKeys(
 export function getRoadEdgeKeys(state: GameState, playerId: PlayerId) {
   requirePlayer(state, playerId);
 
-  return DEFAULT_TOPOLOGY.edgeKeys.filter(
+  return boardTopology(state).edgeKeys.filter(
     (edgeKey) => !roadAt(state, edgeKey) && roadConnectsToPlayer(state, playerId, edgeKey),
   );
 }
@@ -233,7 +237,7 @@ function grantSecondSettlementResources(state: GameState, playerId: PlayerId, ve
   const granted = emptyInventory();
   const bank = { ...state.bank };
 
-  for (const tileId of DEFAULT_TOPOLOGY.vertexTileIds[vertexKey] ?? []) {
+  for (const tileId of boardTopology(state).vertexTileIds[vertexKey] ?? []) {
     const tile = state.board.tiles.find((candidate) => candidate.id === tileId);
     const resource = tile ? TERRAIN_RESOURCE[tile.terrain] : null;
 
@@ -268,7 +272,7 @@ function finishIfWinner(state: GameState, playerId: PlayerId) {
 }
 
 function placeSettlement(state: GameState, playerId: PlayerId, vertexKey: string) {
-  if (!isKnownVertex(vertexKey)) {
+  if (!isKnownVertex(state, vertexKey)) {
     fail("INVALID_LOCATION", `Unknown vertex: ${vertexKey}`);
   }
 
@@ -315,7 +319,7 @@ function placeSettlement(state: GameState, playerId: PlayerId, vertexKey: string
 }
 
 function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
-  if (!isKnownEdge(edgeKey)) {
+  if (!isKnownEdge(state, edgeKey)) {
     fail("INVALID_LOCATION", `Unknown edge: ${edgeKey}`);
   }
 
@@ -331,7 +335,7 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
 
   if (state.phase.kind === "setup_road") {
     const { settlementVertexKey, setupIndex } = state.phase;
-    const setupEdgeVertices = DEFAULT_TOPOLOGY.edgeVertices[edgeKey];
+    const setupEdgeVertices = boardTopology(state).edgeVertices[edgeKey];
 
     if (!setupEdgeVertices?.includes(settlementVertexKey)) {
       fail("ROAD_NOT_CONNECTED", "Setup road must touch the new settlement");
@@ -444,7 +448,7 @@ export function distributeResourcesForRoll(state: GameState, rollTotal: number) 
       continue;
     }
 
-    for (const vertexKey of DEFAULT_TOPOLOGY.tileById[tile.id]?.vertexKeys ?? []) {
+    for (const vertexKey of boardTopology(state).tileById[tile.id]?.vertexKeys ?? []) {
       const building = buildingByVertex.get(vertexKey);
       const claim = building
         ? claims.find((candidate) => candidate.playerId === building.playerId)
@@ -638,7 +642,7 @@ function robberTileIds(state: GameState) {
   }
 
   const friendly = available.filter((tileId) => {
-    const adjacentVertices = new Set(DEFAULT_TOPOLOGY.tileById[tileId]?.vertexKeys ?? []);
+    const adjacentVertices = new Set(boardTopology(state).tileById[tileId]?.vertexKeys ?? []);
     return !state.board.buildings.some(
       (building) =>
         protectedPlayerIds.has(building.playerId) && adjacentVertices.has(building.vertexKey),
@@ -667,7 +671,7 @@ function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
     fail("INVALID_ROBBER_TILE", "Friendly robber protects players with two or fewer points");
   }
 
-  const adjacentVertices = new Set(DEFAULT_TOPOLOGY.tileById[tileId]?.vertexKeys ?? []);
+  const adjacentVertices = new Set(boardTopology(state).tileById[tileId]?.vertexKeys ?? []);
   const protectedPlayerIds = friendlyRobberProtectedPlayerIds(state);
   const eligibleVictimIds = state.players
     .filter(
@@ -1016,7 +1020,7 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
     case "setup_road":
       actions.roadEdgeKeys =
         player.piecesRemaining.roads > 0
-          ? (DEFAULT_TOPOLOGY.vertexEdges[state.phase.settlementVertexKey] ?? []).filter(
+          ? (boardTopology(state).vertexEdges[state.phase.settlementVertexKey] ?? []).filter(
               (edgeKey) => !roadAt(state, edgeKey),
             )
           : [];

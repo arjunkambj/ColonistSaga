@@ -127,7 +127,7 @@ export function createDefaultGame(
     activePlayerId: firstPlayer.id,
     balancedDiceBag: [],
     bank: filledInventory(BANK_RESOURCE_COUNT),
-    board: createBoard(settings.map),
+    board: createBoard(settings.map, seed),
     lastDiceRoll: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
     players: players.map((player, seatIndex) => {

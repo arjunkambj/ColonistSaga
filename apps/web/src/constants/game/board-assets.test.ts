@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   BOARD_TILE,
   getTerrainAssetPath,
+  getTerrainAssetVariant,
   ROAD_ASSET_ROTATION_OFFSET,
   TERRAIN_ASSET,
 } from "./board-assets.ts";
@@ -28,5 +29,18 @@ test("the map and asset sheet share the final terrain revision", () => {
   assert.equal(
     getTerrainAssetPath("fields"),
     `/game-assets/terrain/fields.png?v=${TERRAIN_ASSET.revision}`,
+  );
+});
+
+test("terrain variants are deterministic and use alternate artwork", () => {
+  assert.deepEqual([0, 1, 2, 3].map(getTerrainAssetVariant), [
+    "base",
+    "alternate",
+    "alternate-2",
+    "base",
+  ]);
+  assert.equal(
+    getTerrainAssetPath("forest", "alternate-2"),
+    `/game-assets/terrain/forest-alternate-2.png?v=${TERRAIN_ASSET.revision}`,
   );
 });

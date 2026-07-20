@@ -1,5 +1,5 @@
-import { DEFAULT_TOPOLOGY, axialToPixel } from "@colonistsaga/game";
-import type { AxialCoordinate, PixelCoordinate } from "@colonistsaga/game";
+import { axialToPixel, getBoardTopology } from "@colonistsaga/game";
+import type { AxialCoordinate, BoardTopology, PixelCoordinate } from "@colonistsaga/game";
 
 import { BOARD_TILE } from "@/constants/game/board-assets";
 
@@ -23,26 +23,59 @@ export interface PortPlacement extends EdgePlacement {
   ];
 }
 
-export function getTilePoint(coordinate: AxialCoordinate): PixelCoordinate {
-  return toCanvasPoint(axialToPixel(coordinate, BOARD_CANVAS.tileRadius));
+export interface BoardLayout {
+  origin: PixelCoordinate;
+  tileRadius: number;
+  tileSize: number;
+  topology: BoardTopology;
 }
 
-export function getVertexPoint(vertexKey: string): PixelCoordinate | null {
-  const position = DEFAULT_TOPOLOGY.vertexPositions[vertexKey];
+export function createBoardLayout(coordinates: readonly AxialCoordinate[]): BoardLayout {
+  const unitPoints = coordinates.map((coordinate) => axialToPixel(coordinate, 1));
+  const xValues = unitPoints.map((point) => point.x);
+  const yValues = unitPoints.map((point) => point.y);
+  const minX = Math.min(...xValues);
+  const maxX = Math.max(...xValues);
+  const minY = Math.min(...yValues);
+  const maxY = Math.max(...yValues);
+  const assetDiameter = BOARD_TILE.renderSize / BOARD_TILE.radius;
+  const tileRadius = Math.min(
+    BOARD_CANVAS.tileRadius,
+    960 / (maxX - minX + assetDiameter),
+    1_060 / (maxY - minY + assetDiameter),
+  );
+
+  return {
+    origin: {
+      x: BOARD_CANVAS.centerX - ((minX + maxX) / 2) * tileRadius,
+      y: BOARD_CANVAS.centerY - ((minY + maxY) / 2) * tileRadius,
+    },
+    tileRadius,
+    tileSize: assetDiameter * tileRadius,
+    topology: getBoardTopology(coordinates),
+  };
+}
+
+export function getTilePoint(layout: BoardLayout, coordinate: AxialCoordinate): PixelCoordinate {
+  return toCanvasPoint(layout, axialToPixel(coordinate, layout.tileRadius));
+}
+
+export function getVertexPoint(layout: BoardLayout, vertexKey: string): PixelCoordinate | null {
+  const position = layout.topology.vertexPositions[vertexKey];
   if (!position) {
     return null;
   }
 
-  return toCanvasPoint({
-    x: (BOARD_CANVAS.tileRadius / 2) * position.x,
-    y: ((Math.sqrt(3) * BOARD_CANVAS.tileRadius) / 2) * position.y,
+  return toCanvasPoint(layout, {
+    x: (layout.tileRadius / 2) * position.x,
+    y: ((Math.sqrt(3) * layout.tileRadius) / 2) * position.y,
   });
 }
 
-export function getEdgePlacement(edgeKey: string): EdgePlacement | null {
-  const [firstKey, secondKey] = DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? [];
-  const first = firstKey ? getVertexPoint(firstKey) : null;
-  const second = secondKey ? getVertexPoint(secondKey) : null;
+export function getEdgePlacement(layout: BoardLayout, edgeKey: string): EdgePlacement | null {
+  const [firstKey, secondKey] = layout.topology.edgeVertices[edgeKey] ?? [];
+  const first = firstKey ? getVertexPoint(layout, firstKey) : null;
+  const second = secondKey ? getVertexPoint(layout, secondKey) : null;
 
   if (!first || !second) {
     return null;
@@ -55,28 +88,28 @@ export function getEdgePlacement(edgeKey: string): EdgePlacement | null {
   };
 }
 
-export function getPortPlacement(edgeKey: string): PortPlacement | null {
-  const edge = getEdgePlacement(edgeKey);
-  const [firstVertexKey, secondVertexKey] = DEFAULT_TOPOLOGY.edgeVertices[edgeKey] ?? [];
-  const firstVertex = firstVertexKey ? getVertexPoint(firstVertexKey) : null;
-  const secondVertex = secondVertexKey ? getVertexPoint(secondVertexKey) : null;
+export function getPortPlacement(layout: BoardLayout, edgeKey: string): PortPlacement | null {
+  const edge = getEdgePlacement(layout, edgeKey);
+  const [firstVertexKey, secondVertexKey] = layout.topology.edgeVertices[edgeKey] ?? [];
+  const firstVertex = firstVertexKey ? getVertexPoint(layout, firstVertexKey) : null;
+  const secondVertex = secondVertexKey ? getVertexPoint(layout, secondVertexKey) : null;
 
   if (!edge || !firstVertex || !secondVertex) {
     return null;
   }
 
-  const relativeX = edge.x - BOARD_CANVAS.centerX;
-  const relativeY = edge.y - BOARD_CANVAS.centerY;
+  const relativeX = edge.x - layout.origin.x;
+  const relativeY = edge.y - layout.origin.y;
   const length = Math.hypot(relativeX, relativeY) || 1;
   const outward = { x: relativeX / length, y: relativeY / length };
   const tangent = { x: -outward.y, y: outward.x };
-  const outwardDistance = 82;
+  const outwardDistance = layout.tileRadius * 0.57;
   const point = {
     x: edge.x + outward.x * outwardDistance,
     y: edge.y + outward.y * outwardDistance,
   };
-  const dockHalfWidth = 20;
-  const dockInset = 12;
+  const dockHalfWidth = layout.tileRadius * 0.14;
+  const dockInset = layout.tileRadius * 0.08;
   const firstSide =
     (firstVertex.x - edge.x) * tangent.x + (firstVertex.y - edge.y) * tangent.y < 0 ? -1 : 1;
   const getDockEnd = (side: number) => ({
@@ -101,9 +134,9 @@ export function getPointStyle(point: PixelCoordinate) {
   };
 }
 
-function toCanvasPoint(point: PixelCoordinate): PixelCoordinate {
+function toCanvasPoint(layout: BoardLayout, point: PixelCoordinate): PixelCoordinate {
   return {
-    x: BOARD_CANVAS.centerX + point.x,
-    y: BOARD_CANVAS.centerY + point.y,
+    x: layout.origin.x + point.x,
+    y: layout.origin.y + point.y,
   };
 }

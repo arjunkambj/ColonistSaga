@@ -14,6 +14,7 @@ import {
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
+import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import type { RoomEventView } from "@/lib/game/types";
@@ -153,7 +154,7 @@ const ACTION_PRESET_TILES = [
     count: 13,
     kind: "road",
     meta: "1 wood · 1 brick",
-    src: "/game-assets/pieces/road.png",
+    src: getPieceAssetPath("road"),
     title: "Road",
   },
   {
@@ -161,7 +162,7 @@ const ACTION_PRESET_TILES = [
     count: 3,
     kind: "settlement",
     meta: "Wood · brick · sheep · wheat",
-    src: "/game-assets/pieces/settlement.png",
+    src: getPieceAssetPath("settlement"),
     title: "Settlement",
   },
   {
@@ -169,7 +170,7 @@ const ACTION_PRESET_TILES = [
     count: 4,
     kind: "city",
     meta: "2 wheat · 3 stone",
-    src: "/game-assets/pieces/city.png",
+    src: getPieceAssetPath("city"),
     title: "City",
   },
   {

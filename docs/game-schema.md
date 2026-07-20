@@ -2,7 +2,7 @@
 
 ## Scope
 
-The game currently implements one configurable three-to-eight-player Base game on the canonical 19-hex board. Custom layouts, development cards, awards, chat, rankings, and expansions are intentionally deferred.
+The game implements a configurable three-to-eight-player Base game. Hosts choose a 19-, 30-, 37-, or 44-hex map independently of the occupied seat count. Development cards, awards, chat, rankings, and other game modes are intentionally deferred.
 
 ## Authoritative game state
 
@@ -13,7 +13,7 @@ The game currently implements one configurable three-to-eight-player Base game o
 | Identity | `version`, `seed`, `randomIndex`, `actionNumber`               | Random state is server-only; every accepted command increases the action number.            |
 | Settings | victory target, discard limit, timer, dice, robber, bank flags | Settings are validated once, persisted with the game, and included in reconnect-safe views. |
 | Turn     | `status`, `phase`, `activePlayerId`, `turnNumber`, `turnOrder` | Exactly one phase controls which players may act.                                           |
-| Board    | 19 tiles, 54 vertices, 72 edges, 9 ports                       | Tiles use the fixed flat-top radius-two topology.                                           |
+| Board    | 19, 30, 37, or 44 tiles with dynamic topology and ports        | Terrain, deserts, and number tokens are seeded; adjacent red tokens are prohibited.         |
 | Pieces   | buildings, roads, robber tile                                  | One building per vertex and one road per edge.                                              |
 | Players  | seat, bot flag, resources, remaining pieces, VP                | Resources are private; public views expose only opponent totals.                            |
 | Bank     | five resource inventories                                      | State transitions conserve cards; views may hide exact counts when configured.              |
@@ -21,6 +21,8 @@ The game currently implements one configurable three-to-eight-player Base game o
 | Result   | configurable target and nullable winner                        | A winner completes immediately; the high safety turn limit completes as a draw.             |
 
 The five resource keys are `tree`, `brick`, `sheep`, `wheat`, and `stone`. Desert is terrain, not a sixth resource.
+
+Map definitions are the source of truth for terrain, number-token, and port counts. The 19-tile map follows standard 3–4 player counts, the 30-tile map follows the official 5–6 extension, and the 37-tile map follows Colonist's 7–8 implementation. The 44-tile map continues the seven-tile growth pattern as a project-specific 9–10 player option. Every map is generated from the private game seed, so reconnecting players receive the same board while separate games can place deserts elsewhere.
 
 ## Phases and commands
 

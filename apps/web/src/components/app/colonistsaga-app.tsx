@@ -15,6 +15,7 @@ import { LobbyScreen } from "@/components/lobby/lobby-screen";
 import { FullPageStatus } from "@/components/ui/full-page-status";
 import { NoticeScreen } from "@/components/ui/notice-screen";
 import { toActionableError } from "@/lib/app/action-errors";
+import { createCachedValue } from "@/lib/app/cached-value";
 import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
 import { parsePlayerView } from "@/lib/game/types";
@@ -31,6 +32,11 @@ import {
   readPlayerSession,
   writePlayerSession,
 } from "@/lib/session";
+
+const getParsedPlayerView = createCachedValue(
+  (current: string | undefined, next) => current === next,
+  parsePlayerView,
+);
 
 export function ColonistSagaApp() {
   const hexclave = useHexclaveApp();
@@ -350,7 +356,7 @@ function AuthenticatedApp({
     );
   }
 
-  const game = parsePlayerView(room.gameJson);
+  const game = getParsedPlayerView(room.gameJson);
   if (!game) {
     return (
       <NoticeScreen
