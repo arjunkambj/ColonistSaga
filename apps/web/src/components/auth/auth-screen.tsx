@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useState } from "react";
 
 import { Brand } from "@/components/ui/brand";
-import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { LiveMessage } from "@/components/ui/live-message";
 
 export function AuthScreen() {
@@ -55,13 +54,7 @@ export function AuthScreenView({
         />
       </div>
 
-      <LiquidGlass
-        as="section"
-        aria-labelledby="auth-title"
-        className="auth-login auth-reference-panel"
-        kind="card"
-        radius="lg"
-      >
+      <section aria-labelledby="auth-title" className="auth-login auth-reference-panel">
         <div className="auth-reference-brand">
           <Brand />
         </div>
@@ -72,7 +65,7 @@ export function AuthScreenView({
             className="auth-reference-island-image"
             height={1121}
             priority
-            sizes="(max-width: 640px) 60vw, 376px"
+            sizes="(max-width: 640px) 58vw, 20rem"
             src="/shared-assets/login-castle-island-v1.avif"
             width={1403}
           />
@@ -86,7 +79,7 @@ export function AuthScreenView({
         </div>
 
         <Button
-          className="google-auth-button auth-reference-google-button"
+          className="button google-auth-button auth-reference-google-button"
           fullWidth
           isPending={pending}
           onPress={() => void onSignIn()}
@@ -111,7 +104,7 @@ export function AuthScreenView({
           <br />
           and acknowledge our <strong>Privacy Policy</strong>.
         </p>
-      </LiquidGlass>
+      </section>
     </main>
   );
 }

@@ -6,8 +6,6 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
-import { liquidGlassClassName } from "@/components/ui/liquid-glass";
-
 export type VoyageCardTone = "host" | "join" | "quick";
 
 export interface VoyageCardProps {
@@ -36,39 +34,36 @@ export function VoyageCard({
   return (
     <Button
       aria-label={`${title}. ${description}. ${actionLabel}`}
-      className={liquidGlassClassName({
-        className: "voyage-card",
-        kind: "card",
-        radius: "lg",
-      })}
+      className="button voyage-card"
       data-voyage-tone={tone}
       isDisabled={disabled}
       isPending={pending}
       onPress={onPress}
       variant="ghost"
     >
-      <span className="voyage-card-art" aria-hidden="true">
-        <span className="voyage-card-art-glow" />
+      <span className="voyage-card__art" aria-hidden="true">
+        <span className="voyage-card__art-glow" />
         <Image
           alt=""
+          className="voyage-card__image"
           draggable={false}
           height={512}
           loading="eager"
           priority
-          sizes="(max-width: 760px) 88vw, 22rem"
+          sizes="(max-width: 760px) 88vw, 20rem"
           src={imageSrc}
           width={512}
         />
       </span>
-      <span className="voyage-card-content">
-        <span className="voyage-card-badge" aria-hidden="true">
+      <span className="voyage-card__body">
+        <span className="voyage-card__badge" aria-hidden="true">
           {badge}
         </span>
-        <strong>{pending ? `${title}…` : title}</strong>
-        <small>{description}</small>
-      </span>
-      <span className="voyage-card-action" aria-hidden="true">
-        <Icon icon={arrowRightIcon} />
+        <strong className="voyage-card__title">{pending ? `${title}…` : title}</strong>
+        <small className="voyage-card__description">{description}</small>
+        <span className="voyage-card__cta" aria-hidden="true">
+          <Icon icon={arrowRightIcon} />
+        </span>
       </span>
     </Button>
   );

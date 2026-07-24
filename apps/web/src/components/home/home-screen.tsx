@@ -6,9 +6,7 @@ import botIcon from "@iconify-icons/game-icons/robot-golem";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
 import houseIcon from "@iconify-icons/game-icons/house";
 import closeIcon from "@iconify-icons/solar/close-circle-outline";
-import giftIcon from "@iconify-icons/solar/gift-outline";
-import helpIcon from "@iconify-icons/solar/question-circle-outline";
-import logoutIcon from "@iconify-icons/solar/logout-outline";
+import logoutIcon from "@iconify-icons/solar/logout-2-outline";
 import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
 import usersIcon from "@iconify-icons/solar/users-group-rounded-outline";
 import volumeIcon from "@iconify-icons/solar/volume-loud-outline";
@@ -22,7 +20,6 @@ import {
   type LobbySettingsValue,
 } from "@/components/lobby/lobby-settings";
 import { Brand } from "@/components/ui/brand";
-import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { LiveMessage } from "@/components/ui/live-message";
 import { VoyageCard } from "@/components/ui/voyage-card";
 import { cleanDisplayName } from "@/lib/app/display-name";
@@ -33,6 +30,7 @@ import { isRoomCode, normalizeRoomCode } from "@/lib/session";
 import botSetupStyles from "./bot-game-setup.module.css";
 import setupShellStyles from "./game-setup-shell.module.css";
 import joinRoomStyles from "./join-room.module.css";
+import playerSettingsStyles from "./player-settings.module.css";
 
 export interface HomeScreenProps {
   accountLabel: string;
@@ -67,7 +65,6 @@ export function HomeScreen({
   const [showJoinRoom, setShowJoinRoom] = useState(false);
   const [showBotSetup, setShowBotSetup] = useState(false);
   const [showPlayerSettings, setShowPlayerSettings] = useState(false);
-  const [homeNotice, setHomeNotice] = useState<{ description: string; title: string } | null>(null);
   const [displayNameDraft, setDisplayNameDraft] = useState(displayName);
   const [musicVolumeDraft, setMusicVolumeDraft] = useState(musicVolume);
   const [musicVolumeAtOpen, setMusicVolumeAtOpen] = useState(musicVolume);
@@ -117,75 +114,25 @@ export function HomeScreen({
       <header className="site-header voyage-header">
         <Brand />
         <div className="voyage-header__tools">
-          <LiquidGlass
-            className="voyage-header__decoration voyage-header__decoration--gift"
-            kind="control"
-            radius="md"
+          <Button
+            aria-controls="player-settings-dialog"
+            aria-expanded={showPlayerSettings}
+            aria-haspopup="dialog"
+            aria-label="Open player settings"
+            className="button voyage-header__tool"
+            isDisabled={isPending}
+            isIconOnly
+            onPress={openPlayerSettings}
+            variant="ghost"
           >
-            <Button
-              aria-label="Open island rewards"
-              className="voyage-header__decorative-button"
-              isDisabled={isPending}
-              isIconOnly
-              onPress={() =>
-                setHomeNotice({
-                  description:
-                    "Daily island rewards are being prepared and will appear here in a future update.",
-                  title: "Island Rewards",
-                })
-              }
-              variant="ghost"
-            >
-              <span className="voyage-header__icon">
-                <Icon aria-hidden="true" icon={giftIcon} />
-              </span>
-              <span className="voyage-header__notification">2</span>
-            </Button>
-          </LiquidGlass>
-
-          <LiquidGlass className="voyage-header__decoration" kind="control" radius="md">
-            <Button
-              aria-label="Open main menu help"
-              className="voyage-header__decorative-button"
-              isDisabled={isPending}
-              isIconOnly
-              onPress={() =>
-                setHomeNotice({
-                  description:
-                    "Quick Match starts a bot table, Host Island creates a private room, and Join Crew uses a friend's six-character code.",
-                  title: "Choose Your Voyage",
-                })
-              }
-              variant="ghost"
-            >
-              <span className="voyage-header__icon">
-                <Icon aria-hidden="true" icon={helpIcon} />
-              </span>
-            </Button>
-          </LiquidGlass>
-
-          <LiquidGlass className="voyage-header__control" kind="control" radius="md">
-            <Button
-              aria-controls="player-settings-dialog"
-              aria-expanded={showPlayerSettings}
-              aria-haspopup="dialog"
-              aria-label="Open player settings"
-              className="voyage-header__button"
-              isDisabled={isPending}
-              isIconOnly
-              onPress={openPlayerSettings}
-              variant="ghost"
-            >
+            <span className="voyage-header__icon">
               <Icon aria-hidden="true" icon={settingsIcon} />
-            </Button>
-          </LiquidGlass>
+            </span>
+          </Button>
 
-          <LiquidGlass
+          <section
             aria-label={`Player profile for ${displayName}`}
-            as="section"
             className="voyage-profile"
-            kind="panel"
-            radius="md"
           >
             <span aria-hidden="true" className="voyage-profile__avatar">
               <Image
@@ -202,7 +149,7 @@ export function HomeScreen({
             </span>
             <Button
               aria-label="Sign out"
-              className="voyage-profile__sign-out"
+              className="button voyage-profile__sign-out"
               isDisabled={isPending && pendingAction !== "signout"}
               isIconOnly
               isPending={pendingAction === "signout"}
@@ -211,7 +158,7 @@ export function HomeScreen({
             >
               <Icon aria-hidden="true" icon={logoutIcon} />
             </Button>
-          </LiquidGlass>
+          </section>
         </div>
       </header>
 
@@ -256,43 +203,6 @@ export function HomeScreen({
         </div>
         <LiveMessage message={error} />
       </section>
-
-      <Modal>
-        <Modal.Backdrop
-          className="setup-backdrop"
-          isOpen={homeNotice !== null}
-          onOpenChange={(isOpen) => (isOpen ? undefined : setHomeNotice(null))}
-        >
-          <Modal.Container>
-            <Modal.Dialog
-              aria-describedby="home-notice-description"
-              className="setup-dialog home-notice-dialog"
-            >
-              <Modal.Header className="setup-dialog-header">
-                <div>
-                  <p className="eyebrow">Island Guide</p>
-                  <Modal.Heading>{homeNotice?.title ?? "ColonistSaga"}</Modal.Heading>
-                  <p id="home-notice-description">{homeNotice?.description}</p>
-                </div>
-                <Button
-                  aria-label="Close island guide"
-                  className="setup-close"
-                  isIconOnly
-                  onPress={() => setHomeNotice(null)}
-                  variant="ghost"
-                >
-                  <Icon aria-hidden="true" icon={closeIcon} />
-                </Button>
-              </Modal.Header>
-              <Modal.Footer>
-                <Button className="button button-primary" onPress={() => setHomeNotice(null)}>
-                  Got It
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
 
       <Modal>
         <Modal.Backdrop
@@ -409,7 +319,7 @@ export function HomeScreen({
 
       <Modal>
         <Modal.Backdrop
-          className="setup-backdrop"
+          className={`setup-backdrop ${setupShellStyles.backdrop}`}
           isDismissable={!isPending}
           isKeyboardDismissDisabled={isPending}
           isOpen={showPlayerSettings}
@@ -422,10 +332,12 @@ export function HomeScreen({
           <Modal.Container>
             <Modal.Dialog
               aria-describedby="player-settings-description"
-              className="setup-dialog player-settings-dialog"
+              className={`setup-dialog ${setupShellStyles.dialog} ${playerSettingsStyles.dialog}`}
               id="player-settings-dialog"
             >
-              <Modal.Header className="setup-dialog-header">
+              <Modal.Header
+                className={`setup-dialog-header ${setupShellStyles.header} ${playerSettingsStyles.header}`}
+              >
                 <div>
                   <p className="eyebrow">Player Settings</p>
                   <Modal.Heading>Your Island Name</Modal.Heading>
@@ -435,7 +347,7 @@ export function HomeScreen({
                 </div>
                 <Button
                   aria-label="Close player settings"
-                  className="setup-close"
+                  className={`setup-close ${setupShellStyles.close} ${playerSettingsStyles.close}`}
                   isDisabled={isPending}
                   isIconOnly
                   onPress={cancelPlayerSettings}
@@ -444,9 +356,9 @@ export function HomeScreen({
                   <Icon aria-hidden="true" icon={closeIcon} />
                 </Button>
               </Modal.Header>
-              <Modal.Body>
+              <Modal.Body className={`${setupShellStyles.body} ${playerSettingsStyles.body}`}>
                 <form
-                  className="player-settings-form"
+                  className={playerSettingsStyles.form}
                   id="player-settings-form"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -454,24 +366,26 @@ export function HomeScreen({
                   }}
                 >
                   <TextField
+                    className={playerSettingsStyles.field}
                     fullWidth
                     name="displayName"
                     onChange={setDisplayNameDraft}
                     value={displayNameDraft}
                   >
-                    <Label className="field-label">Display Name</Label>
+                    <Label className={playerSettingsStyles.label}>Display Name</Label>
                     <Input
                       autoComplete="off"
-                      className="text-input"
+                      autoFocus
+                      className={playerSettingsStyles.input}
                       maxLength={24}
                       placeholder="Example: River Fox…"
                       spellCheck={false}
                     />
                   </TextField>
 
-                  <div className="music-volume-setting">
+                  <div className={playerSettingsStyles.volume}>
                     <Slider
-                      className="music-volume-slider"
+                      className={playerSettingsStyles.slider}
                       formatOptions={{ style: "unit", unit: "percent" }}
                       maxValue={100}
                       minValue={0}
@@ -479,22 +393,26 @@ export function HomeScreen({
                       step={1}
                       value={musicVolumeDraft}
                     >
-                      <Label className="field-label music-volume-label">
+                      <Label className={playerSettingsStyles.volumeLabel}>
                         <Icon aria-hidden="true" icon={volumeIcon} /> Music Volume
                       </Label>
-                      <Slider.Output className="music-volume-output" />
-                      <Slider.Track className="music-volume-track">
-                        <Slider.Fill className="music-volume-fill" />
-                        <Slider.Thumb className="music-volume-thumb" />
+                      <Slider.Output className={playerSettingsStyles.output} />
+                      <Slider.Track className={playerSettingsStyles.track}>
+                        <Slider.Fill className={playerSettingsStyles.fill} />
+                        <Slider.Thumb className={playerSettingsStyles.thumb} />
                       </Slider.Track>
                     </Slider>
-                    <p>Adjust the menu soundtrack volume.</p>
+                    <p className={playerSettingsStyles.help}>
+                      Adjust the menu soundtrack volume.
+                    </p>
                   </div>
                 </form>
               </Modal.Body>
-              <Modal.Footer className="player-settings-actions">
+              <Modal.Footer
+                className={`${setupShellStyles.footer} ${playerSettingsStyles.footer}`}
+              >
                 <Button
-                  className="button button-quiet"
+                  className={`button ${playerSettingsStyles.cancel}`}
                   isDisabled={isPending}
                   onPress={cancelPlayerSettings}
                   variant="ghost"
@@ -502,7 +420,7 @@ export function HomeScreen({
                   Cancel
                 </Button>
                 <Button
-                  className="button button-primary"
+                  className={`button ${playerSettingsStyles.save}`}
                   form="player-settings-form"
                   isDisabled={isPending || !displayNameDraft.trim()}
                   type="submit"
