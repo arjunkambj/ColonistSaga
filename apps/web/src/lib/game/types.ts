@@ -1,5 +1,5 @@
 import type { api } from "@colonistsaga/backend/convex/_generated/api";
-import type { PlayerGameView } from "@colonistsaga/game";
+import { assertPlayerGameView, type PlayerGameView } from "@colonistsaga/game";
 import type { FunctionReturnType } from "convex/server";
 
 export type RoomView = NonNullable<FunctionReturnType<typeof api.rooms.getRoom>>;
@@ -12,16 +12,8 @@ export function parsePlayerView(serializedGame: string | undefined): PlayerGameV
 
   try {
     const value: unknown = JSON.parse(serializedGame);
-    if (!value || typeof value !== "object") {
-      return null;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    if (!candidate.board || !Array.isArray(candidate.players)) {
-      return null;
-    }
-
-    return value as PlayerGameView;
+    assertPlayerGameView(value);
+    return value;
   } catch {
     return null;
   }

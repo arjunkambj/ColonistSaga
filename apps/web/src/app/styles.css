@@ -1705,6 +1705,12 @@ select {
   color: #247d84;
 }
 
+.turn-clock.is-expired {
+  border-color: rgba(240, 171, 62, 0.34);
+  background: #fff4d8;
+  color: #966b25;
+}
+
 .turn-clock svg {
   width: 0.9rem;
   height: 0.9rem;
@@ -1933,224 +1939,11 @@ select {
     inset 0 0 28px rgba(255, 211, 73, 0.22);
 }
 
-.ocean-glow {
-  position: absolute;
-  z-index: 0;
-  inset: 8% 3% 7%;
-  background: url("/game-assets/ui/island-shelf.png") center / contain no-repeat;
-  filter: drop-shadow(0 0 5px rgba(231, 255, 247, 0.7))
-    drop-shadow(0 16px 12px rgba(0, 70, 108, 0.3));
-  opacity: 0.95;
-}
-
-.tile-position {
-  position: absolute;
-  z-index: calc(10 + var(--tile-layer));
-  width: var(--tile-size);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.terrain-tile {
-  display: block;
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 1px 1px rgba(91, 65, 31, 0.14));
-  object-fit: contain;
-  transition: filter 140ms ease;
-  user-select: none;
-}
-
-.number-token {
-  position: absolute;
-  z-index: 20;
-  top: 61%;
-  left: 50%;
-  display: grid;
-  width: clamp(42px, 28%, 74px);
-  aspect-ratio: 1;
-  place-content: center;
-  border: 0;
-  background: linear-gradient(145deg, #f5d486, #c98a32);
-  clip-path: polygon(50% 0, 93% 24%, 93% 76%, 50% 100%, 7% 76%, 7% 24%);
-  color: #514150;
-  filter: drop-shadow(0 4px 4px rgba(86, 68, 47, 0.22));
-  text-align: center;
-  transform: translate(-50%, -50%);
-}
-
-.number-token::before {
-  position: absolute;
-  z-index: -1;
-  inset: 3px;
-  background: linear-gradient(145deg, #fff6dd, #f5dfb7);
-  clip-path: inherit;
-  content: "";
-}
-
-.number-token strong {
-  font-family: var(--font-ui);
-  font-size: clamp(0.92rem, 2.15vw, 1.42rem);
-  line-height: 0.82;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.number-token span {
-  display: block;
-  height: 0.48rem;
-  color: #9b7953;
-  font-size: clamp(0.42rem, 0.82vw, 0.68rem);
-  letter-spacing: -0.08em;
-  line-height: 0.58rem;
-}
-
-.number-token.is-hot {
-  background: linear-gradient(145deg, #ef966d, #a9322e);
-  color: #bd3026;
-}
-
-.number-token.is-hot::before {
-  background: linear-gradient(145deg, #fff0d2, #f7d7aa);
-}
-
-.number-token.is-hot span {
-  color: #c05743;
-}
-
-.port-docks {
-  position: absolute;
-  z-index: 3990;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.port-docks line {
-  stroke-linecap: round;
-}
-
-.port-dock-outline {
-  stroke: #8f5d27;
-  stroke-width: 20;
-}
-
-.port-dock-planks {
-  stroke: #d89b3d;
-  stroke-width: 15;
-}
-
-.port-dock-seams {
-  stroke: rgba(125, 77, 29, 0.8);
-  stroke-dasharray: 2 10;
-  stroke-width: 15;
-}
-
-.port-token {
-  position: absolute;
-  z-index: 4000;
-  display: block;
-  width: clamp(42px, 7%, 64px);
-  aspect-ratio: 3 / 4;
-  color: #40516a;
-  font-size: clamp(0.52rem, 1vw, 0.72rem);
-  filter: drop-shadow(0 5px 5px rgba(39, 96, 122, 0.25));
-  transform: translate(-50%, -50%);
-}
-
-.port-skiff {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  user-select: none;
-}
-
-.port-emblem {
-  position: absolute;
-  z-index: 1;
-  top: 28%;
-  left: 50%;
-  display: grid;
-  width: 42%;
-  aspect-ratio: 1;
-  place-items: center;
-  font-size: clamp(0.7rem, 1.2vw, 1rem);
-  transform: translateX(-50%);
-}
-
-.port-emblem .resource-icon {
-  width: 100%;
-  height: 100%;
-}
-
-.port-token strong {
-  position: absolute;
-  z-index: 1;
-  top: 49%;
-  left: 50%;
-  padding: 0.04rem 0.18rem;
-  border-radius: 999px;
-  background: rgba(255, 248, 226, 0.9);
-  box-shadow: 0 1px 3px rgba(74, 58, 39, 0.16);
-  line-height: 1.1;
-  transform: translateX(-50%);
-}
-
 .resource-icon {
   display: inline-block;
   flex: 0 0 auto;
   object-fit: contain;
   vertical-align: middle;
-}
-
-.board-piece {
-  position: absolute;
-  z-index: 5200;
-  display: block;
-  width: 7%;
-  aspect-ratio: 1;
-  filter: drop-shadow(0 1px 1px rgba(37, 56, 75, 0.64))
-    drop-shadow(0 3px 3px rgba(34, 64, 88, 0.35));
-  transform: translate(-50%, -50%) rotate(var(--piece-rotation, 0deg));
-  transform-origin: center;
-}
-
-.board-piece > img,
-.piece-color {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.piece-color {
-  background: var(--player-color);
-  mask: var(--piece-mask) center / contain no-repeat;
-  mix-blend-mode: color;
-  opacity: 1;
-}
-
-.road-piece {
-  width: 10.6%;
-}
-
-.city-piece {
-  width: 8%;
-}
-
-.robber-piece {
-  z-index: 5300;
-  width: 7.3%;
-  transform: translate(-50%, -45%);
-}
-
-.robber-piece > img {
-  filter: none;
 }
 
 .build-target {
@@ -3291,20 +3084,6 @@ select {
   }
 }
 
-@keyframes target-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 0.25rem rgba(255, 202, 83, 0.08),
-      0 0 13px rgba(255, 202, 83, 0.42);
-  }
-  50% {
-    box-shadow:
-      0 0 0 0.5rem rgba(255, 202, 83, 0.12),
-      0 0 26px rgba(255, 202, 83, 0.72);
-  }
-}
-
 @media (max-width: 1400px) {
   .resource-hand {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3628,29 +3407,6 @@ select {
   .board-shell {
     padding: 0.2rem;
     border-radius: 0.75rem;
-  }
-
-  .number-token {
-    width: 36px;
-    border-width: 1px;
-  }
-
-  .number-token strong {
-    font-size: 0.78rem;
-  }
-
-  .number-token span {
-    height: 0.32rem;
-    font-size: 0.34rem;
-    line-height: 0.42rem;
-  }
-
-  .port-token {
-    width: 38px;
-  }
-
-  .port-token strong {
-    font-size: 0.52rem;
   }
 
   .target-tile,
@@ -4379,26 +4135,6 @@ select {
   outline: none;
 }
 
-.tile-position.board-inspectable {
-  pointer-events: auto;
-}
-
-.tile-position.is-inspected .terrain-tile,
-.tile-position:focus-visible .terrain-tile {
-  filter: brightness(1.04) drop-shadow(0 1px 1px rgba(91, 65, 31, 0.14))
-    drop-shadow(0 0 4px rgba(255, 241, 179, 0.94)) drop-shadow(0 0 7px rgba(255, 196, 67, 0.72));
-}
-
-.port-token.is-inspected,
-.port-token:focus-visible,
-.board-piece.is-inspected,
-.board-piece:focus-visible {
-  z-index: 7000;
-  outline: 3px solid rgba(255, 233, 155, 0.82);
-  outline-offset: 3px;
-  filter: drop-shadow(0 0 8px rgba(255, 200, 75, 0.92));
-}
-
 .build-target {
   width: max(46px, 5.8%);
   height: max(46px, 5.8%);
@@ -4569,7 +4305,17 @@ select {
   }
 
   .game-page.is-board-focused {
-    --hud-rail: clamp(236px, 18vw, 282px);
+    --hud-rail: 0px;
+  }
+
+  .game-page.is-board-focused .board-shell {
+    padding-right: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+
+  .game-page.is-board-focused .game-sidebar,
+  .game-page.is-board-focused .game-footer {
+    display: none;
   }
 
   .board-shell {
@@ -4621,16 +4367,6 @@ select {
     width: var(--hud-rail);
     grid-template-rows: auto minmax(17rem, 1.25fr) minmax(9rem, 0.75fr);
     pointer-events: auto;
-  }
-
-  .game-page.is-board-focused .game-sidebar {
-    bottom: auto;
-    max-height: calc(100dvh - 10.5rem);
-    grid-template-rows: auto minmax(12rem, 1fr);
-  }
-
-  .game-page.is-board-focused .game-sidebar-panels {
-    display: none;
   }
 
   .game-footer {
@@ -5012,6 +4748,13 @@ select {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.piece-icon > .piece-color {
+  background: var(--player-color);
+  mask: var(--piece-mask) center / contain no-repeat;
+  mix-blend-mode: color;
+  opacity: 1;
 }
 
 .piece-icon-road > img,

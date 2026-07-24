@@ -3,7 +3,6 @@
 import { api } from "@colonistsaga/backend/convex/_generated/api";
 import {
   BUILD_COSTS,
-  DEVELOPMENT_CARD_COST,
   RESOURCE_ORDER,
   emptyInventory,
   type GameCommand,
@@ -38,7 +37,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import {
-  DEVELOPMENT_CARD_BACK_ASSET_PATH,
+  ACTION_CARD_ASSET_PATHS,
   getCardRuntimeAssetPath,
   RESOURCE_CARD_ASSET_PATHS,
 } from "@/constants/game/card-assets";
@@ -48,10 +47,9 @@ import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
 import { ActionTile } from "./action-tile";
-import { DevelopmentCardHand } from "./development-card-hand";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
-import { getPieceAssetPath, PieceIcon } from "./piece-icon";
+import { PieceIcon } from "./piece-icon";
 import { TradeCenter } from "./trade-center";
 
 type GameConfirmation =
@@ -109,7 +107,10 @@ export function GameScreen({
   const [isBoardFocused, setIsBoardFocused] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
+  const commandInFlightRef = useRef(false);
+  const confirmationInFlightRef = useRef(false);
   const phaseHeadingRef = useRef<HTMLHeadingElement>(null);
+  const replacementInFlightRef = useRef(false);
 
   const restorePlacementFocus = useCallback((mode: BoardTargetMode) => {
     const buildAction = document.querySelector<HTMLButtonElement>(
@@ -137,7 +138,7 @@ export function GameScreen({
   }
 
   const sendCommand = async (command: GameCommand, successMessage: string) => {
-    if (pendingCommand) {
+    if (!acquireSingleFlight(commandInFlightRef)) {
       return;
     }
     setPendingCommand(command.kind);
@@ -155,12 +156,13 @@ export function GameScreen({
     } catch (cause) {
       setError(toGameError(cause));
     } finally {
+      commandInFlightRef.current = false;
       setPendingCommand(null);
     }
   };
 
   const replaceWithBot = async (playerId: string) => {
-    if (pendingReplacementId) {
+    if (!acquireSingleFlight(replacementInFlightRef)) {
       return;
     }
     setPendingReplacementId(playerId);
@@ -171,6 +173,7 @@ export function GameScreen({
     } catch {
       setError("That player could not be replaced. Refresh the room and try again.");
     } finally {
+      replacementInFlightRef.current = false;
       setPendingReplacementId(null);
     }
   };
@@ -193,7 +196,7 @@ export function GameScreen({
   const phaseLiveMessage = `${phaseCopy.title}. ${phaseCopy.detail}${latestEvent ? ` Latest table event: ${latestEvent}.` : ""}`;
 
   const runConfirmedAction = async () => {
-    if (!confirmation || confirming) {
+    if (!confirmation || !acquireSingleFlight(confirmationInFlightRef)) {
       return;
     }
     setConfirming(true);
@@ -205,6 +208,7 @@ export function GameScreen({
       }
       setConfirmation(null);
     } finally {
+      confirmationInFlightRef.current = false;
       setConfirming(false);
     }
   };
@@ -220,7 +224,7 @@ export function GameScreen({
           <span translate="no">Room {code}</span>
           <span>Turn {game.turnNumber}</span>
           <span className="victory-target-pill">
-            <Icon aria-hidden="true" icon={trophyIcon} /> First to {game.victoryPoints} VP
+            <Icon aria-hidden="true" icon={trophyIcon} /> First to {game.settings.victoryPoints} VP
           </span>
         </div>
         <div className="game-header-actions">
@@ -299,7 +303,7 @@ export function GameScreen({
           inert={isBoardFocused || undefined}
         >
           <EventLog events={events} />
-          <BankPanel bank={game.bank} developmentCardSupply={game.developmentCardSupply} />
+          <BankPanel bank={game.bank} />
         </div>
 
         <PlayerStrip
@@ -310,7 +314,7 @@ export function GameScreen({
           pendingReplacementId={pendingReplacementId}
           players={game.players}
           viewerProfileImageUrl={viewerProfileImageUrl}
-          victoryTarget={game.victoryPoints}
+          victoryTarget={game.settings.victoryPoints}
         />
       </aside>
 
@@ -342,12 +346,10 @@ export function GameScreen({
 
       <footer
         aria-hidden={isBoardFocused || undefined}
-        className="game-footer game-footer--four-sections"
+        className="game-footer game-footer--three-sections"
         inert={isBoardFocused || undefined}
       >
         <ResourceHand me={me} />
-
-        <DevelopmentHand me={me} />
 
         <ActionDock
           buildMode={buildMode}
@@ -615,15 +617,7 @@ function DieFace({ value }: { value: number }) {
   );
 }
 
-function BankPanel({
-  bank,
-  developmentCardSupply,
-  idPrefix = "",
-}: {
-  bank: ResourceInventory | null;
-  developmentCardSupply: number;
-  idPrefix?: string;
-}) {
+function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; idPrefix?: string }) {
   const titleId = `${idPrefix}bank-title`;
   return (
     <section className="side-card" aria-labelledby={titleId}>
@@ -642,15 +636,6 @@ function BankPanel({
             <strong>{bank ? bank[resource] : "?"}</strong>
           </li>
         ))}
-        <li
-          aria-label={`${developmentCardSupply} development cards remaining`}
-          className="bank-mystery"
-        >
-          <span aria-hidden="true" className="bank-mystery-icon">
-            ?
-          </span>
-          <strong>{developmentCardSupply}</strong>
-        </li>
       </ul>
     </section>
   );
@@ -803,7 +788,7 @@ function MobileGameInfo({
                     </div>
                     <div>
                       <dt>Victory target</dt>
-                      <dd>{game.victoryPoints} VP</dd>
+                      <dd>{game.settings.victoryPoints} VP</dd>
                     </div>
                     <div>
                       <dt>Turn timer</dt>
@@ -835,14 +820,10 @@ function MobileGameInfo({
                       pendingReplacementId={pendingReplacementId}
                       players={game.players}
                       viewerProfileImageUrl={viewerProfileImageUrl}
-                      victoryTarget={game.victoryPoints}
+                      victoryTarget={game.settings.victoryPoints}
                     />
                   </section>
-                  <BankPanel
-                    bank={game.bank}
-                    developmentCardSupply={game.developmentCardSupply}
-                    idPrefix="mobile-"
-                  />
+                  <BankPanel bank={game.bank} idPrefix="mobile-" />
                   <EventLog events={events} idPrefix="mobile-" />
                 </>
               )}
@@ -907,9 +888,7 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
       <div className="hand-heading">
         <p className="eyebrow">Private Hand</p>
         <h2 id="resource-hand-title">Your Resources</h2>
-        <span>
-          {me.resourceCount} resources · {me.developmentCardCount} development
-        </span>
+        <span>{me.resourceCount} resources</span>
       </div>
       <ul
         aria-label={
@@ -944,18 +923,6 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-function DevelopmentHand({ me }: { me: PrivatePlayerState }) {
-  return (
-    <section aria-labelledby="development-hand-title" className="development-hand">
-      <div className="dock-section-heading">
-        <h2 id="development-hand-title">Development</h2>
-        <span>{me.developmentCardCount} owned</span>
-      </div>
-      <DevelopmentCardHand cards={me.developmentCards} />
     </section>
   );
 }
@@ -1124,15 +1091,6 @@ function BuildingActionsDock({
       piecesRemaining: me.piecesRemaining.cities,
       resources: me.resources,
     });
-  const developmentCardDisabledReason =
-    disabledReasonOverride ??
-    getDevelopmentCardDisabledReason({
-      canBuy: legal.canBuyDevelopmentCard,
-      cost: DEVELOPMENT_CARD_COST,
-      pending,
-      resources: me.resources,
-      supply: game.developmentCardSupply,
-    });
   return (
     <section
       aria-labelledby="building-actions-title"
@@ -1149,16 +1107,6 @@ function BuildingActionsDock({
         onCommand={onCommand}
       />
       <div className="action-group build-actions">
-        <DevelopmentCardAction
-          cost={DEVELOPMENT_CARD_COST}
-          disabledReason={developmentCardDisabledReason}
-          onPress={() => {
-            onBuildMode(null);
-            onCommand({ kind: "buy_development_card" }, "Development card purchased.");
-          }}
-          resources={me.resources}
-          supply={game.developmentCardSupply}
-        />
         <BuildAction
           active={buildMode === "road"}
           asset="road"
@@ -1269,9 +1217,10 @@ function TurnControl({
 function UnavailablePlayerView({ onLeave }: { onLeave(): Promise<void> }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const leaveInFlightRef = useRef(false);
 
   const leave = async () => {
-    if (leaving) {
+    if (!acquireSingleFlight(leaveInFlightRef)) {
       return;
     }
     setLeaving(true);
@@ -1279,6 +1228,7 @@ function UnavailablePlayerView({ onLeave }: { onLeave(): Promise<void> }) {
       await onLeave();
       setShowConfirmation(false);
     } finally {
+      leaveInFlightRef.current = false;
       setLeaving(false);
     }
   };
@@ -1356,10 +1306,10 @@ function BuildAction({
             alt=""
             className="action-art action-card-art"
             draggable={false}
-            height={512}
+            height={768}
             loading="eager"
             sizes="4rem"
-            src={getPieceAssetPath(asset)}
+            src={ACTION_CARD_ASSET_PATHS[asset]}
             width={512}
           />
         }
@@ -1385,52 +1335,6 @@ function BuildAction({
           .map((resource) => `${cost[resource]} ${RESOURCE_LABELS[resource]}`)
           .join(", ")}
         .{disabledReason ? ` ${disabledReason}.` : ""}
-      </span>
-    </>
-  );
-}
-
-function DevelopmentCardAction({
-  cost,
-  disabledReason,
-  onPress,
-  resources,
-  supply,
-}: {
-  cost: Readonly<ResourceInventory>;
-  disabledReason: string | null;
-  onPress(): void;
-  resources: Readonly<ResourceInventory>;
-  supply: number;
-}) {
-  const descriptionId = "buy-development-card-description";
-  return (
-    <>
-      <ActionTile
-        ariaDescribedBy={descriptionId}
-        ariaLabel={disabledReason ? "Buy development card unavailable" : "Buy development card"}
-        art={
-          <GameCardArtwork
-            className="action-art action-card-art"
-            path={DEVELOPMENT_CARD_BACK_ASSET_PATH}
-            sizes="4rem"
-          />
-        }
-        caption={
-          <span className={`build-action-status${disabledReason ? " is-blocked" : ""}`}>
-            {getBuildStatusLabel(disabledReason)}
-          </span>
-        }
-        count={supply}
-        kind="development-card"
-        meta={<CostSummary cost={cost} resources={resources} />}
-        onPress={onPress}
-        title="Dev Card"
-        unavailable={disabledReason !== null}
-      />
-      <span className="sr-only" id={descriptionId}>
-        {supply} development cards remain. Cost: {formatCost(cost)}.
-        {disabledReason ? ` ${disabledReason}.` : ""}
       </span>
     </>
   );
@@ -1544,37 +1448,6 @@ function getBuildDisabledReason({
   return null;
 }
 
-function getDevelopmentCardDisabledReason({
-  canBuy,
-  cost,
-  pending,
-  resources,
-  supply,
-}: {
-  canBuy: boolean;
-  cost: Readonly<ResourceInventory>;
-  pending: boolean;
-  resources: Readonly<ResourceInventory>;
-  supply: number;
-}): string | null {
-  if (pending) {
-    return "Action in progress…";
-  }
-  if (supply <= 0) {
-    return "No development cards remaining";
-  }
-
-  const missingResources = getCostResources(cost).flatMap((resource) => {
-    const missingCount = Math.max(0, cost[resource] - resources[resource]);
-    return missingCount > 0 ? [`${missingCount} ${RESOURCE_LABELS[resource]}`] : [];
-  });
-  if (missingResources.length > 0) {
-    return `Need ${missingResources.join(", ")}`;
-  }
-
-  return canBuy ? null : "Unavailable this turn";
-}
-
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {
   const [now, setNow] = useState<number | null>(null);
 
@@ -1584,9 +1457,19 @@ function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextAc
       return;
     }
 
-    const tick = () => setNow(Date.now());
-    tick();
-    const timer = window.setInterval(tick, 250);
+    const initialNow = Date.now();
+    setNow(initialNow);
+    if (initialNow >= nextActionAt) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const currentNow = Date.now();
+      setNow(currentNow);
+      if (currentNow >= nextActionAt) {
+        window.clearInterval(timer);
+      }
+    }, 250);
     return () => window.clearInterval(timer);
   }, [nextActionAt]);
 
@@ -1594,21 +1477,33 @@ function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextAc
     return null;
   }
 
+  const isExpired = now !== null && now >= nextActionAt;
   const seconds = now === null ? null : Math.max(0, Math.ceil((nextActionAt - now) / 1_000));
+  const status = isExpired
+    ? botThinking
+      ? "Bot acting"
+      : "Advancing"
+    : botThinking
+      ? "Bot thinking"
+      : "Turn time";
   return (
     <div
       aria-label={
-        seconds === null
-          ? `${botThinking ? "Bot thinking" : "Turn time"}, timer starting`
-          : `${botThinking ? "Bot thinking" : "Turn time"}, ${seconds} seconds remaining`
+        isExpired
+          ? botThinking
+            ? "Bot acting"
+            : "Turn expired, advancing"
+          : seconds === null
+            ? `${status}, timer starting`
+            : `${status}, ${seconds} seconds remaining`
       }
       aria-live="off"
-      className={botThinking ? "turn-clock is-bot" : "turn-clock"}
+      className={`turn-clock${botThinking ? " is-bot" : ""}${isExpired ? " is-expired" : ""}`}
       role="timer"
     >
       {botThinking ? <Icon aria-hidden="true" icon={botIcon} /> : null}
-      <span>{botThinking ? "Bot thinking" : "Turn time"}</span>
-      <strong>{seconds === null ? "—" : `${seconds}s`}</strong>
+      <span>{status}</span>
+      <strong>{isExpired ? "…" : seconds === null ? "—" : `${seconds}s`}</strong>
     </div>
   );
 }
@@ -1772,4 +1667,13 @@ function toGameError(cause: unknown): string {
     return "That action is no longer available. Review the current turn instruction and try again.";
   }
   return "The game rejected that action. Review the highlighted legal choices and try again.";
+}
+
+function acquireSingleFlight(lock: { current: boolean }): boolean {
+  if (lock.current) {
+    return false;
+  }
+
+  lock.current = true;
+  return true;
 }

@@ -1,6 +1,5 @@
-/* Stable bottom-dock UX: resources, development cards, building actions, then turn control. */
+/* Stable bottom-dock UX: resources, building actions, then turn control. */
 
-.reference-game .development-hand,
 .reference-game .turn-control {
   border: 1px solid rgba(135, 210, 248, 0.26);
   border-radius: 1.05rem;
@@ -12,99 +11,12 @@
   -webkit-backdrop-filter: blur(18px) saturate(138%);
 }
 
-.reference-game.is-board-interacting .development-hand,
 .reference-game.is-board-interacting .turn-control {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-.reference-game .development-hand {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  height: 100%;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: end;
-  gap: 0.32rem;
-  padding: 1.05rem 0.42rem 0.42rem;
-}
-
-.reference-game .dock-section-heading {
-  position: absolute;
-  top: 0.28rem;
-  right: 0.65rem;
-  left: 0.65rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-}
-
-.reference-game .dock-section-heading h2 {
-  margin: 0;
-  color: #eff9ff;
-  font-size: 0.62rem;
-  font-weight: 750;
-}
-
-.reference-game .dock-section-heading span {
-  color: #a8cce4;
-  font-size: 0.52rem;
-  font-weight: 750;
-}
-
-.reference-game .development-card-hand {
-  display: flex;
-  min-width: 0;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  gap: 0.22rem;
-  padding: 0.25rem;
-  border: 1px solid rgba(156, 220, 250, 0.24);
-  border-radius: 0.72rem;
-  margin: 0;
-  background: rgba(2, 42, 94, 0.48);
-  overflow-x: auto;
-  overflow-y: hidden;
-  list-style: none;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
-}
-
-.reference-game .development-card-owned {
-  flex: 0 0 auto;
-  height: min(100%, 5.45rem);
-  aspect-ratio: 2 / 3;
-  padding: 0.15rem;
-  border: 1px solid rgba(235, 247, 255, 0.42);
-  border-radius: 0.65rem;
-  background: rgba(9, 72, 132, 0.74);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 4px 10px rgba(0, 19, 55, 0.24);
-}
-
-.reference-game .development-card-owned > img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 0.48rem;
-  object-fit: contain;
-}
-
-.reference-game .development-card-empty {
-  display: grid;
-  width: 100%;
-  min-width: 0;
-  place-items: center;
-  color: #a8cce4;
-  font-size: 0.58rem;
-  font-weight: 750;
-  text-align: center;
-}
-
-.reference-game .game-footer--four-sections .resource-card-list {
+.reference-game .game-footer--three-sections .resource-card-list {
   align-items: center;
   justify-items: center;
   gap: 0.22rem;
@@ -115,7 +27,7 @@
   overflow: hidden;
 }
 
-.reference-game .game-footer--four-sections .resource-card-image {
+.reference-game .game-footer--three-sections .resource-card-image {
   object-fit: contain;
   object-position: center;
 }
@@ -177,25 +89,22 @@
 }
 
 @media (min-width: 841px) and (min-height: 561px) {
-  .reference-game .game-footer.game-footer--four-sections {
+  .reference-game .game-footer.game-footer--three-sections {
     height: 8.4rem;
-    grid-template-columns: minmax(21rem, 1fr) minmax(11.5rem, 0.52fr) minmax(27rem, auto) minmax(
-        7.5rem,
-        0.34fr
-      );
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.34fr);
     align-items: stretch;
     gap: 0.5rem;
   }
 
-  .reference-game .game-footer--four-sections .resource-hand {
+  .reference-game .game-footer--three-sections .resource-hand {
     display: block;
   }
 
-  .reference-game .game-footer--four-sections .resource-card-list {
+  .reference-game .game-footer--three-sections .resource-card-list {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
-  .reference-game .game-footer--four-sections .resource-card-face {
+  .reference-game .game-footer--three-sections .resource-card-face {
     width: min(100%, 3.55rem);
     min-width: 0;
     height: auto;
@@ -204,7 +113,7 @@
     padding: 0.15rem;
   }
 
-  .reference-game .game-footer--four-sections .building-actions-dock {
+  .reference-game .game-footer--three-sections .building-actions-dock {
     width: 100%;
     height: 100%;
     margin: 0;
@@ -212,42 +121,40 @@
     overflow-y: hidden;
   }
 
-  .reference-game .game-footer--four-sections .building-actions-dock .action-tile-preset--dock,
-  .reference-game .game-footer--four-sections .building-actions-dock .trade-launch,
-  .reference-game .game-footer--four-sections .building-actions-dock .build-actions .action-button {
+  .reference-game .game-footer--three-sections .building-actions-dock .action-tile-preset--dock,
+  .reference-game .game-footer--three-sections .building-actions-dock .trade-launch,
+  .reference-game
+    .game-footer--three-sections
+    .building-actions-dock
+    .build-actions
+    .action-button {
     width: 6.3rem;
     min-width: 6.3rem;
   }
 }
 
-@media (min-width: 841px) and (max-width: 1240px) and (min-height: 561px) {
-  .reference-game .game-footer.game-footer--four-sections {
-    grid-template-columns: minmax(19rem, 0.9fr) minmax(9rem, 0.42fr) minmax(22rem, 1fr) 7rem;
-  }
-}
-
 @media (max-width: 840px) {
-  .reference-game .game-footer.game-footer--four-sections {
+  .reference-game .game-footer.game-footer--three-sections {
     grid-template-areas:
-      "resources development turn"
-      "buildings buildings buildings";
-    grid-template-columns: minmax(0, 1fr) 6rem 6.5rem;
+      "resources turn"
+      "buildings buildings";
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
     grid-template-rows: minmax(4.5rem, auto) minmax(4.5rem, auto);
     align-items: stretch;
     gap: 0.3rem;
   }
 
-  .reference-game .game-footer--four-sections .resource-hand {
+  .reference-game .game-footer--three-sections .resource-hand {
     display: block;
     grid-area: resources;
     padding: 0.3rem;
   }
 
-  .reference-game .game-footer--four-sections .hand-heading {
+  .reference-game .game-footer--three-sections .hand-heading {
     display: none;
   }
 
-  .reference-game .game-footer--four-sections .resource-card-list {
+  .reference-game .game-footer--three-sections .resource-card-list {
     width: 100%;
     height: 100%;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -255,22 +162,13 @@
     overflow: hidden;
   }
 
-  .reference-game .game-footer--four-sections .resource-card-face {
+  .reference-game .game-footer--three-sections .resource-card-face {
     width: min(100%, 4rem);
     min-width: 0;
     height: auto;
     max-height: 100%;
     aspect-ratio: 2 / 3;
     padding: 0.12rem;
-  }
-
-  .reference-game .development-hand {
-    grid-area: development;
-    padding: 0.3rem;
-  }
-
-  .reference-game .development-hand .dock-section-heading {
-    display: none;
   }
 
   .reference-game .building-actions-dock {

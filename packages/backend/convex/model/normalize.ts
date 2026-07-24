@@ -1,6 +1,7 @@
-import type { BaseGameSettings } from "@colonistsaga/game";
+import { GAME_MAP_IDS, type BaseGameSettings, type GameMapId } from "@colonistsaga/game";
 import { getGameMapDefinition, mapSupportsPlayerCount } from "@colonistsaga/game/maps";
 
+import type { StoredBaseGameSettings } from "../schema";
 import { ROOM_CODE_LENGTH } from "./constants";
 import { fail } from "./errors";
 
@@ -57,29 +58,54 @@ export function normalizeSeatId(value: string): string {
   return seatId;
 }
 
-export function validateGameSettings(settings: BaseGameSettings): BaseGameSettings {
+function isCurrentGameMapId(map: StoredBaseGameSettings["map"]): map is GameMapId {
+  return GAME_MAP_IDS.some((gameMapId) => gameMapId === map);
+}
+
+export function hasRetiredGameMap(settings: StoredBaseGameSettings): boolean {
+  return !isCurrentGameMapId(settings.map);
+}
+
+export function migrateWaitingRoomSettings(settings: StoredBaseGameSettings): BaseGameSettings {
+  if (isCurrentGameMapId(settings.map)) {
+    return validateGameSettings(settings);
+  }
+
+  const map: GameMapId =
+    settings.maxPlayers <= 4 ? "base" : settings.maxPlayers <= 6 ? "extended-6" : "extended-8";
+  return validateGameSettings({ ...settings, map });
+}
+
+export function validateGameSettings(settings: StoredBaseGameSettings): BaseGameSettings {
+  if (!isCurrentGameMapId(settings.map)) {
+    fail(
+      "LEGACY_GAME_MAP",
+      "This room uses a retired map. Waiting rooms can be migrated; started games must be retired.",
+    );
+  }
+  const currentSettings = { ...settings, map: settings.map };
   if (
-    !Number.isSafeInteger(settings.victoryPoints) ||
-    settings.victoryPoints < 3 ||
-    settings.victoryPoints > 13
+    !Number.isSafeInteger(currentSettings.victoryPoints) ||
+    currentSettings.victoryPoints < 3 ||
+    currentSettings.victoryPoints > 13
   ) {
     fail("INVALID_SETTINGS", "Victory points must be an integer from 3 to 13.");
   }
   if (
-    !Number.isSafeInteger(settings.discardLimit) ||
-    settings.discardLimit < 5 ||
-    settings.discardLimit > 20
+    !Number.isSafeInteger(currentSettings.discardLimit) ||
+    currentSettings.discardLimit < 5 ||
+    currentSettings.discardLimit > 20
   ) {
     fail("INVALID_SETTINGS", "Discard limit must be an integer from 5 to 20.");
   }
-  if (![0, 30, 60, 90, 120].includes(settings.turnTimerSeconds)) {
+  if (![0, 30, 60, 90, 120].includes(currentSettings.turnTimerSeconds)) {
     fail("INVALID_SETTINGS", "Turn timer must be 0, 30, 60, 90, or 120 seconds.");
   }
-  if (!mapSupportsPlayerCount(settings.map, settings.maxPlayers)) {
+  if (!mapSupportsPlayerCount(currentSettings.map, currentSettings.maxPlayers)) {
     fail("INVALID_SETTINGS", "Choose a supported map size and a table with three to eight seats.");
   }
-  getGameMapDefinition(settings.map);
-  return { ...settings };
+  getGameMapDefinition(currentSettings.map);
+  return currentSettings;
 }
 
 export function validateBotCount(value: number, maxPlayers: number): number {

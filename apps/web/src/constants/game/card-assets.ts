@@ -11,6 +11,13 @@ export const RESOURCE_CARD_ASSET_PATHS: Readonly<Record<ResourceType, string>> =
 export const DEVELOPMENT_CARD_BACK_ASSET_PATH =
   "/game-assets/cards/development/hidden-card-back.png";
 
+export const ACTION_CARD_ASSET_PATHS = {
+  city: "/game-assets/cards/actions/city.png",
+  road: "/game-assets/cards/actions/road.png",
+  settlement: "/game-assets/cards/actions/settlement.png",
+  trade: "/game-assets/cards/actions/trade.png",
+} as const;
+
 export const DEVELOPMENT_CARD_ASSETS = [
   {
     description: "Move the robber and steal a resource.",
@@ -44,12 +51,6 @@ export const DEVELOPMENT_CARD_ASSETS = [
   },
 ] as const;
 
-export const GAME_CARD_ASSET_PATHS = [
-  ...Object.values(RESOURCE_CARD_ASSET_PATHS),
-  DEVELOPMENT_CARD_BACK_ASSET_PATH,
-  ...DEVELOPMENT_CARD_ASSETS.map(({ path }) => path),
-] as const;
-
 export function getCardRuntimeAssetPath(sourcePath: string): string {
   const cardRoot = "/game-assets/cards/";
   if (!sourcePath.startsWith(cardRoot) || !sourcePath.endsWith(".png")) {
@@ -62,5 +63,3 @@ export function getCardRuntimeAssetPath(sourcePath: string): string {
 export function getResourceCardRuntimeAssetPath(resource: ResourceType): string {
   return getCardRuntimeAssetPath(RESOURCE_CARD_ASSET_PATHS[resource]);
 }
-
-export const GAME_CARD_RUNTIME_ASSET_PATHS = GAME_CARD_ASSET_PATHS.map(getCardRuntimeAssetPath);

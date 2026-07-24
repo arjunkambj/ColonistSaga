@@ -8,6 +8,7 @@ import type { CSSProperties } from "react";
 
 import {
   getBotCapacity,
+  getCompatiblePlayerCount,
   getMinimumPlayerCount,
   toBotCount,
   type BotCount,
@@ -197,7 +198,7 @@ export function LobbySettings({
               className="lobby-settings-description"
               id={`${id}-max-players-description`}
             >
-              Standard Base games support three to eight occupied seats.
+              {selectedMap.description}
             </Description>
             <Select.Popover className="lobby-settings-popover">
               <ListBox>
@@ -301,7 +302,20 @@ export function LobbySettings({
           <Select
             className="lobby-settings-control"
             isDisabled={disabled}
-            onChange={(value) => updateSetting("map", value as GameMapId)}
+            onChange={(value) => {
+              const map = value as GameMapId;
+              const maxPlayers = getCompatiblePlayerCount(map, humanCount, settings.maxPlayers);
+              if (maxPlayers === null) {
+                return;
+              }
+
+              const nextBotLimit = getBotCapacity(maxPlayers, humanCount);
+              const nextBotFloor = toBotCount(Math.min(minBotCount, nextBotLimit));
+              emit(
+                { ...settings, map, maxPlayers },
+                toBotCount(Math.max(nextBotFloor, Math.min(botCount, nextBotLimit))),
+              );
+            }}
             value={settings.map}
           >
             <Label className="lobby-settings-label">Map Size</Label>
@@ -319,7 +333,14 @@ export function LobbySettings({
             <Select.Popover className="lobby-settings-popover">
               <ListBox>
                 {AVAILABLE_GAME_MAPS.map((map) => (
-                  <ListBox.Item id={map.id} key={map.id} textValue={map.label}>
+                  <ListBox.Item
+                    id={map.id}
+                    isDisabled={
+                      getCompatiblePlayerCount(map.id, humanCount, settings.maxPlayers) === null
+                    }
+                    key={map.id}
+                    textValue={map.label}
+                  >
                     {map.label}
                     <ListBox.ItemIndicator />
                   </ListBox.Item>

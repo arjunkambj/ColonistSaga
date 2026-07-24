@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
+  ACTION_CARD_ASSET_PATHS,
   DEVELOPMENT_CARD_ASSETS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
   RESOURCE_CARD_ASSET_PATHS,
@@ -192,7 +193,7 @@ const ASSET_CATEGORIES = [
       })),
       {
         name: "Hidden card back",
-        description: "Shared concealed development-card back retained for deck previews.",
+        description: "Concealed card-back concept retained with the development-card art catalog.",
         format: "PNG · 512×768",
         path: DEVELOPMENT_CARD_BACK_ASSET_PATH,
         status: "generated" as const,
@@ -233,13 +234,34 @@ const ASSET_CATEGORIES = [
     ],
   },
   {
-    name: "Action icons",
+    name: "Section cards",
     assets: [
       {
-        name: "Trade icon",
-        description: "Compact market artwork used by the live trade control.",
-        format: "PNG · 256×256",
-        path: "/game-assets/ui/market-trade.png",
+        name: "Trade card",
+        description: "Purple-and-gold market artwork used by the live trade control.",
+        format: "PNG · 512×768",
+        path: ACTION_CARD_ASSET_PATHS.trade,
+        status: "generated",
+      },
+      {
+        name: "Road card",
+        description: "Purple-and-gold road artwork used by the build-road section card.",
+        format: "PNG · 512×768",
+        path: ACTION_CARD_ASSET_PATHS.road,
+        status: "generated",
+      },
+      {
+        name: "House card",
+        description: "Purple-and-gold settlement artwork used by the build-house section card.",
+        format: "PNG · 512×768",
+        path: ACTION_CARD_ASSET_PATHS.settlement,
+        status: "generated",
+      },
+      {
+        name: "City card",
+        description: "Purple-and-gold city artwork used by the build-city section card.",
+        format: "PNG · 512×768",
+        path: ACTION_CARD_ASSET_PATHS.city,
         status: "generated",
       },
       {
@@ -248,24 +270,6 @@ const ASSET_CATEGORIES = [
         format: "PNG · 256×256 · transparent",
         path: "/game-assets/ui/bank.png",
         status: "generated",
-      },
-      {
-        name: "Road icon",
-        description: "Dedicated build-road action icon; do not reuse the road board piece.",
-        format: "Target · PNG · 512×512 · transparent",
-        status: "needed",
-      },
-      {
-        name: "House icon",
-        description: "Dedicated build-house action icon; do not reuse the settlement board piece.",
-        format: "Target · PNG · 512×512 · transparent",
-        status: "needed",
-      },
-      {
-        name: "City icon",
-        description: "Dedicated build-city action icon; do not reuse the city board piece.",
-        format: "Target · PNG · 512×512 · transparent",
-        status: "needed",
       },
       {
         name: "End turn icon",
@@ -299,27 +303,6 @@ const ASSET_CATEGORIES = [
         description: "Soft island silhouette beneath the playable terrain cluster.",
         format: "PNG · transparent",
         path: ISLAND_SHELF_ASSET_PATH,
-        status: "generated",
-      },
-      {
-        name: "Coastal rocks",
-        description: "Optional isolated rock cluster kept out of the default live board.",
-        format: "PNG · 384×384 · transparent",
-        path: "/game-assets/ambience/coastal-rocks.png",
-        status: "generated",
-      },
-      {
-        name: "Foam accents",
-        description: "Optional shoreline accent set kept out of the default live board.",
-        format: "PNG · 384×384 · transparent",
-        path: "/game-assets/ambience/foam-accents.png",
-        status: "generated",
-      },
-      {
-        name: "Coastal plants",
-        description: "Optional flower-and-grass cluster kept out of the default live board.",
-        format: "PNG · 384×384 · transparent",
-        path: "/game-assets/ambience/coastal-plants.png",
         status: "generated",
       },
     ],

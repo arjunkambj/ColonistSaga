@@ -10,7 +10,6 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
   const {
     balancedDiceBag: _balancedDiceBag,
     bank,
-    developmentDeck,
     randomIndex: _randomIndex,
     seed: _seed,
     players,
@@ -18,12 +17,10 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
   } = state;
   const playerViews: PlayerViewState[] = players.map((player) => {
     const resourceCount = totalResources(player.resources);
-    const developmentCardCount = player.developmentCards.length;
 
     return player.id === viewerPlayerId
-      ? { ...player, developmentCardCount, isViewer: true, resourceCount }
+      ? { ...player, isViewer: true, resourceCount }
       : {
-          developmentCardCount,
           displayName: player.displayName,
           id: player.id,
           isBot: player.isBot,
@@ -38,7 +35,6 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
   return {
     ...publicState,
     bank: state.settings.hideBankCards ? null : { ...bank },
-    developmentCardSupply: developmentDeck.length,
     legalActions: getLegalActions(state, viewerPlayerId),
     players: playerViews,
     viewerPlayerId,

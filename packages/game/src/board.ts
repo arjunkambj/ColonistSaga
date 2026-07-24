@@ -19,33 +19,6 @@ import type {
   TileState,
 } from "./types";
 
-export interface TileDefinition extends AxialCoordinate {
-  numberToken: number | null;
-  terrain: TerrainType;
-}
-
-export const DEFAULT_TILE_DEFINITIONS: readonly TileDefinition[] = [
-  { numberToken: 10, q: 0, r: -2, terrain: "mountains" },
-  { numberToken: 2, q: 1, r: -2, terrain: "pasture" },
-  { numberToken: 9, q: 2, r: -2, terrain: "forest" },
-  { numberToken: 12, q: -1, r: -1, terrain: "fields" },
-  { numberToken: 6, q: 0, r: -1, terrain: "hills" },
-  { numberToken: 4, q: 1, r: -1, terrain: "pasture" },
-  { numberToken: 10, q: 2, r: -1, terrain: "forest" },
-  { numberToken: 9, q: -2, r: 0, terrain: "forest" },
-  { numberToken: 11, q: -1, r: 0, terrain: "fields" },
-  { numberToken: null, q: 0, r: 0, terrain: "desert" },
-  { numberToken: 3, q: 1, r: 0, terrain: "mountains" },
-  { numberToken: 8, q: 2, r: 0, terrain: "fields" },
-  { numberToken: 8, q: -2, r: 1, terrain: "pasture" },
-  { numberToken: 3, q: -1, r: 1, terrain: "hills" },
-  { numberToken: 4, q: 0, r: 1, terrain: "forest" },
-  { numberToken: 5, q: 1, r: 1, terrain: "mountains" },
-  { numberToken: 5, q: -2, r: 2, terrain: "hills" },
-  { numberToken: 6, q: -1, r: 2, terrain: "fields" },
-  { numberToken: 11, q: 0, r: 2, terrain: "pasture" },
-];
-
 const PORT_RESOURCE_ORDER: readonly ResourceType[] = ["tree", "brick", "sheep", "wheat", "stone"];
 
 function coordinateRadius({ q, r }: AxialCoordinate): number {
@@ -199,12 +172,6 @@ function createPorts(topology: BoardTopology, mapId: GameMapId, seed: string): P
   }));
 }
 
-export const DEFAULT_PORTS: readonly PortDescriptor[] = createPorts(
-  getBoardTopology(DEFAULT_TILE_DEFINITIONS),
-  "base",
-  "default-board",
-);
-
 export function createBoard(mapId: GameMapId, seed = "default-board"): BoardState {
   const coordinates = createMapCoordinates(getGameMapDefinition(mapId).tileCount);
   const topology = getBoardTopology(coordinates);
@@ -230,8 +197,4 @@ export function createBoard(mapId: GameMapId, seed = "default-board"): BoardStat
     robberTileId: desert.id,
     tiles,
   };
-}
-
-export function createDefaultBoard(seed = "default-board"): BoardState {
-  return createBoard("base", seed);
 }

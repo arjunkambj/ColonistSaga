@@ -2,8 +2,6 @@ import {
   ANY_PORT_TRADE_RATIO,
   BANK_TRADE_RATIO,
   BUILD_COSTS,
-  DEVELOPMENT_CARD_COST,
-  MAX_PLAYER_TURNS,
   RESOURCE_PORT_TRADE_RATIO,
   RESOURCE_ORDER,
   TERRAIN_RESOURCE,
@@ -259,7 +257,7 @@ function grantSecondSettlementResources(state: GameState, playerId: PlayerId, ve
 function finishIfWinner(state: GameState, playerId: PlayerId) {
   const player = requirePlayer(state, playerId);
 
-  if (player.victoryPoints < state.victoryPoints) {
+  if (player.victoryPoints < state.settings.victoryPoints) {
     return state;
   }
 
@@ -427,23 +425,6 @@ function buildCity(state: GameState, playerId: PlayerId, vertexKey: string) {
   }));
 
   return finishIfWinner(withPieces, playerId);
-}
-
-function buyDevelopmentCard(state: GameState, playerId: PlayerId) {
-  if (state.phase.kind !== "build_and_trade") {
-    fail("INVALID_PHASE", "Development cards can only be bought after rolling");
-  }
-
-  const [card, ...remainingDeck] = state.developmentDeck;
-  if (!card) {
-    fail("INVALID_COMMAND", "The development card deck is empty");
-  }
-
-  const paid = payBuildCost(state, playerId, DEVELOPMENT_CARD_COST);
-  return updatePlayer({ ...paid, developmentDeck: remainingDeck }, playerId, (player) => ({
-    ...player,
-    developmentCards: [...player.developmentCards, card],
-  }));
 }
 
 export function distributeResourcesForRoll(state: GameState, rollTotal: number) {
@@ -667,7 +648,10 @@ function robberTileIds(state: GameState) {
     );
   });
 
-  return friendly.length > 0 ? friendly : [state.board.robberTileId];
+  const desertTileId = state.board.tiles.find(
+    (tile) => TERRAIN_RESOURCE[tile.terrain] === null,
+  )?.id;
+  return friendly.length > 0 ? friendly : desertTileId ? [desertTileId] : available;
 }
 
 function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
@@ -947,17 +931,6 @@ function endTurn(state: GameState) {
     fail("INVALID_PHASE", "Turn cannot end before rolling and resolving actions");
   }
 
-  if (state.turnNumber >= MAX_PLAYER_TURNS) {
-    return {
-      ...state,
-      lastDiceRoll: null,
-      phase: { kind: "finished" as const },
-      status: "completed" as const,
-      tradeOffer: null,
-      winnerPlayerId: null,
-    };
-  }
-
   const activeIndex = state.turnOrder.indexOf(state.activePlayerId);
   const nextPlayerId = state.turnOrder[(activeIndex + 1) % state.turnOrder.length];
 
@@ -973,6 +946,17 @@ function endTurn(state: GameState) {
     tradeOffer: null,
     turnNumber: state.turnNumber + 1,
   };
+}
+
+function cancelUnaffordableTradeOffer(state: GameState) {
+  const offer = state.tradeOffer;
+
+  if (!offer) {
+    return state;
+  }
+
+  const proposer = requirePlayer(state, offer.proposerPlayerId);
+  return hasResources(proposer.resources, offer.give) ? state : { ...state, tradeOffer: null };
 }
 
 function isResourceType(resource: unknown): resource is ResourceType {
@@ -1003,7 +987,6 @@ function emptyLegalActions(state: GameState): LegalActions {
   return {
     bankTrades: [],
     canCancelTrade: false,
-    canBuyDevelopmentCard: false,
     canEndTurn: false,
     canProposeTrade: false,
     canRespondToTrade: false,
@@ -1068,8 +1051,6 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
       }
 
       actions.canEndTurn = true;
-      actions.canBuyDevelopmentCard =
-        state.developmentDeck.length > 0 && hasResources(player.resources, DEVELOPMENT_CARD_COST);
       actions.canCancelTrade = state.tradeOffer?.proposerPlayerId === actorPlayerId;
       actions.canProposeTrade = state.tradeOffer === null;
       actions.cityVertexKeys =
@@ -1147,9 +1128,6 @@ export function applyCommand(
     case "build_city":
       next = buildCity(state, actorPlayerId, command.vertexKey);
       break;
-    case "buy_development_card":
-      next = buyDevelopmentCard(state, actorPlayerId);
-      break;
     case "trade_bank":
       next = tradeWithBank(state, actorPlayerId, command.give, command.receive);
       break;
@@ -1175,5 +1153,8 @@ export function applyCommand(
       return fail("INVALID_COMMAND", "Unknown game command");
   }
 
-  return { ...next, actionNumber: state.actionNumber + 1 };
+  return {
+    ...cancelUnaffordableTradeOffer(next),
+    actionNumber: state.actionNumber + 1,
+  };
 }

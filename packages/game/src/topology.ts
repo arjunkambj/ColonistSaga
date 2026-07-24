@@ -165,5 +165,3 @@ export function getBoardTopology(coordinates: readonly AxialCoordinate[]): Board
   topologyCache.set(key, topology);
   return topology;
 }
-
-export const DEFAULT_TOPOLOGY = getBoardTopology(createHexCoordinates(2));

@@ -111,7 +111,6 @@ export function useBoardCamera(): BoardCamera {
       if (scene) {
         scene.style.transform = getBoardViewportTransform(viewport);
       }
-
     });
   }, []);
 

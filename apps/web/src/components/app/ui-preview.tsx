@@ -2,9 +2,12 @@
 
 import {
   applyCommand,
+  assertGameState,
+  assertPlayerGameView,
   createDefaultGame,
   emptyInventory,
   getLegalActions,
+  RESOURCE_TYPES,
   toPlayerView,
   type GamePlayerInput,
   type GameState,
@@ -16,13 +19,9 @@ import { useEffect, useState } from "react";
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
-import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
-import {
-  DEVELOPMENT_CARD_BACK_ASSET_PATH,
-  getCardRuntimeAssetPath,
-} from "@/constants/game/card-assets";
+import { ACTION_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
 import type { RoomEventView } from "@/lib/game/types";
 
 export type UiPreviewMode =
@@ -180,23 +179,15 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     caption: "Bank or players",
     kind: "trade",
     meta: "Open market",
-    src: "/game-assets/ui/market-trade.png",
+    src: ACTION_CARD_ASSET_PATHS.trade,
     title: "Trade",
-  },
-  {
-    caption: "Draw from the deck",
-    count: 25,
-    kind: "development-deck",
-    meta: "1 sheep · 1 wheat · 1 stone",
-    src: getCardRuntimeAssetPath(DEVELOPMENT_CARD_BACK_ASSET_PATH),
-    title: "Dev Card",
   },
   {
     caption: "Place on a glowing edge",
     count: 13,
     kind: "road",
     meta: "1 wood · 1 brick",
-    src: getPieceAssetPath("road"),
+    src: ACTION_CARD_ASSET_PATHS.road,
     title: "Road",
   },
   {
@@ -204,7 +195,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 3,
     kind: "settlement",
     meta: "Wood · brick · sheep · wheat",
-    src: getPieceAssetPath("settlement"),
+    src: ACTION_CARD_ASSET_PATHS.settlement,
     title: "Settlement",
   },
   {
@@ -212,7 +203,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 4,
     kind: "city",
     meta: "2 wheat · 3 stone",
-    src: getPieceAssetPath("city"),
+    src: ACTION_CARD_ASSET_PATHS.city,
     title: "City",
   },
   {
@@ -240,21 +231,30 @@ function createPreviewGame(showActions: boolean) {
     tree: 3,
     wheat: 2,
   };
+  const viewer = state.players.find((player) => player.id === "player-1");
+  if (!viewer) throw new Error("Preview game requires its viewer");
+  const bank = { ...state.bank };
+  for (const resource of RESOURCE_TYPES) {
+    bank[resource] -= resources[resource] - viewer.resources[resource];
+  }
 
   state = {
     ...state,
     activePlayerId: "player-1",
+    bank,
     lastDiceRoll: showActions ? { first: 3, second: 5, sum: 8 } : null,
     phase: showActions ? { kind: "build_and_trade" } : { kind: "roll" },
-    players: state.players.map((player, index) => ({
+    players: state.players.map((player) => ({
       ...player,
       resources: player.id === "player-1" ? resources : player.resources,
-      victoryPoints: [3, 2, 2, 4][index] ?? player.victoryPoints,
     })),
     turnNumber: 5,
   };
 
-  return toPlayerView(state, "player-1");
+  assertGameState(state);
+  const view = toPlayerView(state, "player-1");
+  assertPlayerGameView(view);
+  return view;
 }
 
 function createSetupPreviewGame() {

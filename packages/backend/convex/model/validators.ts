@@ -33,17 +33,14 @@ export const roomMemberViewValidator = v.object({
 });
 
 export const roomViewValidator = v.object({
-  actionNumber: v.optional(v.number()),
   botDifficulty: botDifficultyValidator,
   botThinking: v.boolean(),
   code: v.string(),
   events: v.array(gameEventViewValidator),
-  gameId: v.optional(v.id("games")),
   gameJson: v.optional(v.string()),
   isHost: v.boolean(),
   members: v.array(roomMemberViewValidator),
   nextActionAt: v.optional(v.number()),
-  rules: v.object({ victoryPoints: v.number() }),
   settings: baseGameSettingsValidator,
   status: v.union(v.literal("completed"), v.literal("in_progress"), v.literal("waiting")),
 });
@@ -74,7 +71,6 @@ export const commandValidator = v.union(
     kind: v.literal("build_city"),
     vertexKey: v.string(),
   }),
-  v.object({ kind: v.literal("buy_development_card") }),
   v.object({
     give: resourceTypeValidator,
     kind: v.literal("trade_bank"),

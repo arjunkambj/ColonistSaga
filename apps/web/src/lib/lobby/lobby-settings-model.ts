@@ -43,6 +43,24 @@ export function getMinimumPlayerCount(
   );
 }
 
+export function getCompatiblePlayerCount(
+  mapId: GameMapId,
+  humanCount: number,
+  preferredPlayerCount: BaseGameSettings["maxPlayers"],
+): BaseGameSettings["maxPlayers"] | null {
+  const playerCounts = getGameMapDefinition(mapId).playerCounts.filter(
+    (playerCount) => playerCount >= humanCount,
+  );
+
+  return (
+    [...playerCounts].sort(
+      (left, right) =>
+        Math.abs(left - preferredPlayerCount) - Math.abs(right - preferredPlayerCount) ||
+        left - right,
+    )[0] ?? null
+  );
+}
+
 export function toBotCount(value: number): BotCount {
   return clampInteger(value, 0, 7) as BotCount;
 }

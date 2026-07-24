@@ -1,6 +1,6 @@
 import {
   DEFAULT_BASE_GAME_SETTINGS,
-  createDevelopmentCardDeck,
+  assertGameState,
   createDefaultGame,
   getRequiredPlayerIds,
   toPlayerView,
@@ -13,7 +13,11 @@ import type {
   GameState,
 } from "@colonistsaga/game";
 
-import { nextScheduledActionAt, nextTurnDeadlineAt } from "../../lib/game-scheduling";
+import {
+  logicalTurnId,
+  nextScheduledActionAt,
+  nextTurnDeadlineAt,
+} from "../../lib/game-scheduling";
 import { internal } from "../_generated/api";
 import type { HexclaveUser } from "../hexclave/auth";
 import { serializeCommand } from "./commands";
@@ -21,12 +25,98 @@ import { DEFAULT_BOT_DIFFICULTY } from "./constants";
 import { fail } from "./errors";
 import {
   createPrivateGameSeed,
+  hasRetiredGameMap,
+  migrateWaitingRoomSettings,
   normalizeDisplayName,
   validateBotCount,
   validateGameSettings,
 } from "./normalize";
 import { allocateRoomCode, listSeats, nextOpenSeatIndex } from "./roomQueries";
 import type { GameDoc, GameId, RoomDoc, SeatDoc, WriteCtx } from "./types";
+
+const LEGACY_DEVELOPMENT_CARD_COUNTS = {
+  knight: 14,
+  monopoly: 2,
+  "road-building": 2,
+  "victory-point": 5,
+  "year-of-plenty": 2,
+} as const;
+type LegacyDevelopmentCard = keyof typeof LEGACY_DEVELOPMENT_CARD_COUNTS;
+const LEGACY_DEVELOPMENT_CARD_TYPES = new Set<LegacyDevelopmentCard>(
+  Object.keys(LEGACY_DEVELOPMENT_CARD_COUNTS) as LegacyDevelopmentCard[],
+);
+
+function legacyCards(value: unknown, path: string): LegacyDevelopmentCard[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${path} must be an array`);
+  }
+  return value.map((card, index) => {
+    if (
+      typeof card !== "string" ||
+      !LEGACY_DEVELOPMENT_CARD_TYPES.has(card as LegacyDevelopmentCard)
+    ) {
+      throw new Error(`${path}[${index}] is not a known legacy card`);
+    }
+    return card as LegacyDevelopmentCard;
+  });
+}
+
+function canonicalizeStoredGameState(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+
+  const stored = value as Record<string, unknown>;
+  if (stored.version !== 1) {
+    return stored;
+  }
+
+  const canonical: Record<string, unknown> = { ...stored, version: 2 };
+  const legacyCardCounts = Object.fromEntries(
+    [...LEGACY_DEVELOPMENT_CARD_TYPES].map((card) => [card, 0]),
+  ) as Record<LegacyDevelopmentCard, number>;
+  delete canonical.developmentDeck;
+  delete canonical.victoryPoints;
+  if (Array.isArray(canonical.players)) {
+    canonical.players = canonical.players.map((player, playerIndex) => {
+      if (typeof player !== "object" || player === null || Array.isArray(player)) {
+        return player;
+      }
+      const canonicalPlayer = { ...player } as Record<string, unknown>;
+      const cards =
+        canonicalPlayer.developmentCards === undefined
+          ? []
+          : legacyCards(
+              canonicalPlayer.developmentCards,
+              `game.players[${playerIndex}].developmentCards`,
+            );
+      for (const card of cards) {
+        legacyCardCounts[card] += 1;
+      }
+      delete canonicalPlayer.developmentCards;
+      return canonicalPlayer;
+    });
+  }
+
+  if (stored.developmentDeck !== undefined) {
+    for (const card of legacyCards(stored.developmentDeck, "game.developmentDeck")) {
+      legacyCardCounts[card] += 1;
+    }
+    for (const card of LEGACY_DEVELOPMENT_CARD_TYPES) {
+      if (legacyCardCounts[card] !== LEGACY_DEVELOPMENT_CARD_COUNTS[card]) {
+        throw new Error(`game.developmentDeck has an invalid ${card} count`);
+      }
+    }
+  } else {
+    for (const card of LEGACY_DEVELOPMENT_CARD_TYPES) {
+      if (legacyCardCounts[card] > LEGACY_DEVELOPMENT_CARD_COUNTS[card]) {
+        throw new Error(`game.players contain too many ${card} cards`);
+      }
+    }
+  }
+
+  return canonical;
+}
 
 export function parseGameState(stateJson: string): GameState {
   let state: unknown;
@@ -36,29 +126,21 @@ export function parseGameState(stateJson: string): GameState {
     fail("CORRUPT_GAME_STATE", "Stored game state is not valid JSON.");
   }
 
-  if (
-    typeof state !== "object" ||
-    state === null ||
-    !("actionNumber" in state) ||
-    typeof state.actionNumber !== "number" ||
-    !Number.isSafeInteger(state.actionNumber) ||
-    !("players" in state) ||
-    !Array.isArray(state.players)
-  ) {
+  try {
+    state = canonicalizeStoredGameState(state);
+    assertGameState(state);
+  } catch {
     fail("CORRUPT_GAME_STATE", "Stored game state has an invalid shape.");
   }
-  const gameState = state as GameState;
-  return {
-    ...gameState,
-    developmentDeck: gameState.developmentDeck ?? createDevelopmentCardDeck(gameState.seed),
-    players: gameState.players.map((player) => ({
-      ...player,
-      developmentCards: player.developmentCards ?? [],
-    })),
-  };
+  return state;
 }
 
 export function serializeGameState(state: GameState): string {
+  try {
+    assertGameState(state);
+  } catch {
+    fail("CORRUPT_GAME_STATE", "Game state failed integrity validation before persistence.");
+  }
   return JSON.stringify(state);
 }
 
@@ -80,7 +162,7 @@ export function requiredAutomatedActor(state: GameState) {
     requiredPlayerIds.find((requiredPlayerId) => playersById.get(requiredPlayerId)?.isBot) ??
     requiredPlayerIds[0];
   const player = playerId ? playersById.get(playerId) : undefined;
-  return player ? { isBot: player.isBot, playerId } : null;
+  return player ? { isBot: player.isBot, playerId: player.id } : null;
 }
 
 function activeTurnOwner(state: GameState) {
@@ -101,24 +183,45 @@ export async function scheduleNextAutomatedAction(
 ): Promise<{ nextActionAt?: number; turnDeadlineAt?: number }> {
   const actor = requiredAutomatedActor(state);
   const activePlayer = activeTurnOwner(state);
+  const turnId = logicalTurnId(state);
   const previousActor = previousState ? requiredAutomatedActor(previousState) : null;
+  const previousTurnId = previousState ? logicalTurnId(previousState) : undefined;
   const previousHumanDeadline =
-    previousActor && !previousActor.isBot && previousActionAt !== undefined
-      ? { actorPlayerId: previousActor.playerId, nextActionAt: previousActionAt }
-      : undefined;
-  const previousTurnDeadline =
-    previousState && previousTurnDeadlineAt !== undefined
+    previousActor &&
+    !previousActor.isBot &&
+    previousActionAt !== undefined &&
+    previousTurnId !== undefined
       ? {
-          actorPlayerId: previousState.activePlayerId,
-          nextActionAt: previousTurnDeadlineAt,
+          actorPlayerId: previousActor.playerId,
+          deadlineAt: previousActionAt,
+          turnId: previousTurnId,
         }
       : undefined;
-  const turnDeadlineAt = nextTurnDeadlineAt(activePlayer, settings, now, previousTurnDeadline);
+  const previousTurnDeadline =
+    previousState && previousTurnDeadlineAt !== undefined && previousTurnId !== undefined
+      ? {
+          actorPlayerId: previousState.activePlayerId,
+          deadlineAt: previousTurnDeadlineAt,
+          turnId: previousTurnId,
+        }
+      : undefined;
+  const turnDeadlineAt = nextTurnDeadlineAt(
+    activePlayer,
+    settings,
+    now,
+    turnId,
+    previousTurnDeadline,
+  );
   const nextActionAt = nextScheduledActionAt(actor, settings, now, {
     previousHumanDeadline,
     turnDeadlineAt,
+    turnId,
   });
-  if (nextActionAt !== undefined && actor) {
+  const existingScheduleStillApplies =
+    previousState?.actionNumber === state.actionNumber &&
+    previousActor?.playerId === actor?.playerId &&
+    previousActionAt === nextActionAt;
+  if (nextActionAt !== undefined && actor && !existingScheduleStillApplies) {
     await ctx.scheduler.runAt(nextActionAt, internal.automation.runAutomatedAction, {
       expectedActionNumber: state.actionNumber,
       expectedActorPlayerId: actor.playerId,
@@ -148,15 +251,16 @@ export async function persistAppliedCommand(
   text: string,
 ): Promise<void> {
   if (nextState.actionNumber !== state.actionNumber + 1) {
-    fail("CORRUPT_GAME_STATE", "Accepted command did not advance exactly one action.");
+    fail("CORRUPT_GAME_STATE", "An accepted command must advance exactly one action.");
   }
 
   const now = Date.now();
+  const settings = validateGameSettings(game.settings);
   const schedule = await scheduleNextAutomatedAction(
     ctx,
     game._id,
     nextState,
-    game.settings,
+    settings,
     now,
     state,
     game.nextActionAt,
@@ -303,7 +407,10 @@ export async function startRoomGame(ctx: WriteCtx, room: RoomDoc): Promise<GameD
   if (!room.hostSeatId) fail("NOT_HOST", "Room does not have a host seat.");
 
   const now = Date.now();
-  const settings = validateGameSettings(room.settings);
+  const settings = migrateWaitingRoomSettings(room.settings);
+  if (hasRetiredGameMap(room.settings)) {
+    await ctx.db.patch("rooms", room._id, { settings, updatedAt: now });
+  }
   const seats = await listSeats(ctx, room._id);
   if (
     seats.length !== settings.maxPlayers ||
@@ -395,26 +502,24 @@ export async function convertGameSeatToBot(
   if (!game) {
     fail("CORRUPT_GAME_STATE", "Room points to a missing game.");
   }
+  const settings = validateGameSettings(game.settings);
   const state = parseGameState(game.stateJson);
   if (game.revision !== state.actionNumber) {
     fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
   }
 
-  const playerId = String(seat._id);
   const nextState = transferPlayerToBot(state, seat, room.botDifficulty);
   const now = Date.now();
-  const schedule = getRequiredPlayerIds(state).includes(playerId)
-    ? await scheduleNextAutomatedAction(
-        ctx,
-        game._id,
-        nextState,
-        game.settings,
-        now,
-        state,
-        game.nextActionAt,
-        game.turnDeadlineAt,
-      )
-    : { nextActionAt: game.nextActionAt, turnDeadlineAt: game.turnDeadlineAt };
+  const schedule = await scheduleNextAutomatedAction(
+    ctx,
+    game._id,
+    nextState,
+    settings,
+    now,
+    state,
+    game.nextActionAt,
+    game.turnDeadlineAt,
+  );
   await ctx.db.patch("seats", seat._id, {
     authUserId: undefined,
     displayName: `Bot ${seat.seatIndex + 1}`,

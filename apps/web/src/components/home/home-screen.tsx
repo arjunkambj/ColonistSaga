@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_BASE_GAME_SETTINGS, type BaseGameSettings } from "@colonistsaga/game";
+import { DEFAULT_BASE_GAME_SETTINGS } from "@colonistsaga/game";
 import { Button, Input, Label, Modal, Slider, TextField } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
@@ -14,11 +14,7 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useState } from "react";
 
-import {
-  LobbySettings,
-  type BotCount,
-  type LobbySettingsValue,
-} from "@/components/lobby/lobby-settings";
+import { LobbySettings, type LobbySettingsValue } from "@/components/lobby/lobby-settings";
 import { AppScenery } from "@/components/ui/app-scenery";
 import { Brand } from "@/components/ui/brand";
 import { LiveMessage } from "@/components/ui/live-message";
@@ -122,10 +118,7 @@ export function HomeScreen({
             </span>
           </Button>
 
-          <section
-            aria-label={`Player profile for ${displayName}`}
-            className="voyage-profile"
-          >
+          <section aria-label={`Player profile for ${displayName}`} className="voyage-profile">
             <span aria-hidden="true" className="voyage-profile__avatar">
               <Image
                 alt=""
@@ -394,15 +387,11 @@ export function HomeScreen({
                         <Slider.Thumb className={playerSettingsStyles.thumb} />
                       </Slider.Track>
                     </Slider>
-                    <p className={playerSettingsStyles.help}>
-                      Adjust the menu soundtrack volume.
-                    </p>
+                    <p className={playerSettingsStyles.help}>Adjust the menu soundtrack volume.</p>
                   </div>
                 </form>
               </Modal.Body>
-              <Modal.Footer
-                className={`${setupShellStyles.footer} ${playerSettingsStyles.footer}`}
-              >
+              <Modal.Footer className={`${setupShellStyles.footer} ${playerSettingsStyles.footer}`}>
                 <Button
                   className={`button ${playerSettingsStyles.cancel}`}
                   isDisabled={isPending}
@@ -475,15 +464,13 @@ export function HomeScreen({
                   botDifficulty={quickSettings.botDifficulty}
                   disabled={isPending}
                   humanCount={1}
-                  minBotCount={2}
-                  onChange={(value) =>
-                    setQuickSettings((current) => normalizeQuickSettings(current, value))
-                  }
+                  minBotCount={toBotCount(quickSettings.settings.maxPlayers - 1)}
+                  onChange={(value) => setQuickSettings(normalizeQuickSettings(value))}
                   settings={quickSettings.settings}
                 />
               </Modal.Body>
               <p className={`setup-note ${botSetupStyles.note}`}>
-                Bot games fill every open seat. Choose two to seven bots for a 3–8 player table.
+                Quick matches fill every open seat with bots for the selected board.
               </p>
               <Modal.Footer className={`${setupShellStyles.footer} ${botSetupStyles.footer}`}>
                 <Button
@@ -504,24 +491,9 @@ export function HomeScreen({
   );
 }
 
-function normalizeQuickSettings(
-  current: LobbySettingsValue,
-  next: LobbySettingsValue,
-): LobbySettingsValue {
-  if (next.settings.maxPlayers !== current.settings.maxPlayers) {
-    return {
-      ...next,
-      botCount: (next.settings.maxPlayers - 1) as BotCount,
-    };
-  }
-
-  const botCount = toBotCount(Math.max(2, next.botCount));
+function normalizeQuickSettings(next: LobbySettingsValue): LobbySettingsValue {
   return {
     ...next,
-    botCount,
-    settings: {
-      ...next.settings,
-      maxPlayers: (botCount + 1) as BaseGameSettings["maxPlayers"],
-    },
+    botCount: toBotCount(next.settings.maxPlayers - 1),
   };
 }

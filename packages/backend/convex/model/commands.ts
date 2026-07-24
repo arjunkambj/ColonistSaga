@@ -37,8 +37,6 @@ export function serializeCommand(command: GameCommand): string {
       return JSON.stringify({ kind: command.kind, victimPlayerId: command.victimPlayerId });
     case "build_city":
       return JSON.stringify({ kind: command.kind, vertexKey: command.vertexKey });
-    case "buy_development_card":
-      return JSON.stringify({ kind: command.kind });
     case "trade_bank":
       return JSON.stringify({ give: command.give, kind: command.kind, receive: command.receive });
     case "propose_trade":
@@ -88,9 +86,7 @@ export function commandText(
     case "steal":
       return `${displayName} stole a resource.`;
     case "build_city":
-      return `${displayName} built a city.`;
-    case "buy_development_card":
-      return `${displayName} bought a development card.`;
+      return `${displayName} upgraded a settlement to a city.`;
     case "trade_bank":
       return `${displayName} traded ${command.give} for ${command.receive}.`;
     case "propose_trade":
@@ -143,7 +139,6 @@ export function validateCommandBounds(command: GameCommand): void {
       validateActionNumber(command.offerActionNumber);
       return;
     case "trade_bank":
-    case "buy_development_card":
     case "roll":
     case "end_turn":
       return;

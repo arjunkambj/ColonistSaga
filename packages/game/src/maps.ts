@@ -1,4 +1,4 @@
-import { PLAYER_COUNTS, type GameMapId, type PlayerCount, type TerrainType } from "./types";
+import type { GameMapId, PlayerCount, TerrainType } from "./types";
 
 export interface GameMapDefinition {
   readonly description: string;
@@ -11,7 +11,9 @@ export interface GameMapDefinition {
   readonly tileCount: number;
 }
 
-const ALL_PLAYER_COUNTS = Object.freeze([...PLAYER_COUNTS]);
+const BASE_PLAYER_COUNTS = [3, 4] as const satisfies readonly PlayerCount[];
+const EXTENDED_6_PLAYER_COUNTS = [5, 6] as const satisfies readonly PlayerCount[];
+const EXTENDED_8_PLAYER_COUNTS = [7, 8] as const satisfies readonly PlayerCount[];
 const STANDARD_NUMBER_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
 const EXTENDED_6_NUMBER_TOKENS = [
   2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12,
@@ -20,15 +22,14 @@ const EXTENDED_8_NUMBER_TOKENS = [
   2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11,
   11, 12, 12, 12,
 ];
-const EXTENDED_10_NUMBER_TOKENS = [...EXTENDED_8_NUMBER_TOKENS, 2, 3, 4, 5, 6, 8, 9];
 
 export const GAME_MAP_DEFINITIONS: Readonly<Record<GameMapId, GameMapDefinition>> = Object.freeze({
   base: Object.freeze({
     description: "19 terrain tiles and 1 desert — the standard 3–4 player island.",
     id: "base",
-    label: "4-player map",
+    label: "3–4 player map",
     numberTokens: Object.freeze(STANDARD_NUMBER_TOKENS),
-    playerCounts: ALL_PLAYER_COUNTS,
+    playerCounts: BASE_PLAYER_COUNTS,
     portCount: 9,
     terrainCounts: Object.freeze({
       desert: 1,
@@ -45,7 +46,7 @@ export const GAME_MAP_DEFINITIONS: Readonly<Record<GameMapId, GameMapDefinition>
     id: "extended-6",
     label: "5–6 player map",
     numberTokens: Object.freeze(EXTENDED_6_NUMBER_TOKENS),
-    playerCounts: ALL_PLAYER_COUNTS,
+    playerCounts: EXTENDED_6_PLAYER_COUNTS,
     portCount: 11,
     terrainCounts: Object.freeze({
       desert: 2,
@@ -62,7 +63,7 @@ export const GAME_MAP_DEFINITIONS: Readonly<Record<GameMapId, GameMapDefinition>
     id: "extended-8",
     label: "7–8 player map",
     numberTokens: Object.freeze(EXTENDED_8_NUMBER_TOKENS),
-    playerCounts: ALL_PLAYER_COUNTS,
+    playerCounts: EXTENDED_8_PLAYER_COUNTS,
     portCount: 12,
     terrainCounts: Object.freeze({
       desert: 2,
@@ -73,23 +74,6 @@ export const GAME_MAP_DEFINITIONS: Readonly<Record<GameMapId, GameMapDefinition>
       pasture: 8,
     }),
     tileCount: 37,
-  }),
-  "extended-10": Object.freeze({
-    description: "44 terrain tiles and 2 deserts — a balanced 9–10 player extrapolation.",
-    id: "extended-10",
-    label: "9–10 player map",
-    numberTokens: Object.freeze(EXTENDED_10_NUMBER_TOKENS),
-    playerCounts: ALL_PLAYER_COUNTS,
-    portCount: 14,
-    terrainCounts: Object.freeze({
-      desert: 2,
-      fields: 8,
-      forest: 10,
-      hills: 7,
-      mountains: 7,
-      pasture: 10,
-    }),
-    tileCount: 44,
   }),
 });
 

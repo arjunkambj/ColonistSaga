@@ -1,0 +1,12 @@
+{
+  "extends": "./packages/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["bun", "node"]
+  },
+  "include": [
+    "apps/web/tests/**/*.mts",
+    "packages/backend/tests/**/*.ts",
+    "packages/game/tests/**/*.ts"
+  ]
+}

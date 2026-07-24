@@ -91,6 +91,7 @@ export const applyCommand = mutation({
 
     const game = await ctx.db.get("games", room.gameId);
     if (!game) fail("GAME_NOT_STARTED", "Game has not started.");
+    validateGameSettings(game.settings);
     const clientActionId = validateClientActionId(args.clientActionId);
     const command = args.command as GameCommand;
     validateCommandBounds(command);

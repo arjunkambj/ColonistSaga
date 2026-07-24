@@ -336,7 +336,7 @@ function getTargetActionLabel(mode: BoardTargetMode, terrainContext: string): st
 
   switch (mode) {
     case "city":
-      return `Upgrade city at legal vertex${adjacentContext}`;
+      return `Upgrade settlement to city${adjacentContext}`;
     case "road":
       return `Place road at legal edge${adjacentContext}`;
     case "robber":

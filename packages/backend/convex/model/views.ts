@@ -6,6 +6,7 @@ import {
   requiredAutomatedActor,
   roomViewStatus,
 } from "./gameState";
+import { migrateWaitingRoomSettings, validateGameSettings } from "./normalize";
 import { listSeats } from "./roomQueries";
 import type { GameEventView, GameId, ReadCtx, RoomDoc, RoomView, SeatDoc } from "./types";
 
@@ -24,6 +25,10 @@ async function listGameEvents(ctx: ReadCtx, gameId: GameId): Promise<GameEventVi
 
 export async function toRoomView(ctx: ReadCtx, room: RoomDoc, seat: SeatDoc): Promise<RoomView> {
   const seats = await listSeats(ctx, room._id);
+  const roomSettings =
+    room.status === "waiting"
+      ? migrateWaitingRoomSettings(room.settings)
+      : validateGameSettings(room.settings);
   const members = seats.map((member) => ({
     controller: member.kind === "bot" ? ("bot" as const) : ("player" as const),
     displayName: member.displayName,
@@ -40,27 +45,24 @@ export async function toRoomView(ctx: ReadCtx, room: RoomDoc, seat: SeatDoc): Pr
     events: [] as GameEventView[],
     isHost: seat._id === room.hostSeatId,
     members,
-    rules: { victoryPoints: room.settings.victoryPoints },
-    settings: room.settings,
+    settings: roomSettings,
     status: roomViewStatus(room.status),
   };
   if (!room.gameId) return base;
 
   const game = await ctx.db.get("games", room.gameId);
   if (!game) fail("CORRUPT_GAME_STATE", "Room points to a missing game.");
+  const gameSettings = validateGameSettings(game.settings);
   const state = parseGameState(game.stateJson);
   const events = await listGameEvents(ctx, game._id);
   const automatedActor = requiredAutomatedActor(state);
   return {
     ...base,
-    actionNumber: state.actionNumber,
     botDifficulty: game.botDifficulty,
     botThinking: automatedActor?.isBot === true && game.nextActionAt !== undefined,
     events,
-    gameId: game._id,
     gameJson: playerViewJson(state, seat),
     nextActionAt: game.nextActionAt,
-    rules: { victoryPoints: game.settings.victoryPoints },
-    settings: game.settings,
+    settings: gameSettings,
   };
 }

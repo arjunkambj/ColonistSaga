@@ -1,5 +1,4 @@
 import { applyCommand, chooseAutomatedCommand } from "@colonistsaga/game";
-import type { GameCommand, GameState } from "@colonistsaga/game";
 import { v } from "convex/values";
 
 import { isScheduledActionDue } from "../lib/game-scheduling";
@@ -7,7 +6,7 @@ import { internalMutation } from "./_generated/server";
 import { commandText } from "./model/commands";
 import { fail } from "./model/errors";
 import { parseGameState, persistAppliedCommand, requiredAutomatedActor } from "./model/gameState";
-import { validateActionNumber } from "./model/normalize";
+import { validateActionNumber, validateGameSettings } from "./model/normalize";
 import { listSeats } from "./model/roomQueries";
 
 export const runAutomatedAction = internalMutation({
@@ -19,9 +18,6 @@ export const runAutomatedAction = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
-    if (args.expectedActorPlayerId === undefined || args.scheduledFor === undefined) {
-      return null;
-    }
     const expectedActionNumber = validateActionNumber(args.expectedActionNumber);
     const game = await ctx.db.get("games", args.gameId);
     if (
@@ -33,6 +29,7 @@ export const runAutomatedAction = internalMutation({
       return null;
     }
 
+    const settings = validateGameSettings(game.settings);
     const state = parseGameState(game.stateJson);
     if (state.actionNumber !== game.revision) {
       fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
@@ -40,18 +37,19 @@ export const runAutomatedAction = internalMutation({
     const actor = requiredAutomatedActor(state);
     if (
       !actor ||
-      actor.playerId !== args.expectedActorPlayerId ||
-      (!actor.isBot && game.settings.turnTimerSeconds === 0)
+      (args.expectedActorPlayerId !== undefined && actor.playerId !== args.expectedActorPlayerId) ||
+      (!actor.isBot && settings.turnTimerSeconds === 0)
     ) {
       return null;
     }
 
-    const seats = await listSeats(ctx, game.roomId);
-    const actorSeat = seats.find((seat) => String(seat._id) === actor.playerId);
+    const actorSeat = (await listSeats(ctx, game.roomId)).find(
+      (seat) => String(seat._id) === actor.playerId,
+    );
     if (!actorSeat) fail("CORRUPT_GAME_STATE", "Automated actor does not own a room seat.");
 
-    let command: GameCommand;
-    let nextState: GameState;
+    let command;
+    let nextState;
     try {
       command = chooseAutomatedCommand(state, actor.playerId);
       nextState = applyCommand(state, actor.playerId, command);
@@ -59,6 +57,8 @@ export const runAutomatedAction = internalMutation({
       const message = error instanceof Error ? error.message : "Automated action failed.";
       fail("AUTOMATED_ACTION_FAILED", message);
     }
+
+    const actionText = commandText(command, actorSeat.displayName, nextState);
     await persistAppliedCommand(
       ctx,
       game,
@@ -67,9 +67,7 @@ export const runAutomatedAction = internalMutation({
       actorSeat,
       command,
       `system:automated:${state.actionNumber}`,
-      actor.isBot
-        ? commandText(command, actorSeat.displayName, nextState)
-        : `${actorSeat.displayName} timed out. ${commandText(command, actorSeat.displayName, nextState)}`,
+      actor.isBot ? actionText : `${actorSeat.displayName} timed out. ${actionText}`,
     );
     return null;
   },

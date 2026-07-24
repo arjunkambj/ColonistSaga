@@ -7,7 +7,14 @@ import {
   type PlayerGameView,
   type ResourceType,
 } from "@colonistsaga/game";
-import { memo, useEffect, useRef, type CSSProperties, type RefObject } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 
 import {
   ISLAND_SHELF_ASSET_PATH,
@@ -169,6 +176,7 @@ function useCanvasLayer<Scene>(
   sceneKey: string,
   renderScene: SceneRenderer<Scene>,
 ) {
+  const drawRevisionRef = useRef(0);
   const sceneRef = useRef(scene);
   const scheduleDrawRef = useRef<() => void>(() => undefined);
   sceneRef.current = scene;
@@ -180,12 +188,15 @@ function useCanvasLayer<Scene>(
     }
 
     let cancelled = false;
-    let drawRevision = 0;
     let frameId = 0;
 
     const draw = () => {
-      const revision = ++drawRevision;
-      void renderScene(canvas, sceneRef.current, () => cancelled || revision !== drawRevision);
+      const revision = ++drawRevisionRef.current;
+      void renderScene(
+        canvas,
+        sceneRef.current,
+        () => cancelled || revision !== drawRevisionRef.current,
+      );
     };
 
     const scheduleDraw = () => {
@@ -208,7 +219,7 @@ function useCanvasLayer<Scene>(
 
     return () => {
       cancelled = true;
-      drawRevision += 1;
+      drawRevisionRef.current += 1;
       scheduleDrawRef.current = () => undefined;
       resizeObserver?.disconnect();
       window.removeEventListener("resize", scheduleDraw);
@@ -218,7 +229,8 @@ function useCanvasLayer<Scene>(
     };
   }, [canvasRef, renderScene]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    drawRevisionRef.current += 1;
     scheduleDrawRef.current();
   }, [sceneKey]);
 }

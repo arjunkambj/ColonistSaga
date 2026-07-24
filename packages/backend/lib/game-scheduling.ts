@@ -1,4 +1,4 @@
-import type { BaseGameSettings } from "@colonistsaga/game";
+import type { BaseGameSettings, GameState } from "@colonistsaga/game";
 
 export const BOT_ACTION_DELAY_MS = 950;
 
@@ -9,25 +9,35 @@ export interface AutomatedActor {
 
 export interface PreviousHumanDeadline {
   actorPlayerId: string;
-  nextActionAt: number;
+  deadlineAt: number;
+  turnId: string;
 }
 
 export interface SchedulingContext {
   previousHumanDeadline?: PreviousHumanDeadline;
   turnDeadlineAt?: number;
+  turnId?: string;
+}
+
+export function logicalTurnId(state: GameState): string {
+  if (state.phase.kind === "setup_settlement" || state.phase.kind === "setup_road") {
+    return `setup:${state.phase.setupIndex}`;
+  }
+  return `turn:${state.turnNumber}:${state.activePlayerId}`;
 }
 
 export function nextTurnDeadlineAt(
   activePlayer: AutomatedActor | null,
   settings: BaseGameSettings,
   now: number,
+  turnId: string,
   previous?: PreviousHumanDeadline,
 ): number | undefined {
   if (!activePlayer || activePlayer.isBot || settings.turnTimerSeconds === 0) {
     return undefined;
   }
-  return previous?.actorPlayerId === activePlayer.playerId
-    ? previous.nextActionAt
+  return previous?.actorPlayerId === activePlayer.playerId && previous.turnId === turnId
+    ? previous.deadlineAt
     : now + settings.turnTimerSeconds * 1_000;
 }
 
@@ -41,7 +51,10 @@ export function nextScheduledActionAt(
     return undefined;
   }
   if (actor.isBot) {
-    return now + BOT_ACTION_DELAY_MS;
+    const delayedActionAt = now + BOT_ACTION_DELAY_MS;
+    return context.turnDeadlineAt === undefined
+      ? delayedActionAt
+      : Math.min(delayedActionAt, context.turnDeadlineAt);
   }
   if (settings.turnTimerSeconds === 0) {
     return undefined;
@@ -49,8 +62,9 @@ export function nextScheduledActionAt(
   if (context.turnDeadlineAt !== undefined) {
     return context.turnDeadlineAt;
   }
-  return context.previousHumanDeadline?.actorPlayerId === actor.playerId
-    ? context.previousHumanDeadline.nextActionAt
+  return context.previousHumanDeadline?.actorPlayerId === actor.playerId &&
+    context.previousHumanDeadline.turnId === context.turnId
+    ? context.previousHumanDeadline.deadlineAt
     : now + settings.turnTimerSeconds * 1_000;
 }
 
@@ -73,8 +87,13 @@ export function earliestActionDeadlineAt(
 
 export function isScheduledActionDue(
   currentActionAt: number | undefined,
-  scheduledFor: number,
+  scheduledFor: number | undefined,
   now: number,
 ): boolean {
-  return currentActionAt === scheduledFor && now >= scheduledFor;
+  const expectedActionAt = scheduledFor ?? currentActionAt;
+  return (
+    expectedActionAt !== undefined &&
+    currentActionAt === expectedActionAt &&
+    now >= expectedActionAt
+  );
 }

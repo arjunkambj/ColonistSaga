@@ -1,5 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
 export const resourceInventoryValidator = v.object({
   brick: v.number(),
@@ -17,17 +17,11 @@ export const resourceTypeValidator = v.union(
   v.literal("wheat"),
 );
 
-export const baseGameSettingsValidator = v.object({
+const gameSettingsFields = {
   balancedDice: v.boolean(),
   discardLimit: v.number(),
   friendlyRobber: v.boolean(),
   hideBankCards: v.boolean(),
-  map: v.union(
-    v.literal("base"),
-    v.literal("extended-6"),
-    v.literal("extended-8"),
-    v.literal("extended-10"),
-  ),
   maxPlayers: v.union(
     v.literal(3),
     v.literal(4),
@@ -44,7 +38,25 @@ export const baseGameSettingsValidator = v.object({
     v.literal(120),
   ),
   victoryPoints: v.number(),
+};
+
+const gameMapValidator = v.union(
+  v.literal("base"),
+  v.literal("extended-6"),
+  v.literal("extended-8"),
+);
+
+export const baseGameSettingsValidator = v.object({
+  ...gameSettingsFields,
+  map: gameMapValidator,
 });
+
+export const storedBaseGameSettingsValidator = v.object({
+  ...gameSettingsFields,
+  map: v.union(gameMapValidator, v.literal("extended-10")),
+});
+
+export type StoredBaseGameSettings = Infer<typeof storedBaseGameSettingsValidator>;
 
 export const botDifficultyValidator = v.union(
   v.literal("easy"),
@@ -68,7 +80,7 @@ export default defineSchema({
     createdAt: v.number(),
     gameId: v.optional(v.id("games")),
     hostSeatId: v.optional(v.id("seats")),
-    settings: baseGameSettingsValidator,
+    settings: storedBaseGameSettingsValidator,
     status: roomStatusValidator,
     updatedAt: v.number(),
   })
@@ -93,7 +105,7 @@ export default defineSchema({
     nextActionAt: v.optional(v.number()),
     revision: v.number(),
     roomId: v.id("rooms"),
-    settings: baseGameSettingsValidator,
+    settings: storedBaseGameSettingsValidator,
     stateJson: v.string(),
     status: gameStatusValidator,
     turnDeadlineAt: v.optional(v.number()),

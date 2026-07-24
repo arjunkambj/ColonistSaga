@@ -1,4 +1,4 @@
-/* Shared reference-matched screen presets. Imported after the legacy screen stylesheet. */
+/* Shared reference-matched screen presets. Imported after the base screen stylesheet. */
 
 .brand {
   gap: 0.62rem;
@@ -54,11 +54,8 @@
   display: grid;
   height: 100dvh;
   place-items: center;
-  padding:
-    max(1rem, env(safe-area-inset-top))
-    max(1rem, env(safe-area-inset-right))
-    max(1rem, env(safe-area-inset-bottom))
-    max(1rem, env(safe-area-inset-left));
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
   overflow: hidden;
   background: #087dc5;
 }
@@ -100,8 +97,7 @@
   align-items: center;
   justify-items: center;
   gap: clamp(0.7rem, 1.8vh, 1.15rem);
-  padding: clamp(1.6rem, 3.2vh, 2.25rem) clamp(1.4rem, 3.5vw, 2.1rem)
-    clamp(1.25rem, 2.4vh, 1.7rem);
+  padding: clamp(1.6rem, 3.2vh, 2.25rem) clamp(1.4rem, 3.5vw, 2.1rem) clamp(1.25rem, 2.4vh, 1.7rem);
   overflow: hidden;
   border: 1.5px solid rgba(190, 236, 255, 0.48);
   border-radius: 1.85rem;
@@ -322,7 +318,6 @@
     gap: 0.55rem;
     padding-block: 1.15rem;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -543,10 +538,8 @@
   display: grid;
   min-height: 0;
   place-items: center;
-  padding:
-    max(5.8rem, calc(env(safe-area-inset-top) + 5rem))
-    max(1.25rem, env(safe-area-inset-right))
-    max(2.2rem, env(safe-area-inset-bottom))
+  padding: max(5.8rem, calc(env(safe-area-inset-top) + 5rem))
+    max(1.25rem, env(safe-area-inset-right)) max(2.2rem, env(safe-area-inset-bottom))
     max(1.25rem, env(safe-area-inset-left));
 }
 
@@ -680,7 +673,9 @@
   transition: transform 220ms ease;
 }
 
-.voyage-home .button.voyage-card:not(:disabled):not([aria-disabled="true"]):hover .voyage-card__image,
+.voyage-home
+  .button.voyage-card:not(:disabled):not([aria-disabled="true"]):hover
+  .voyage-card__image,
 .voyage-home .button.voyage-card[data-hovered="true"] .voyage-card__image {
   transform: scale(1.02);
 }
@@ -1002,7 +997,6 @@
   }
 }
 
-
 /* Game table */
 
 .game-page.reference-game {
@@ -1014,39 +1008,6 @@
   color: #f4f9ff;
   color-scheme: dark;
   background: #063a78;
-}
-
-.reference-game .number-token {
-  width: clamp(38px, 24%, 62px);
-  border: 2px solid #d6bc88;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #fffdf2, #f2e3bf);
-  clip-path: none;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    inset 0 -2px 0 rgba(126, 79, 30, 0.13),
-    0 3px 5px rgba(47, 39, 27, 0.22);
-  color: #23521d;
-  filter: none;
-}
-
-.reference-game .number-token::before {
-  display: none;
-}
-
-.reference-game .number-token.is-hot {
-  border-color: #dc6a54;
-  background: linear-gradient(145deg, #fffdf1, #f3e0b8);
-  color: #c92f25;
-}
-
-.reference-game .number-token span {
-  color: #2b611f;
-  letter-spacing: 0.02em;
-}
-
-.reference-game .number-token.is-hot span {
-  color: #c92f25;
 }
 
 .reference-game .icon-button,
@@ -1210,19 +1171,7 @@
 }
 
 .reference-game .bank-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-}
-
-.reference-game .bank-grid li:nth-child(6) {
-  background: linear-gradient(180deg, rgba(62, 108, 153, 0.82), rgba(35, 61, 103, 0.94));
-}
-
-.reference-game .bank-grid .bank-mystery-icon {
-  display: grid;
-  color: rgba(218, 235, 247, 0.56);
-  font-family: var(--font-ui);
-  font-size: 1.75rem;
-  font-weight: 900;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .reference-game .bank-grid li strong {
@@ -1717,10 +1666,6 @@
     top: -2rem;
     width: min(59vw, 72vh);
     margin-left: 8.5vw;
-  }
-
-  .reference-game .ocean-glow {
-    inset: 7% 2% 6%;
   }
 
   .reference-game .game-header {
@@ -2275,7 +2220,6 @@
     width: min(82vw, 82vh);
     margin-left: 0;
   }
-
 }
 
 @media (min-width: 1101px) and (max-width: 1240px) and (min-height: 561px) {

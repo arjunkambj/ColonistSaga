@@ -1,9 +1,7 @@
 import { BUILD_COSTS, NUMBER_TOKEN_PIPS, RESOURCE_ORDER, TERRAIN_RESOURCE } from "./constants";
 import {
-  applyCommand,
   getCityVertexKeys,
   getLegalActions,
-  getRequiredPlayerIds,
   getRoadEdgeKeys,
   getSettlementVertexKeys,
 } from "./rules";
@@ -50,8 +48,12 @@ function vertexProductionScore(
 
 function highestScoringKey(keys: readonly string[], score: (key: string) => number) {
   return [...keys].sort(
-    (first, second) => score(second) - score(first) || first.localeCompare(second),
+    (first, second) => score(second) - score(first) || compareKeys(first, second),
   )[0];
+}
+
+function compareKeys(first: string, second: string) {
+  return first < second ? -1 : first > second ? 1 : 0;
 }
 
 function chooseSettlement(
@@ -160,6 +162,22 @@ function chooseTradeTowardCost(
   return undefined;
 }
 
+function chooseTargetBuildCost(state: GameState, playerId: PlayerId) {
+  const player = requirePlayer(state, playerId);
+  const cityLocations = player.piecesRemaining.cities > 0 ? getCityVertexKeys(state, playerId) : [];
+  const settlementLocations =
+    player.piecesRemaining.settlements > 0 ? getSettlementVertexKeys(state, playerId, true) : [];
+  const roadLocations = player.piecesRemaining.roads > 0 ? getRoadEdgeKeys(state, playerId) : [];
+
+  return cityLocations.length > 0
+    ? BUILD_COSTS.city
+    : settlementLocations.length > 0
+      ? BUILD_COSTS.settlement
+      : roadLocations.length > 0
+        ? BUILD_COSTS.road
+        : null;
+}
+
 function chooseBuildCommand(
   state: GameState,
   playerId: PlayerId,
@@ -179,18 +197,7 @@ function chooseBuildCommand(
     return { kind: "place_settlement", vertexKey: settlementVertex };
   }
 
-  const cityLocations = player.piecesRemaining.cities > 0 ? getCityVertexKeys(state, playerId) : [];
-  const settlementLocations =
-    player.piecesRemaining.settlements > 0 ? getSettlementVertexKeys(state, playerId, true) : [];
-  const roadLocations = player.piecesRemaining.roads > 0 ? getRoadEdgeKeys(state, playerId) : [];
-  const targetCost =
-    cityLocations.length > 0
-      ? BUILD_COSTS.city
-      : settlementLocations.length > 0
-        ? BUILD_COSTS.settlement
-        : roadLocations.length > 0
-          ? BUILD_COSTS.road
-          : null;
+  const targetCost = chooseTargetBuildCost(state, playerId);
   const trade = targetCost
     ? chooseTradeTowardCost(player.resources, legal.bankTrades, targetCost)
     : undefined;
@@ -208,7 +215,10 @@ function chooseBuildCommand(
   return roadEdge ? { edgeKey: roadEdge, kind: "place_road" } : { kind: "end_turn" };
 }
 
-function tradeResponseCommand(state: GameState, playerId: PlayerId): GameCommand | null {
+function tradeResponseCommand(
+  state: GameState,
+  playerId: PlayerId,
+): Extract<GameCommand, { kind: "respond_trade" }> | null {
   const offer = state.tradeOffer;
   const player = requirePlayer(state, playerId);
   const legal = getLegalActions(state, playerId);
@@ -217,7 +227,9 @@ function tradeResponseCommand(state: GameState, playerId: PlayerId): GameCommand
     return null;
   }
 
-  const affordable = hasResources(player.resources, offer.want);
+  const proposer = requirePlayer(state, offer.proposerPlayerId);
+  const affordable =
+    hasResources(proposer.resources, offer.give) && hasResources(player.resources, offer.want);
   const fair = totalResources(offer.give) >= totalResources(offer.want);
   return {
     accept: affordable && fair,
@@ -267,13 +279,12 @@ function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameComm
       if (settlementVertex) return { kind: "place_settlement", vertexKey: settlementVertex };
       const roadEdge = legal.roadEdgeKeys[0];
       if (roadEdge) return { edgeKey: roadEdge, kind: "place_road" };
-      const bankTrade = legal.bankTrades[0];
-      if (bankTrade) {
-        return {
-          give: bankTrade.give,
-          kind: "trade_bank",
-          receive: bankTrade.receive,
-        };
+      const targetCost = chooseTargetBuildCost(state, playerId);
+      const trade = targetCost
+        ? chooseTradeTowardCost(player.resources, legal.bankTrades, targetCost)
+        : undefined;
+      if (trade) {
+        return { give: trade.give, kind: "trade_bank", receive: trade.receive };
       }
       return { kind: "end_turn" };
     }
@@ -369,7 +380,13 @@ export function chooseAutomatedCommand(state: GameState, playerId: PlayerId): Ga
   const player = requirePlayer(state, playerId);
   const tradeResponse = tradeResponseCommand(state, playerId);
   if (tradeResponse) {
-    return tradeResponse;
+    return player.isBot ? tradeResponse : { ...tradeResponse, accept: false };
+  }
+
+  if (!player.isBot) {
+    return state.phase.kind === "build_and_trade"
+      ? { kind: "end_turn" }
+      : chooseFirstLegalCommand(state, playerId);
   }
 
   if (player.botDifficulty === "easy") {
@@ -381,30 +398,4 @@ export function chooseAutomatedCommand(state: GameState, playerId: PlayerId): Ga
     playerId,
     player.botDifficulty === "hard" ? "hard" : "medium",
   );
-}
-
-export function advanceBots(state: GameState, maxActions = 256) {
-  if (!Number.isInteger(maxActions) || maxActions < 0) {
-    throw new Error("maxActions must be a nonnegative integer");
-  }
-
-  let next = state;
-
-  for (let action = 0; action < maxActions; action += 1) {
-    if (next.status === "completed") {
-      return next;
-    }
-
-    const botPlayerId = getRequiredPlayerIds(next).find(
-      (playerId) => next.players.find((player) => player.id === playerId)?.isBot,
-    );
-
-    if (!botPlayerId) {
-      return next;
-    }
-
-    next = applyCommand(next, botPlayerId, chooseAutomatedCommand(next, botPlayerId));
-  }
-
-  return next;
 }
