@@ -79,15 +79,6 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
       >
         <Modal.Container>
           <Modal.Dialog className="trade-dialog" id="trade-dialog">
-            <div className="trade-illustration" aria-hidden="true">
-              <Image
-                alt=""
-                fill
-                sizes="(max-width: 720px) 88vw, 300px"
-                src="/game-assets/ui/trade-caravan.png"
-              />
-            </div>
-
             <Modal.Header className="trade-header">
               <div>
                 <p className="eyebrow">Island Market</p>

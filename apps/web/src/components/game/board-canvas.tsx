@@ -71,7 +71,7 @@ type SceneRenderer<Scene> = (
 ) => Promise<void>;
 
 const MAX_CANVAS_PIXEL_RATIO = 3;
-const ROBBER_ASSET_PATH = "/game-assets/pieces/robber.png";
+const ROBBER_ASSET_PATH = "/game-assets/pieces/robber-piece.png";
 
 const PLAYER_COLOR_VALUES: Readonly<Record<PlayerColor, string>> = {
   blue: "#2f8ee8",

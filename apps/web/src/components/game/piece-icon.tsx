@@ -5,9 +5,9 @@ export type PieceAsset = "city" | "road" | "settlement";
 export type PieceTheme = PlayerColor;
 
 const PIECE_ASSET_PATHS: Readonly<Record<PieceAsset, string>> = {
-  city: "/game-assets/pieces/city.png",
-  road: "/game-assets/pieces/road.png",
-  settlement: "/game-assets/pieces/settlement.png",
+  city: "/game-assets/pieces/city-piece.png",
+  road: "/game-assets/pieces/road-piece.png",
+  settlement: "/game-assets/pieces/settlement-piece.png",
 };
 
 export function getPieceAssetPath(asset: PieceAsset): string {

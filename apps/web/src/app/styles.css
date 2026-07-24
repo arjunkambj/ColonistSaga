@@ -2626,19 +2626,6 @@ select {
   overflow-y: auto;
 }
 
-.trade-illustration {
-  position: absolute;
-  top: -1.15rem;
-  right: 3.2rem;
-  width: 14rem;
-  height: 8rem;
-  pointer-events: none;
-}
-
-.trade-illustration img {
-  object-fit: contain;
-}
-
 .trade-header {
   display: grid;
   min-height: 5.8rem;
@@ -3748,12 +3735,6 @@ select {
     padding: 0.75rem;
   }
 
-  .trade-illustration {
-    right: 2.5rem;
-    width: 9rem;
-    height: 5.5rem;
-  }
-
   .trade-header {
     min-height: 4.5rem;
   }
@@ -4466,7 +4447,7 @@ select {
 .target-robber::after {
   position: absolute;
   inset: 23%;
-  background: url("/game-assets/pieces/robber.png") center / contain no-repeat;
+  background: url("/game-assets/pieces/robber-piece.png") center / contain no-repeat;
   content: "";
   filter: drop-shadow(0 2px 3px rgba(20, 42, 54, 0.72));
   opacity: 0.38;
