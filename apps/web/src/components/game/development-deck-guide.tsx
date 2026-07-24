@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "@heroui/react";
+import type { DevelopmentCardType } from "@colonistsaga/game";
 import Image from "next/image";
 
 import {
@@ -9,12 +10,18 @@ import {
   getCardRuntimeAssetPath,
 } from "@/constants/game/card-assets";
 
-export function DevelopmentDeckGuide() {
+export function DevelopmentDeckGuide({
+  cards = [],
+  supply = 0,
+}: {
+  cards?: readonly DevelopmentCardType[];
+  supply?: number;
+}) {
   return (
     <li className="development-card-slot">
       <Modal>
         <Modal.Trigger
-          aria-label="Open development card reference. Development cards are not available in this ruleset."
+          aria-label={`Open your development cards. You own ${cards.length}; ${supply} remain in the deck.`}
           className="resource-card resource-card-face resource-mystery development-card-trigger"
         >
           <span aria-hidden="true" className="resource-card-art">
@@ -33,8 +40,8 @@ export function DevelopmentDeckGuide() {
           <span className="resource-card-copy">
             <span className="resource-card-label">Dev deck</span>
             <span className="resource-card-quantity">
-              <strong>{DEVELOPMENT_CARD_ASSETS.length}</strong>
-              <small>card types</small>
+              <strong>{cards.length}</strong>
+              <small>{cards.length === 1 ? "card owned" : "cards owned"}</small>
             </span>
           </span>
         </Modal.Trigger>
@@ -54,10 +61,10 @@ export function DevelopmentDeckGuide() {
               </Modal.Header>
               <Modal.Body className="development-deck-body">
                 <p id="development-deck-description">
-                  These are the planned development-card types. Their artwork is available for
-                  reference, but development-card play is not enabled in the current ruleset.
+                  You own {cards.length} development {cards.length === 1 ? "card" : "cards"}. The
+                  deck has {supply} remaining. Development-card play is not enabled yet.
                 </p>
-                <DevelopmentCardReferenceGallery />
+                <DevelopmentCardReferenceGallery cards={cards} />
               </Modal.Body>
             </Modal.Dialog>
           </Modal.Container>
@@ -67,7 +74,11 @@ export function DevelopmentDeckGuide() {
   );
 }
 
-export function DevelopmentCardReferenceGallery() {
+export function DevelopmentCardReferenceGallery({
+  cards,
+}: {
+  cards?: readonly DevelopmentCardType[];
+}) {
   return (
     <div aria-label="Development card types" className="development-card-grid" role="list">
       {DEVELOPMENT_CARD_ASSETS.map((card) => (
@@ -85,6 +96,9 @@ export function DevelopmentCardReferenceGallery() {
           <div>
             <h3>{card.label}</h3>
             <p>{card.description}</p>
+            {cards ? (
+              <strong>{cards.filter((ownedCard) => ownedCard === card.id).length} owned</strong>
+            ) : null}
           </div>
         </article>
       ))}

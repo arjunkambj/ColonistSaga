@@ -4,6 +4,16 @@ export type ResourceType = (typeof RESOURCE_TYPES)[number];
 
 export type ResourceInventory = Record<ResourceType, number>;
 
+export const DEVELOPMENT_CARD_TYPES = [
+  "knight",
+  "road-building",
+  "year-of-plenty",
+  "monopoly",
+  "victory-point",
+] as const;
+
+export type DevelopmentCardType = (typeof DEVELOPMENT_CARD_TYPES)[number];
+
 export const TERRAIN_TYPES = [
   "desert",
   "fields",
@@ -69,6 +79,7 @@ export interface PlayerPieces {
 }
 
 export interface PlayerState extends GamePlayerInput {
+  developmentCards: DevelopmentCardType[];
   piecesRemaining: PlayerPieces;
   resources: ResourceInventory;
   seatIndex: number;
@@ -182,6 +193,7 @@ export interface GameState {
   balancedDiceBag: DiceRoll[];
   bank: ResourceInventory;
   board: BoardState;
+  developmentDeck: DevelopmentCardType[];
   lastDiceRoll: DiceRoll | null;
   phase: GamePhase;
   players: PlayerState[];
@@ -205,6 +217,7 @@ export type GameCommand =
   | { kind: "move_robber"; tileId: string }
   | { kind: "steal"; victimPlayerId: PlayerId }
   | { kind: "build_city"; vertexKey: string }
+  | { kind: "buy_development_card" }
   | {
       give: ResourceType;
       kind: "trade_bank";
@@ -236,6 +249,7 @@ export interface BankTradeOption {
 export interface LegalActions {
   bankTrades: BankTradeOption[];
   canCancelTrade: boolean;
+  canBuyDevelopmentCard: boolean;
   canEndTurn: boolean;
   canProposeTrade: boolean;
   canRespondToTrade: boolean;
@@ -250,12 +264,14 @@ export interface LegalActions {
   victimPlayerIds: PlayerId[];
 }
 
-export interface PublicPlayerState extends Omit<PlayerState, "resources"> {
+export interface PublicPlayerState extends Omit<PlayerState, "developmentCards" | "resources"> {
+  developmentCardCount: number;
   isViewer: false;
   resourceCount: number;
 }
 
 export interface PrivatePlayerState extends PlayerState {
+  developmentCardCount: number;
   isViewer: true;
   resourceCount: number;
 }
@@ -264,9 +280,10 @@ export type PlayerViewState = PublicPlayerState | PrivatePlayerState;
 
 export interface PlayerGameView extends Omit<
   GameState,
-  "balancedDiceBag" | "bank" | "players" | "randomIndex" | "seed"
+  "balancedDiceBag" | "bank" | "developmentDeck" | "players" | "randomIndex" | "seed"
 > {
   bank: ResourceInventory | null;
+  developmentCardSupply: number;
   legalActions: LegalActions;
   players: PlayerViewState[];
   viewerPlayerId: PlayerId;

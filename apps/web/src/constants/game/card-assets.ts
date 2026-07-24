@@ -21,31 +21,31 @@ export const DEVELOPMENT_CARD_BACK_ASSET_PATH =
 
 export const DEVELOPMENT_CARD_ASSETS = [
   {
-    description: "Robber-movement card concept.",
+    description: "Move the robber and steal a resource.",
     id: "knight",
     label: "Knight",
     path: "/game-assets/cards/development/knight-v1.png",
   },
   {
-    description: "Two-road construction card concept.",
+    description: "Build two roads without paying their resource costs.",
     id: "road-building",
     label: "Road Building",
     path: "/game-assets/cards/development/road-building-v1.png",
   },
   {
-    description: "Two-resource choice card concept.",
+    description: "Take two available resources from the bank.",
     id: "year-of-plenty",
     label: "Year of Plenty",
     path: "/game-assets/cards/development/year-of-plenty-v1.png",
   },
   {
-    description: "Named-resource collection card concept.",
+    description: "Collect one named resource from every opponent.",
     id: "monopoly",
     label: "Monopoly",
     path: "/game-assets/cards/development/monopoly-v1.png",
   },
   {
-    description: "Hidden victory achievement card concept.",
+    description: "A hidden victory point toward winning the game.",
     id: "victory-point",
     label: "Victory Point",
     path: "/game-assets/cards/development/victory-point-v1.png",

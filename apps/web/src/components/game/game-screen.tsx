@@ -3,6 +3,7 @@
 import { api } from "@colonistsaga/backend/convex/_generated/api";
 import {
   BUILD_COSTS,
+  DEVELOPMENT_CARD_COST,
   RESOURCE_ORDER,
   emptyInventory,
   type GameCommand,
@@ -17,6 +18,7 @@ import crownIcon from "@iconify-icons/game-icons/crown";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
 import flagIcon from "@iconify-icons/game-icons/flag-objective";
 import hammerIcon from "@iconify-icons/game-icons/hammer-nails";
+import moveIcon from "@iconify-icons/game-icons/move";
 import playerIcon from "@iconify-icons/game-icons/player-base";
 import scrollIcon from "@iconify-icons/game-icons/scroll-unfurled";
 import shieldIcon from "@iconify-icons/game-icons/shield";
@@ -37,6 +39,7 @@ import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import {
   ACTION_CARD_ASSET_PATHS,
+  DEVELOPMENT_CARD_BACK_ASSET_PATH,
   getCardRuntimeAssetPath,
   RESOURCE_CARD_ASSET_PATHS,
 } from "@/constants/game/card-assets";
@@ -296,7 +299,7 @@ export function GameScreen({
           inert={isBoardFocused || undefined}
         >
           <EventLog events={events} />
-          <BankPanel bank={game.bank} />
+          <BankPanel bank={game.bank} developmentCardSupply={game.developmentCardSupply} />
         </div>
 
         <PlayerStrip
@@ -342,7 +345,7 @@ export function GameScreen({
         className="game-footer"
         inert={isBoardFocused || undefined}
       >
-        <ResourceHand me={me} />
+        <ResourceHand developmentCardSupply={game.developmentCardSupply} me={me} />
 
         <ActionDock
           buildMode={buildMode}
@@ -604,7 +607,15 @@ function DieFace({ value }: { value: number }) {
   );
 }
 
-function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; idPrefix?: string }) {
+function BankPanel({
+  bank,
+  developmentCardSupply,
+  idPrefix = "",
+}: {
+  bank: ResourceInventory | null;
+  developmentCardSupply: number;
+  idPrefix?: string;
+}) {
   const titleId = `${idPrefix}bank-title`;
   return (
     <section className="side-card" aria-labelledby={titleId}>
@@ -624,13 +635,13 @@ function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; id
           </li>
         ))}
         <li
-          aria-disabled="true"
-          aria-label="Development card supply is not part of this ruleset"
+          aria-label={`${developmentCardSupply} development cards remaining`}
           className="bank-mystery"
         >
           <span aria-hidden="true" className="bank-mystery-icon">
             ?
           </span>
+          <strong>{developmentCardSupply}</strong>
         </li>
       </ul>
     </section>
@@ -819,7 +830,11 @@ function MobileGameInfo({
                       victoryTarget={game.victoryPoints}
                     />
                   </section>
-                  <BankPanel bank={game.bank} idPrefix="mobile-" />
+                  <BankPanel
+                    bank={game.bank}
+                    developmentCardSupply={game.developmentCardSupply}
+                    idPrefix="mobile-"
+                  />
                   <EventLog events={events} idPrefix="mobile-" />
                 </>
               )}
@@ -855,7 +870,13 @@ function GameCardArtwork({
   );
 }
 
-function ResourceHand({ me }: { me: PrivatePlayerState }) {
+function ResourceHand({
+  developmentCardSupply,
+  me,
+}: {
+  developmentCardSupply: number;
+  me: PrivatePlayerState;
+}) {
   const theme = getPlayerTheme(me);
   const resourceListRef = useRef<HTMLUListElement>(null);
   const [resourceListOverflows, setResourceListOverflows] = useState(false);
@@ -885,7 +906,9 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
       <div className="hand-heading">
         <p className="eyebrow">Private Hand</p>
         <h2 id="resource-hand-title">Your Resources</h2>
-        <span>{me.resourceCount} cards total</span>
+        <span>
+          {me.resourceCount} resources · {me.developmentCardCount} development
+        </span>
       </div>
       <ul
         aria-label={
@@ -919,7 +942,7 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
             </span>
           </li>
         ))}
-        <DevelopmentDeckGuide />
+        <DevelopmentDeckGuide cards={me.developmentCards} supply={developmentCardSupply} />
       </ul>
       <div className="piece-supply" aria-labelledby="piece-supply-title" role="group">
         <span className="piece-supply-title" id="piece-supply-title">
@@ -1019,6 +1042,18 @@ function ActionDock({
     );
   }
 
+  if (game.phase.kind === "move_robber") {
+    return (
+      <section className="action-dock is-waiting" aria-label="Move the robber">
+        <Icon aria-hidden="true" icon={moveIcon} />
+        <div>
+          <strong>Move the Robber</strong>
+          <span>Choose any glowing terrain tile on the board.</span>
+        </div>
+      </section>
+    );
+  }
+
   if (legal.canRoll) {
     return (
       <section className="action-dock action-dock-roll-layout" aria-label="Turn actions">
@@ -1094,12 +1129,19 @@ function ActionDock({
     piecesRemaining: me.piecesRemaining.cities,
     resources: me.resources,
   });
+  const developmentCardDisabledReason = getDevelopmentCardDisabledReason({
+    canBuy: legal.canBuyDevelopmentCard,
+    cost: DEVELOPMENT_CARD_COST,
+    pending,
+    resources: me.resources,
+    supply: game.developmentCardSupply,
+  });
 
   return (
     <section
       aria-label="Build and trade actions"
       className="action-dock action-dock-tile-layout"
-      data-action-layout="five-tile-reference"
+      data-action-layout="six-tile-reference"
     >
       <div className="action-heading">
         <strong>Build & Trade</strong>
@@ -1136,6 +1178,13 @@ function ActionDock({
           label="City"
           onPress={() => onBuildMode(buildMode === "city" ? null : "city")}
           resources={me.resources}
+        />
+        <DevelopmentCardAction
+          cost={DEVELOPMENT_CARD_COST}
+          disabledReason={developmentCardDisabledReason}
+          onPress={() => onCommand({ kind: "buy_development_card" }, "Development card purchased.")}
+          resources={me.resources}
+          supply={game.developmentCardSupply}
         />
       </div>
       <ActionTile
@@ -1229,7 +1278,7 @@ function BuildAction({
       : active
         ? "Pick a glowing spot"
         : getBuildStatusLabel(disabledReason);
-  const costResources = RESOURCE_ORDER.filter((resource) => cost[resource] > 0);
+  const costResources = getCostResources(cost);
 
   return (
     <>
@@ -1258,25 +1307,7 @@ function BuildAction({
         }
         count={count}
         kind={asset}
-        meta={
-          <span
-            aria-label={`Cost: ${costResources.map((resource) => `${cost[resource]} ${RESOURCE_LABELS[resource]}`).join(", ")}`}
-            className="mini-cost"
-          >
-            {costResources.map((resource) => (
-              <span
-                aria-hidden="true"
-                className={resources[resource] < cost[resource] ? "is-missing" : undefined}
-                key={resource}
-                title={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
-              >
-                <ResourceIcon decorative resource={resource} size={20} />
-                <b>{cost[resource]}</b>
-                <span>{RESOURCE_LABELS[resource]}</span>
-              </span>
-            ))}
-          </span>
-        }
+        meta={<CostSummary cost={cost} resources={resources} />}
         onPress={disabledReason ? () => undefined : onPress}
         pressed={active}
         title={label}
@@ -1292,6 +1323,88 @@ function BuildAction({
       </span>
     </>
   );
+}
+
+function DevelopmentCardAction({
+  cost,
+  disabledReason,
+  onPress,
+  resources,
+  supply,
+}: {
+  cost: Readonly<ResourceInventory>;
+  disabledReason: string | null;
+  onPress(): void;
+  resources: Readonly<ResourceInventory>;
+  supply: number;
+}) {
+  const descriptionId = "buy-development-card-description";
+  return (
+    <>
+      <ActionTile
+        ariaDescribedBy={descriptionId}
+        ariaLabel={disabledReason ? "Buy development card unavailable" : "Buy development card"}
+        art={
+          <GameCardArtwork
+            className="action-art action-card-art"
+            path={DEVELOPMENT_CARD_BACK_ASSET_PATH}
+            sizes="4rem"
+          />
+        }
+        caption={
+          <span className={`build-action-status${disabledReason ? " is-blocked" : ""}`}>
+            {getBuildStatusLabel(disabledReason)}
+          </span>
+        }
+        count={supply}
+        kind="development-card"
+        meta={<CostSummary cost={cost} resources={resources} />}
+        onPress={disabledReason ? () => undefined : onPress}
+        title="Dev Card"
+        unavailable={disabledReason !== null}
+      />
+      <span className="sr-only" id={descriptionId}>
+        {supply} development cards remain. Cost: {formatCost(cost)}.
+        {disabledReason ? ` ${disabledReason}.` : ""}
+      </span>
+    </>
+  );
+}
+
+function CostSummary({
+  cost,
+  resources,
+}: {
+  cost: Readonly<ResourceInventory>;
+  resources: Readonly<ResourceInventory>;
+}) {
+  const costResources = getCostResources(cost);
+  return (
+    <span aria-label={`Cost: ${formatCost(cost)}`} className="mini-cost">
+      {costResources.map((resource) => (
+        <span
+          aria-hidden="true"
+          className={resources[resource] < cost[resource] ? "is-missing" : undefined}
+          key={resource}
+          title={`${cost[resource]} ${RESOURCE_LABELS[resource]}`}
+        >
+          <ResourceIcon decorative resource={resource} size={20} />
+          <b>{cost[resource]}</b>
+          <span>{RESOURCE_LABELS[resource]}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function getCostResources(cost: Readonly<ResourceInventory>) {
+  return RESOURCE_ORDER.filter((resource) => cost[resource] > 0);
+}
+
+function formatCost(cost: Readonly<ResourceInventory>) {
+  return getCostResources(cost)
+    .map((resource) => `${cost[resource]} ${RESOURCE_LABELS[resource]}`)
+    .join(", ");
 }
 
 function getBuildStatusLabel(disabledReason: string | null): string {
@@ -1355,6 +1468,37 @@ function getBuildDisabledReason({
     return `No legal ${pieceLabel} location`;
   }
   return null;
+}
+
+function getDevelopmentCardDisabledReason({
+  canBuy,
+  cost,
+  pending,
+  resources,
+  supply,
+}: {
+  canBuy: boolean;
+  cost: Readonly<ResourceInventory>;
+  pending: boolean;
+  resources: Readonly<ResourceInventory>;
+  supply: number;
+}): string | null {
+  if (pending) {
+    return "Action in progress…";
+  }
+  if (supply <= 0) {
+    return "No development cards remaining";
+  }
+
+  const missingResources = getCostResources(cost).flatMap((resource) => {
+    const missingCount = Math.max(0, cost[resource] - resources[resource]);
+    return missingCount > 0 ? [`${missingCount} ${RESOURCE_LABELS[resource]}`] : [];
+  });
+  if (missingResources.length > 0) {
+    return `Need ${missingResources.join(", ")}`;
+  }
+
+  return canBuy ? null : "Unavailable this turn";
 }
 
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {

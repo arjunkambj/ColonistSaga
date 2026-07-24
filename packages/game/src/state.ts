@@ -2,6 +2,7 @@ import { createBoard } from "./board";
 import { BANK_RESOURCE_COUNT, DEFAULT_BASE_GAME_SETTINGS, INITIAL_PIECES } from "./constants";
 import { mapSupportsPlayerCount } from "./maps";
 import { emptyInventory, filledInventory } from "./resources";
+import { createDevelopmentCardDeck } from "./development-cards";
 import { GameRuleError } from "./types";
 import type {
   BaseGameSettings,
@@ -128,6 +129,7 @@ export function createDefaultGame(
     balancedDiceBag: [],
     bank: filledInventory(BANK_RESOURCE_COUNT),
     board: createBoard(settings.map, seed),
+    developmentDeck: createDevelopmentCardDeck(seed),
     lastDiceRoll: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
     players: players.map((player, seatIndex) => {
@@ -137,6 +139,7 @@ export function createDefaultGame(
         ...(botDifficulty ? { botDifficulty } : {}),
         id: player.id,
         isBot: player.isBot,
+        developmentCards: [],
         piecesRemaining: { ...INITIAL_PIECES },
         resources: emptyInventory(),
         seatIndex,

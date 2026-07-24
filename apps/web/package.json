@@ -18,9 +18,9 @@
     "@iconify-icons/solar": "^1.2.3",
     "@iconify/react": "^6.0.2",
     "convex": "catalog:",
-    "next": "^16.2.10",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "next": "^16.2.11",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@colonistsaga/config": "workspace:*",

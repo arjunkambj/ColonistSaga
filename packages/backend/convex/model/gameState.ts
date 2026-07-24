@@ -1,5 +1,6 @@
 import {
   DEFAULT_BASE_GAME_SETTINGS,
+  createDevelopmentCardDeck,
   createDefaultGame,
   getRequiredPlayerIds,
   toPlayerView,
@@ -46,7 +47,15 @@ export function parseGameState(stateJson: string): GameState {
   ) {
     fail("CORRUPT_GAME_STATE", "Stored game state has an invalid shape.");
   }
-  return state as GameState;
+  const gameState = state as GameState;
+  return {
+    ...gameState,
+    developmentDeck: gameState.developmentDeck ?? createDevelopmentCardDeck(gameState.seed),
+    players: gameState.players.map((player) => ({
+      ...player,
+      developmentCards: player.developmentCards ?? [],
+    })),
+  };
 }
 
 export function serializeGameState(state: GameState): string {

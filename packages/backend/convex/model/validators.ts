@@ -74,6 +74,7 @@ export const commandValidator = v.union(
     kind: v.literal("build_city"),
     vertexKey: v.string(),
   }),
+  v.object({ kind: v.literal("buy_development_card") }),
   v.object({
     give: resourceTypeValidator,
     kind: v.literal("trade_bank"),

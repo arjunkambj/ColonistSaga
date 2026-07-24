@@ -49,7 +49,16 @@ export function VoyageCard({
     >
       <span className="voyage-card-art" aria-hidden="true">
         <span className="voyage-card-art-glow" />
-        <Image alt="" draggable={false} height={512} src={imageSrc} width={512} />
+        <Image
+          alt=""
+          draggable={false}
+          height={512}
+          loading="eager"
+          priority
+          sizes="(max-width: 760px) 88vw, 22rem"
+          src={imageSrc}
+          width={512}
+        />
       </span>
       <span className="voyage-card-content">
         <span className="voyage-card-badge" aria-hidden="true">

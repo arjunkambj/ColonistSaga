@@ -234,7 +234,7 @@ export function HomeScreen({
           <VoyageCard
             actionLabel="Create a private room"
             badge={<Icon icon={houseIcon} />}
-            description="Create a private room"
+            description="Invite friends to a private island"
             disabled={isPending || !displayName.trim()}
             imageSrc="/home-assets/menu/host-island.png"
             onPress={() => void onCreateRoom()}
@@ -245,7 +245,7 @@ export function HomeScreen({
           <VoyageCard
             actionLabel="Enter a friend room code"
             badge={<Icon icon={usersIcon} />}
-            description="Enter a friend code"
+            description="Jump in with a friend code"
             disabled={isPending || !displayName.trim()}
             imageSrc="/home-assets/menu/join-crew.png"
             onPress={() => setShowJoinRoom(true)}

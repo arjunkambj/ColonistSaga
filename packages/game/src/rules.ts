@@ -2,6 +2,7 @@ import {
   ANY_PORT_TRADE_RATIO,
   BANK_TRADE_RATIO,
   BUILD_COSTS,
+  DEVELOPMENT_CARD_COST,
   MAX_PLAYER_TURNS,
   RESOURCE_PORT_TRADE_RATIO,
   RESOURCE_ORDER,
@@ -426,6 +427,23 @@ function buildCity(state: GameState, playerId: PlayerId, vertexKey: string) {
   }));
 
   return finishIfWinner(withPieces, playerId);
+}
+
+function buyDevelopmentCard(state: GameState, playerId: PlayerId) {
+  if (state.phase.kind !== "build_and_trade") {
+    fail("INVALID_PHASE", "Development cards can only be bought after rolling");
+  }
+
+  const [card, ...remainingDeck] = state.developmentDeck;
+  if (!card) {
+    fail("INVALID_COMMAND", "The development card deck is empty");
+  }
+
+  const paid = payBuildCost(state, playerId, DEVELOPMENT_CARD_COST);
+  return updatePlayer({ ...paid, developmentDeck: remainingDeck }, playerId, (player) => ({
+    ...player,
+    developmentCards: [...player.developmentCards, card],
+  }));
 }
 
 export function distributeResourcesForRoll(state: GameState, rollTotal: number) {
@@ -985,6 +1003,7 @@ function emptyLegalActions(state: GameState): LegalActions {
   return {
     bankTrades: [],
     canCancelTrade: false,
+    canBuyDevelopmentCard: false,
     canEndTurn: false,
     canProposeTrade: false,
     canRespondToTrade: false,
@@ -1049,6 +1068,8 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
       }
 
       actions.canEndTurn = true;
+      actions.canBuyDevelopmentCard =
+        state.developmentDeck.length > 0 && hasResources(player.resources, DEVELOPMENT_CARD_COST);
       actions.canCancelTrade = state.tradeOffer?.proposerPlayerId === actorPlayerId;
       actions.canProposeTrade = state.tradeOffer === null;
       actions.cityVertexKeys =
@@ -1125,6 +1146,9 @@ export function applyCommand(
       break;
     case "build_city":
       next = buildCity(state, actorPlayerId, command.vertexKey);
+      break;
+    case "buy_development_card":
+      next = buyDevelopmentCard(state, actorPlayerId);
       break;
     case "trade_bank":
       next = tradeWithBank(state, actorPlayerId, command.give, command.receive);

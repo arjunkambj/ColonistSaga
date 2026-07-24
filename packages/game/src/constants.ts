@@ -1,6 +1,7 @@
 import type {
   BaseGameSettings,
   BuildingKind,
+  DevelopmentCardType,
   PlayerPieces,
   PlayerCount,
   ResourceInventory,
@@ -36,6 +37,22 @@ export const BUILD_COSTS: Readonly<Record<BuildingKind | "road", Readonly<Resour
   city: { brick: 0, sheep: 0, stone: 3, tree: 0, wheat: 2 },
   road: { brick: 1, sheep: 0, stone: 0, tree: 1, wheat: 0 },
   settlement: { brick: 1, sheep: 1, stone: 0, tree: 1, wheat: 1 },
+};
+
+export const DEVELOPMENT_CARD_COST: Readonly<ResourceInventory> = {
+  brick: 0,
+  sheep: 1,
+  stone: 1,
+  tree: 0,
+  wheat: 1,
+};
+
+export const DEVELOPMENT_CARD_COUNTS: Readonly<Record<DevelopmentCardType, number>> = {
+  knight: 14,
+  monopoly: 2,
+  "road-building": 2,
+  "victory-point": 5,
+  "year-of-plenty": 2,
 };
 
 export const TERRAIN_RESOURCE: Readonly<Record<TerrainType, ResourceType | null>> = {

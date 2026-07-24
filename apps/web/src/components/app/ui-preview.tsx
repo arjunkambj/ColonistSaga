@@ -176,7 +176,7 @@ interface ActionPresetPreviewTile {
   unavailable?: boolean;
 }
 
-const ACTION_PRESET_TILES = [
+const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
   {
     caption: "Bank or players",
     kind: "trade",
@@ -185,13 +185,12 @@ const ACTION_PRESET_TILES = [
     title: "Trade",
   },
   {
-    caption: "Not in ruleset",
-    count: "—",
+    caption: "Draw from the deck",
+    count: 25,
     kind: "development-deck",
-    meta: "Deck preview",
+    meta: "1 sheep · 1 wheat · 1 stone",
     src: DEVELOPMENT_CARD_BACK_ASSET_PATH,
-    title: "Dev Deck",
-    unavailable: true,
+    title: "Dev Card",
   },
   {
     caption: "Place on a glowing edge",
@@ -224,7 +223,7 @@ const ACTION_PRESET_TILES = [
     src: ACTION_CARD_ASSET_PATHS.endTurn,
     title: "End Turn",
   },
-] satisfies readonly ActionPresetPreviewTile[];
+];
 
 function createPreviewGame(showActions: boolean) {
   let state = completePreviewSetup(
