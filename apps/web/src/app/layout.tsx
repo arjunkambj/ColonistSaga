@@ -8,6 +8,7 @@ import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 import "./styles.css";
 import "./liquid-glass.css";
 import "./reference-screens.css";
+import "./game-footer.css";
 
 export const metadata: Metadata = {
   description: "A friendly real-time island-building board game.",

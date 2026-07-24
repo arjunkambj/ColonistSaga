@@ -44,6 +44,7 @@ import {
   RESOURCE_CARD_ASSET_PATHS,
 } from "@/constants/game/card-assets";
 import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
+import { getTurnControlKind } from "@/lib/game/game-footer-model";
 import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
@@ -342,16 +343,29 @@ export function GameScreen({
 
       <footer
         aria-hidden={isBoardFocused || undefined}
-        className="game-footer"
+        className="game-footer game-footer--four-sections"
         inert={isBoardFocused || undefined}
       >
-        <ResourceHand developmentCardSupply={game.developmentCardSupply} me={me} />
+        <ResourceHand me={me} />
+
+        <DevelopmentHand
+          game={game}
+          me={me}
+          onCommand={(command, message) => void sendCommand(command, message)}
+          pending={pendingCommand !== null}
+        />
 
         <ActionDock
           buildMode={buildMode}
           game={game}
           me={me}
           onBuildMode={setBuildMode}
+          onCommand={(command, message) => void sendCommand(command, message)}
+          pending={pendingCommand !== null}
+        />
+
+        <TurnControl
+          game={game}
           onCommand={(command, message) => void sendCommand(command, message)}
           pending={pendingCommand !== null}
         />
@@ -870,14 +884,7 @@ function GameCardArtwork({
   );
 }
 
-function ResourceHand({
-  developmentCardSupply,
-  me,
-}: {
-  developmentCardSupply: number;
-  me: PrivatePlayerState;
-}) {
-  const theme = getPlayerTheme(me);
+function ResourceHand({ me }: { me: PrivatePlayerState }) {
   const resourceListRef = useRef<HTMLUListElement>(null);
   const [resourceListOverflows, setResourceListOverflows] = useState(false);
 
@@ -942,38 +949,41 @@ function ResourceHand({
             </span>
           </li>
         ))}
-        <DevelopmentDeckGuide cards={me.developmentCards} supply={developmentCardSupply} />
       </ul>
-      <div className="piece-supply" aria-labelledby="piece-supply-title" role="group">
-        <span className="piece-supply-title" id="piece-supply-title">
-          Piece Supply
-        </span>
-        <div className="piece-counts" role="list">
-          <span aria-label={`${me.piecesRemaining.roads} roads remaining`} role="listitem">
-            <PieceIcon asset="road" theme={theme} />
-            <span>
-              <strong>{me.piecesRemaining.roads}</strong>
-              <small>Roads</small>
-            </span>
-          </span>
-          <span
-            aria-label={`${me.piecesRemaining.settlements} settlements remaining`}
-            role="listitem"
-          >
-            <PieceIcon asset="settlement" theme={theme} />
-            <span>
-              <strong>{me.piecesRemaining.settlements}</strong>
-              <small>Settlements</small>
-            </span>
-          </span>
-          <span aria-label={`${me.piecesRemaining.cities} cities remaining`} role="listitem">
-            <PieceIcon asset="city" theme={theme} />
-            <span>
-              <strong>{me.piecesRemaining.cities}</strong>
-              <small>Cities</small>
-            </span>
-          </span>
-        </div>
+    </section>
+  );
+}
+
+function DevelopmentHand({
+  game,
+  me,
+  onCommand,
+  pending,
+}: {
+  game: PlayerGameView;
+  me: PrivatePlayerState;
+  onCommand(command: GameCommand, message: string): void;
+  pending: boolean;
+}) {
+  const disabledReason = getDevelopmentCardActionDisabledReason({ game, me, pending });
+
+  return (
+    <section aria-labelledby="development-hand-title" className="development-hand">
+      <div className="dock-section-heading">
+        <h2 id="development-hand-title">Development</h2>
+        <span>{me.developmentCardCount} owned</span>
+      </div>
+      <ul aria-label="Your development cards">
+        <DevelopmentDeckGuide cards={me.developmentCards} supply={game.developmentCardSupply} />
+      </ul>
+      <div className="development-purchase">
+        <DevelopmentCardAction
+          cost={DEVELOPMENT_CARD_COST}
+          disabledReason={disabledReason}
+          onPress={() => onCommand({ kind: "buy_development_card" }, "Development card purchased.")}
+          resources={me.resources}
+          supply={game.developmentCardSupply}
+        />
       </div>
     </section>
   );
@@ -1056,37 +1066,15 @@ function ActionDock({
 
   if (legal.canRoll) {
     return (
-      <section className="action-dock action-dock-roll-layout" aria-label="Turn actions">
-        <div aria-label="Dice ready to roll" className="roll-preview-card" role="img">
-          <DieFace value={1} />
-          <DieFace value={5} />
-        </div>
-        <Button
-          className="button button-primary dice-button"
-          isDisabled={pending}
-          isPending={pending}
-          onPress={() => onCommand({ kind: "roll" }, "Dice rolled.")}
-        >
-          <Icon aria-hidden="true" icon={diceIcon} />
-          <span>{pending ? "Rolling…" : "Roll Dice"}</span>
-        </Button>
-        <ActionTile
-          ariaLabel="End turn unavailable until the dice are rolled"
-          art={
-            <GameCardArtwork
-              className="action-art action-card-art"
-              path={ACTION_CARD_ASSET_PATHS.endTurn}
-              sizes="4rem"
-            />
-          }
-          caption={`Turn ${game.turnNumber}`}
-          className="button button-end-turn"
-          kind="end-turn"
-          onPress={() => undefined}
-          title="End Turn"
-          unavailable
-        />
-      </section>
+      <BuildingActionsDock
+        buildMode={buildMode}
+        disabledReasonOverride="Roll the dice first"
+        game={game}
+        me={me}
+        onBuildMode={onBuildMode}
+        onCommand={onCommand}
+        pending={pending}
+      />
     );
   }
 
@@ -1102,52 +1090,84 @@ function ActionDock({
     );
   }
 
-  const roadDisabledReason = getBuildDisabledReason({
-    cost: BUILD_COSTS.road,
-    legalTargetCount: legal.roadEdgeKeys.length,
-    pending,
-    pieceLabel: "road",
-    piecePlural: "roads",
-    piecesRemaining: me.piecesRemaining.roads,
-    resources: me.resources,
-  });
-  const settlementDisabledReason = getBuildDisabledReason({
-    cost: BUILD_COSTS.settlement,
-    legalTargetCount: legal.settlementVertexKeys.length,
-    pending,
-    pieceLabel: "settlement",
-    piecePlural: "settlements",
-    piecesRemaining: me.piecesRemaining.settlements,
-    resources: me.resources,
-  });
-  const cityDisabledReason = getBuildDisabledReason({
-    cost: BUILD_COSTS.city,
-    legalTargetCount: legal.cityVertexKeys.length,
-    pending,
-    pieceLabel: "city",
-    piecePlural: "cities",
-    piecesRemaining: me.piecesRemaining.cities,
-    resources: me.resources,
-  });
-  const developmentCardDisabledReason = getDevelopmentCardDisabledReason({
-    canBuy: legal.canBuyDevelopmentCard,
-    cost: DEVELOPMENT_CARD_COST,
-    pending,
-    resources: me.resources,
-    supply: game.developmentCardSupply,
-  });
+  return (
+    <BuildingActionsDock
+      buildMode={buildMode}
+      game={game}
+      me={me}
+      onBuildMode={onBuildMode}
+      onCommand={onCommand}
+      pending={pending}
+    />
+  );
+}
 
+function BuildingActionsDock({
+  buildMode,
+  disabledReasonOverride,
+  game,
+  me,
+  onBuildMode,
+  onCommand,
+  pending,
+}: {
+  buildMode: BuildMode;
+  disabledReasonOverride?: string;
+  game: PlayerGameView;
+  me: PrivatePlayerState;
+  onBuildMode(mode: BuildMode): void;
+  onCommand(command: GameCommand, message: string): void;
+  pending: boolean;
+}) {
+  const legal = game.legalActions;
+  const roadDisabledReason =
+    disabledReasonOverride ??
+    getBuildDisabledReason({
+      cost: BUILD_COSTS.road,
+      legalTargetCount: legal.roadEdgeKeys.length,
+      pending,
+      pieceLabel: "road",
+      piecePlural: "roads",
+      piecesRemaining: me.piecesRemaining.roads,
+      resources: me.resources,
+    });
+  const settlementDisabledReason =
+    disabledReasonOverride ??
+    getBuildDisabledReason({
+      cost: BUILD_COSTS.settlement,
+      legalTargetCount: legal.settlementVertexKeys.length,
+      pending,
+      pieceLabel: "settlement",
+      piecePlural: "settlements",
+      piecesRemaining: me.piecesRemaining.settlements,
+      resources: me.resources,
+    });
+  const cityDisabledReason =
+    disabledReasonOverride ??
+    getBuildDisabledReason({
+      cost: BUILD_COSTS.city,
+      legalTargetCount: legal.cityVertexKeys.length,
+      pending,
+      pieceLabel: "city",
+      piecePlural: "cities",
+      piecesRemaining: me.piecesRemaining.cities,
+      resources: me.resources,
+    });
   return (
     <section
-      aria-label="Build and trade actions"
-      className="action-dock action-dock-tile-layout"
-      data-action-layout="six-tile-reference"
+      aria-labelledby="building-actions-title"
+      className="action-dock action-dock-tile-layout building-actions-dock"
     >
       <div className="action-heading">
-        <strong>Build & Trade</strong>
-        <span>Select a piece, then choose a glowing target.</span>
+        <strong id="building-actions-title">Build & Trade</strong>
+        <span>{disabledReasonOverride ?? "Select a piece, then choose a glowing target."}</span>
       </div>
-      <TradeCenter disabled={pending} game={game} me={me} onCommand={onCommand} />
+      <TradeCenter
+        disabled={pending || disabledReasonOverride !== undefined}
+        game={game}
+        me={me}
+        onCommand={onCommand}
+      />
       <div className="action-group build-actions">
         <BuildAction
           active={buildMode === "road"}
@@ -1179,29 +1199,74 @@ function ActionDock({
           onPress={() => onBuildMode(buildMode === "city" ? null : "city")}
           resources={me.resources}
         />
-        <DevelopmentCardAction
-          cost={DEVELOPMENT_CARD_COST}
-          disabledReason={developmentCardDisabledReason}
-          onPress={() => onCommand({ kind: "buy_development_card" }, "Development card purchased.")}
-          resources={me.resources}
-          supply={game.developmentCardSupply}
-        />
       </div>
-      <ActionTile
-        ariaLabel="End Turn"
-        art={
-          <GameCardArtwork
-            className="action-art action-card-art"
-            path={ACTION_CARD_ASSET_PATHS.endTurn}
-            sizes="4rem"
-          />
-        }
-        className="button button-end-turn"
-        disabled={pending || !legal.canEndTurn}
-        kind="end-turn"
-        onPress={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
-        title="End Turn"
-      />
+    </section>
+  );
+}
+
+function TurnControl({
+  game,
+  onCommand,
+  pending,
+}: {
+  game: PlayerGameView;
+  onCommand(command: GameCommand, message: string): void;
+  pending: boolean;
+}) {
+  const legal = game.legalActions;
+  const controlKind = getTurnControlKind({
+    canRoll: legal.canRoll,
+    isRequiredActor: legal.isRequiredActor,
+    phaseKind: game.phase.kind,
+  });
+
+  if (controlKind === "roll") {
+    return (
+      <section className="turn-control" aria-label="Turn control">
+        <div aria-label="Dice ready to roll" className="roll-preview-card" role="img">
+          <DieFace value={1} />
+          <DieFace value={5} />
+        </div>
+        <Button
+          className="button button-primary dice-button"
+          isDisabled={pending}
+          isPending={pending}
+          onPress={() => onCommand({ kind: "roll" }, "Dice rolled.")}
+        >
+          <Icon aria-hidden="true" icon={diceIcon} />
+          <span>{pending ? "Rolling…" : "Roll Dice"}</span>
+        </Button>
+      </section>
+    );
+  }
+
+  if (controlKind === "end_turn") {
+    return (
+      <section className="turn-control" aria-label="Turn control">
+        <ActionTile
+          ariaLabel="End Turn"
+          art={
+            <GameCardArtwork
+              className="action-art action-card-art"
+              path={ACTION_CARD_ASSET_PATHS.endTurn}
+              sizes="4rem"
+            />
+          }
+          caption={`Turn ${game.turnNumber}`}
+          className="button button-end-turn"
+          disabled={pending || !legal.canEndTurn}
+          kind="end-turn"
+          onPress={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
+          title="End Turn"
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section aria-label="Turn control" className="turn-control is-unavailable">
+      <Icon aria-hidden="true" icon={controlKind === "waiting" ? playerIcon : flagIcon} />
+      <span>{controlKind === "waiting" ? "Waiting" : "Finish action"}</span>
     </section>
   );
 }
@@ -1411,6 +1476,15 @@ function getBuildStatusLabel(disabledReason: string | null): string {
   if (!disabledReason) {
     return "Ready";
   }
+  if (disabledReason === "Roll the dice first") {
+    return "Roll first";
+  }
+  if (disabledReason === "Wait for your turn") {
+    return "Waiting";
+  }
+  if (disabledReason === "Finish the required action first") {
+    return "Finish action";
+  }
   if (disabledReason.startsWith("Need ")) {
     return "Missing cards";
   }
@@ -1499,6 +1573,34 @@ function getDevelopmentCardDisabledReason({
   }
 
   return canBuy ? null : "Unavailable this turn";
+}
+
+function getDevelopmentCardActionDisabledReason({
+  game,
+  me,
+  pending,
+}: {
+  game: PlayerGameView;
+  me: PrivatePlayerState;
+  pending: boolean;
+}): string | null {
+  if (!game.legalActions.isRequiredActor) {
+    return "Wait for your turn";
+  }
+  if (game.phase.kind === "roll") {
+    return "Roll the dice first";
+  }
+  if (game.phase.kind !== "build_and_trade") {
+    return "Finish the required action first";
+  }
+
+  return getDevelopmentCardDisabledReason({
+    canBuy: game.legalActions.canBuyDevelopmentCard,
+    cost: DEVELOPMENT_CARD_COST,
+    pending,
+    resources: me.resources,
+    supply: game.developmentCardSupply,
+  });
 }
 
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {
