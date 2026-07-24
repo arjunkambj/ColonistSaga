@@ -38,7 +38,6 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import {
-  ACTION_CARD_ASSET_PATHS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
   getCardRuntimeAssetPath,
   RESOURCE_CARD_ASSET_PATHS,
@@ -52,7 +51,7 @@ import { ActionTile } from "./action-tile";
 import { DevelopmentDeckGuide } from "./development-deck-guide";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
-import { PieceIcon } from "./piece-icon";
+import { getPieceAssetPath, PieceIcon } from "./piece-icon";
 import { TradeCenter } from "./trade-center";
 
 type GameConfirmation =
@@ -1246,10 +1245,15 @@ function TurnControl({
         <ActionTile
           ariaLabel="End Turn"
           art={
-            <GameCardArtwork
+            <Image
+              alt=""
               className="action-art action-card-art"
-              path={ACTION_CARD_ASSET_PATHS.endTurn}
+              draggable={false}
+              height={256}
+              loading="eager"
               sizes="4rem"
+              src="/game-assets/ui/end-turn-hourglass.png"
+              width={256}
             />
           }
           caption={`Turn ${game.turnNumber}`}
@@ -1357,10 +1361,15 @@ function BuildAction({
               : `Build ${label}`
         }
         art={
-          <GameCardArtwork
+          <Image
+            alt=""
             className="action-art action-card-art"
-            path={ACTION_CARD_ASSET_PATHS[asset]}
+            draggable={false}
+            height={512}
+            loading="eager"
             sizes="4rem"
+            src={getPieceAssetPath(asset)}
+            width={512}
           />
         }
         caption={

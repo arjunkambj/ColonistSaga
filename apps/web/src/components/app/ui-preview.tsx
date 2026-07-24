@@ -16,10 +16,10 @@ import { useEffect, useState } from "react";
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
+import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
-  ACTION_CARD_ASSET_PATHS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
   getCardRuntimeAssetPath,
 } from "@/constants/game/card-assets";
@@ -139,12 +139,11 @@ function ActionPresetPreview() {
                 <Image
                   alt=""
                   className="action-art action-card-art"
-                  data-card-asset={tile.src}
                   draggable={false}
-                  height={768}
+                  height={512}
                   loading="eager"
                   sizes="7.5rem"
-                  src={getCardRuntimeAssetPath(tile.src)}
+                  src={tile.src}
                   width={512}
                 />
               }
@@ -181,7 +180,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     caption: "Bank or players",
     kind: "trade",
     meta: "Open market",
-    src: ACTION_CARD_ASSET_PATHS.trade,
+    src: "/game-assets/ui/market-trade.png",
     title: "Trade",
   },
   {
@@ -189,7 +188,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 25,
     kind: "development-deck",
     meta: "1 sheep · 1 wheat · 1 stone",
-    src: DEVELOPMENT_CARD_BACK_ASSET_PATH,
+    src: getCardRuntimeAssetPath(DEVELOPMENT_CARD_BACK_ASSET_PATH),
     title: "Dev Card",
   },
   {
@@ -197,7 +196,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 13,
     kind: "road",
     meta: "1 wood · 1 brick",
-    src: ACTION_CARD_ASSET_PATHS.road,
+    src: getPieceAssetPath("road"),
     title: "Road",
   },
   {
@@ -205,7 +204,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 3,
     kind: "settlement",
     meta: "Wood · brick · sheep · wheat",
-    src: ACTION_CARD_ASSET_PATHS.settlement,
+    src: getPieceAssetPath("settlement"),
     title: "Settlement",
   },
   {
@@ -213,14 +212,14 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 4,
     kind: "city",
     meta: "2 wheat · 3 stone",
-    src: ACTION_CARD_ASSET_PATHS.city,
+    src: getPieceAssetPath("city"),
     title: "City",
   },
   {
     caption: "Pass play clockwise",
     kind: "end-turn",
     meta: "Turn complete",
-    src: ACTION_CARD_ASSET_PATHS.endTurn,
+    src: "/game-assets/ui/end-turn-hourglass.png",
     title: "End Turn",
   },
 ];

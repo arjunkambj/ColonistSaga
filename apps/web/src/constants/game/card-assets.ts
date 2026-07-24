@@ -8,14 +8,6 @@ export const RESOURCE_CARD_ASSET_PATHS: Readonly<Record<ResourceType, string>> =
   wheat: "/game-assets/cards/resources/wheat-card.png",
 };
 
-export const ACTION_CARD_ASSET_PATHS = {
-  city: "/game-assets/cards/actions/city-card.png",
-  endTurn: "/game-assets/cards/actions/end-turn-card.png",
-  road: "/game-assets/cards/actions/road-card.png",
-  settlement: "/game-assets/cards/actions/settlement-card.png",
-  trade: "/game-assets/cards/actions/trade-card.png",
-} as const;
-
 export const DEVELOPMENT_CARD_BACK_ASSET_PATH =
   "/game-assets/cards/development/hidden-card-back.png";
 
@@ -54,7 +46,6 @@ export const DEVELOPMENT_CARD_ASSETS = [
 
 export const GAME_CARD_ASSET_PATHS = [
   ...Object.values(RESOURCE_CARD_ASSET_PATHS),
-  ...Object.values(ACTION_CARD_ASSET_PATHS),
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
   ...DEVELOPMENT_CARD_ASSETS.map(({ path }) => path),
 ] as const;

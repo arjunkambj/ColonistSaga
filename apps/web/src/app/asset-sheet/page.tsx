@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 import { getPieceAssetPath } from "@/components/game/piece-icon";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
-  ACTION_CARD_ASSET_PATHS,
   DEVELOPMENT_CARD_ASSETS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
   RESOURCE_CARD_ASSET_PATHS,
@@ -129,14 +128,6 @@ const ASSET_CATEGORIES = [
         path: "/shared-assets/coastal-island-kingdom-day.png",
         status: "generated",
       },
-      {
-        name: "Ocean board canvas",
-        description: "Quiet turquoise water backdrop beneath the playable board.",
-        fit: "cover",
-        format: "WebP · 1586×992",
-        path: OCEAN_BOARD_ASSET_PATH,
-        status: "generated",
-      },
     ],
   },
   {
@@ -195,9 +186,28 @@ const ASSET_CATEGORIES = [
     })),
   },
   {
-    name: "Placement & action icons",
-    description:
-      "Live board-piece artwork plus compact action alternatives retained as visual references.",
+    name: "Development cards",
+    description: "Full portrait illustrations used by the in-game development-deck reference.",
+    assets: [
+      ...DEVELOPMENT_CARD_ASSETS.map((card) => ({
+        name: `${card.label} card`,
+        description: card.description,
+        format: "PNG · 512×768",
+        path: card.path,
+        status: "generated" as const,
+      })),
+      {
+        name: "Hidden card back",
+        description: "Shared concealed development-card back used by the hand reference trigger.",
+        format: "PNG · 512×768",
+        path: DEVELOPMENT_CARD_BACK_ASSET_PATH,
+        status: "generated" as const,
+      },
+    ],
+  },
+  {
+    name: "Placement icons",
+    description: "Board-piece artwork used while placing and moving pieces on the board.",
     assets: [
       {
         name: "Road icon",
@@ -227,9 +237,15 @@ const ASSET_CATEGORIES = [
         path: "/game-assets/pieces/robber.png",
         status: "generated",
       },
+    ],
+  },
+  {
+    name: "Action icons",
+    description: "Compact artwork used by game actions, controls, and supporting dialogs.",
+    assets: [
       {
         name: "Trade icon",
-        description: "Alternate compact market artwork; the live trade control uses its full card.",
+        description: "Compact market artwork used by the live trade control.",
         format: "PNG · 256×256",
         path: "/game-assets/ui/market-trade.png",
         status: "generated",
@@ -250,46 +266,32 @@ const ASSET_CATEGORIES = [
       },
       {
         name: "End turn icon",
-        description: "Alternate compact hourglass artwork; the live control uses its full card.",
+        description: "Compact hourglass artwork used by the live end-turn control.",
         format: "PNG · 256×256",
         path: "/game-assets/ui/end-turn-hourglass.png",
+        status: "generated",
+      },
+      {
+        name: "Trade caravan",
+        description: "Domestic trade modal illustration.",
+        format: "PNG · 1672×941",
+        path: "/game-assets/ui/trade-caravan.png",
         status: "generated",
       },
     ],
   },
   {
-    name: "Placement & action cards",
-    description: "Full card artwork for the bottom action dock, beyond the compact icons.",
-    assets: [
-      [
-        "Trade card",
-        "Market scene for opening bank or player trade.",
-        ACTION_CARD_ASSET_PATHS.trade,
-      ],
-      ["Road card", "Road-building card for edge placement.", ACTION_CARD_ASSET_PATHS.road],
-      [
-        "Settlement card",
-        "House card for settlement placement.",
-        ACTION_CARD_ASSET_PATHS.settlement,
-      ],
-      ["City card", "City-upgrade card for replacing a settlement.", ACTION_CARD_ASSET_PATHS.city],
-      [
-        "End turn card",
-        "Hourglass card for completing the active turn.",
-        ACTION_CARD_ASSET_PATHS.endTurn,
-      ],
-    ].map(([name, description, path]) => ({
-      name,
-      description: `${description} Title, cost, count, and state remain code-rendered.`,
-      format: "PNG · 512×768",
-      path,
-      status: "generated" as const,
-    })),
-  },
-  {
     name: "Board utility art",
-    description: "Supporting illustrations that do not belong to the placement-card set.",
+    description: "Supporting illustrations and optional ambience used around the playable board.",
     assets: [
+      {
+        name: "Ocean board canvas",
+        description: "Quiet turquoise water backdrop beneath the playable board.",
+        fit: "cover",
+        format: "WebP · 1586×992",
+        path: OCEAN_BOARD_ASSET_PATH,
+        status: "generated",
+      },
       {
         name: "Port skiff",
         description: "Small boat used to dress board ports.",
@@ -305,10 +307,51 @@ const ASSET_CATEGORIES = [
         status: "generated",
       },
       {
-        name: "Trade caravan",
-        description: "Domestic trade modal illustration.",
-        format: "PNG · 1672×941",
-        path: "/game-assets/ui/trade-caravan.png",
+        name: "Coastal rocks",
+        description: "Optional isolated rock cluster kept out of the default live board.",
+        format: "PNG · 384×384 · transparent",
+        path: "/game-assets/ambience/coastal-rocks.png",
+        status: "generated",
+      },
+      {
+        name: "Foam accents",
+        description: "Optional shoreline accent set kept out of the default live board.",
+        format: "PNG · 384×384 · transparent",
+        path: "/game-assets/ambience/foam-accents.png",
+        status: "generated",
+      },
+      {
+        name: "Coastal plants",
+        description: "Optional flower-and-grass cluster kept out of the default live board.",
+        format: "PNG · 384×384 · transparent",
+        path: "/game-assets/ambience/coastal-plants.png",
+        status: "generated",
+      },
+    ],
+  },
+  {
+    name: "Awards & results",
+    description: "Milestone and end-of-game art planned for the results experience.",
+    assets: [
+      {
+        name: "Longest Road",
+        description: "Award illustration for the longest connected route.",
+        format: "PNG · 512×512 · transparent",
+        path: "/game-assets/awards/longest-road.png",
+        status: "generated",
+      },
+      {
+        name: "Largest Army",
+        description: "Award illustration for the strongest knight force.",
+        format: "PNG · 512×512 · transparent",
+        path: "/game-assets/awards/largest-army.png",
+        status: "generated",
+      },
+      {
+        name: "Victory flourish",
+        description: "Celebratory crown, rays, and confetti treatment.",
+        format: "PNG · 1536×512 · transparent",
+        path: "/game-assets/results/victory-flourish.png",
         status: "generated",
       },
     ],
@@ -371,80 +414,6 @@ const ASSET_CATEGORIES = [
         description: "Pink-seat island pathfinder.",
         format: "PNG · 256×256",
         path: "/game-assets/players/pink-pathfinder.png",
-        status: "generated",
-      },
-    ],
-  },
-  {
-    name: "Development cards",
-    description: "Full portrait illustrations used by the in-game development-deck reference.",
-    assets: [
-      ...DEVELOPMENT_CARD_ASSETS.map((card) => ({
-        name: `${card.label} card`,
-        description: card.description,
-        format: "PNG · 512×768",
-        path: card.path,
-        status: "generated" as const,
-      })),
-      {
-        name: "Hidden card back",
-        description: "Shared concealed development-card back used by the hand reference trigger.",
-        format: "PNG · 512×768",
-        path: DEVELOPMENT_CARD_BACK_ASSET_PATH,
-        status: "generated" as const,
-      },
-    ],
-  },
-  {
-    name: "Awards & results",
-    description: "Milestone and end-of-game art planned for the results experience.",
-    assets: [
-      {
-        name: "Longest Road",
-        description: "Award illustration for the longest connected route.",
-        format: "PNG · 512×512 · transparent",
-        path: "/game-assets/awards/longest-road.png",
-        status: "generated",
-      },
-      {
-        name: "Largest Army",
-        description: "Award illustration for the strongest knight force.",
-        format: "PNG · 512×512 · transparent",
-        path: "/game-assets/awards/largest-army.png",
-        status: "generated",
-      },
-      {
-        name: "Victory flourish",
-        description: "Celebratory crown, rays, and confetti treatment.",
-        format: "PNG · 1536×512 · transparent",
-        path: "/game-assets/results/victory-flourish.png",
-        status: "generated",
-      },
-    ],
-  },
-  {
-    name: "Board ambience",
-    description: "Optional details that add life without affecting board readability.",
-    assets: [
-      {
-        name: "Coastal rocks",
-        description: "Optional isolated rock cluster kept out of the default live board.",
-        format: "PNG · 384×384 · transparent",
-        path: "/game-assets/ambience/coastal-rocks.png",
-        status: "generated",
-      },
-      {
-        name: "Foam accents",
-        description: "Optional shoreline accent set kept out of the default live board.",
-        format: "PNG · 384×384 · transparent",
-        path: "/game-assets/ambience/foam-accents.png",
-        status: "generated",
-      },
-      {
-        name: "Coastal plants",
-        description: "Optional flower-and-grass cluster kept out of the default live board.",
-        format: "PNG · 384×384 · transparent",
-        path: "/game-assets/ambience/coastal-plants.png",
         status: "generated",
       },
     ],
