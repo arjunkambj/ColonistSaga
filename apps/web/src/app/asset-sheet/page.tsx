@@ -37,7 +37,6 @@ interface AssetItem extends AssetCardItem {
 
 interface AssetCategory {
   assets?: readonly AssetItem[];
-  description: string;
   name: string;
   subcategories?: readonly AssetSubcategory[];
 }
@@ -117,7 +116,6 @@ const SOUND_EFFECT_SUBCATEGORIES = [
 const ASSET_CATEGORIES = [
   {
     name: "Brand & environments",
-    description: "Large scene-setting artwork used behind the login, home, and game views.",
     assets: [
       {
         name: "Coastal cove",
@@ -132,7 +130,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Home menu",
-    description: "Illustrations and navigation artwork used by the main menu.",
     assets: [
       {
         name: "Quick match",
@@ -159,7 +156,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Terrain tiles",
-    description: "The six top-down hex illustrations used by the deterministic board renderer.",
     assets: TERRAIN_TYPES.map(([name, terrain, description]) => ({
       name,
       description,
@@ -170,7 +166,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Resource cards",
-    description: "Full portrait card artwork used by the private resource hand.",
     assets: [
       ["Tree card", "Forest-and-timber card artwork.", RESOURCE_CARD_ASSET_PATHS.tree],
       ["Brick card", "Clay-hills-and-brick card artwork.", RESOURCE_CARD_ASSET_PATHS.brick],
@@ -187,7 +182,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Development cards",
-    description: "Full portrait illustrations used by the in-game development-deck reference.",
     assets: [
       ...DEVELOPMENT_CARD_ASSETS.map((card) => ({
         name: `${card.label} card`,
@@ -207,7 +201,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Placement icons",
-    description: "Board-piece artwork used while placing and moving pieces on the board.",
     assets: [
       {
         name: "Road icon",
@@ -241,7 +234,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Action icons",
-    description: "Compact artwork used by game actions, controls, and supporting dialogs.",
     assets: [
       {
         name: "Trade icon",
@@ -282,7 +274,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Board utility art",
-    description: "Supporting illustrations and optional ambience used around the playable board.",
     assets: [
       {
         name: "Ocean board canvas",
@@ -331,7 +322,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Awards & results",
-    description: "Milestone and end-of-game art planned for the results experience.",
     assets: [
       {
         name: "Longest Road",
@@ -358,7 +348,6 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Player portraits",
-    description: "Eight color-matched seat portraits for tables with up to eight players.",
     assets: [
       {
         name: "Red navigator",
@@ -420,20 +409,14 @@ const ASSET_CATEGORIES = [
   },
   {
     name: "Music",
-    description:
-      "One optional home loop and one low-fatigue gameplay loop; lobby and results remain quiet.",
     assets: MUSIC_ASSETS,
   },
   {
     name: "Sound effects",
-    description:
-      "Eight reusable future cues cover the meaningful game-state changes; visual feedback remains complete without them.",
     subcategories: SOUND_EFFECT_SUBCATEGORIES,
   },
   {
     name: "Brand foundations",
-    description:
-      "The implemented visual system behind every screen. These are code-defined foundations, so no artwork generation is required.",
     assets: [
       {
         name: "Display typography",
@@ -584,10 +567,7 @@ function AssetCategoryRow({ category }: { category: AssetCategory }) {
   return (
     <section className={styles.category} aria-labelledby={`category-${toId(category.name)}`}>
       <div className={styles.categoryHeader}>
-        <div>
-          <h2 id={`category-${toId(category.name)}`}>{category.name}</h2>
-          <p>{category.description}</p>
-        </div>
+        <h2 id={`category-${toId(category.name)}`}>{category.name}</h2>
         <span className={styles.categoryCount}>
           {generatedCount}/{assets.length} ready
         </span>

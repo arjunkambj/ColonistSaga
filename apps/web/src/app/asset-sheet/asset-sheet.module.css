@@ -204,14 +204,6 @@
   letter-spacing: -0.02em;
 }
 
-.categoryHeader p {
-  max-width: 44rem;
-  margin: 0.4rem 0 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-
 .categoryCount {
   flex: 0 0 auto;
   padding: 0.38rem 0.6rem;
