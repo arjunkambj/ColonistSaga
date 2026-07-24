@@ -10,10 +10,8 @@ const PIECE_ASSET_PATHS: Readonly<Record<PieceAsset, string>> = {
   settlement: "/game-assets/pieces/settlement.png",
 };
 
-const PIECE_ASSET_REVISION = "tactile-v9";
-
 export function getPieceAssetPath(asset: PieceAsset): string {
-  return `${PIECE_ASSET_PATHS[asset]}?v=${PIECE_ASSET_REVISION}`;
+  return PIECE_ASSET_PATHS[asset];
 }
 
 export function PieceIcon({

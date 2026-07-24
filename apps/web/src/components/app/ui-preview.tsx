@@ -89,7 +89,7 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
         onQuickPlay={async () => undefined}
         onSignOut={async () => undefined}
         pendingAction={null}
-        profileImageUrl="/game-assets/players/red-navigator-v1.png"
+        profileImageUrl="/game-assets/players/red-navigator.png"
       />
     );
   }
@@ -111,7 +111,7 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
       isHost
       nextActionAt={previewDeadline}
       onLeave={async () => undefined}
-      viewerProfileImageUrl="/game-assets/players/red-navigator-v1.png"
+      viewerProfileImageUrl="/game-assets/players/red-navigator.png"
     />
   );
 }

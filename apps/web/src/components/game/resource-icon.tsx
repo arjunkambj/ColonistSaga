@@ -1,5 +1,7 @@
 import type { ResourceType } from "@colonistsaga/game";
 
+import { getResourceCardRuntimeAssetPath } from "@/constants/game/card-assets";
+
 export const RESOURCE_LABELS: Readonly<Record<ResourceType, string>> = {
   brick: "Brick",
   sheep: "Sheep",
@@ -21,7 +23,7 @@ export function ResourceIcon({ decorative = false, resource, size = 38 }: Resour
       className="resource-icon"
       draggable={false}
       height={size}
-      src={`/game-assets/resources/${resource}.png`}
+      src={getResourceCardRuntimeAssetPath(resource)}
       width={size}
     />
   );

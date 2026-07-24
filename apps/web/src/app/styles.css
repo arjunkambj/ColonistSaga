@@ -311,28 +311,6 @@ p {
   overflow: hidden;
 }
 
-.home-backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.home-scenery {
-  object-fit: cover;
-  object-position: center;
-}
-
-.home-backdrop::after {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 23% 54%, rgba(3, 48, 111, 0.46), transparent 33%),
-    radial-gradient(ellipse at 76% 55%, rgba(2, 54, 119, 0.34), transparent 35%),
-    linear-gradient(180deg, rgba(2, 42, 99, 0.08) 25%, rgba(1, 35, 86, 0.3) 100%);
-  content: "";
-}
-
 .site-header {
   position: relative;
   z-index: 2;
@@ -469,19 +447,6 @@ p {
 
 .auth-page::after {
   box-shadow: inset 0 0 12rem rgba(1, 7, 24, 0.6);
-}
-
-.auth-backdrop {
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  overflow: hidden;
-}
-
-.auth-scenery {
-  object-fit: cover;
-  object-position: center;
-  transform: scale(1.01);
 }
 
 .auth-login {
@@ -1814,7 +1779,7 @@ select {
   overflow: hidden;
   background:
     linear-gradient(rgba(77, 204, 216, 0.08), rgba(28, 155, 190, 0.12)),
-    url("/game-assets/ui/ocean-board-canvas-v2.webp?v=tactile-v10") center / cover no-repeat,
+    url("/game-assets/ui/ocean-board-canvas.webp") center / cover no-repeat,
     #4bcce5;
   box-shadow:
     inset 0 0 70px rgba(20, 121, 151, 0.16),
@@ -2045,7 +2010,7 @@ select {
   position: absolute;
   z-index: 0;
   inset: 8% 3% 7%;
-  background: url("/game-assets/ui/island-shelf-v1.png?v=tactile-v10") center / contain no-repeat;
+  background: url("/game-assets/ui/island-shelf.png") center / contain no-repeat;
   filter: drop-shadow(0 0 5px rgba(231, 255, 247, 0.7))
     drop-shadow(0 16px 12px rgba(0, 70, 108, 0.3));
   opacity: 0.95;
@@ -3464,7 +3429,9 @@ select {
   border: 0;
   margin: 0;
   overflow: hidden;
-  background: rgba(3, 21, 26, 0.82);
+  background:
+    linear-gradient(rgba(3, 21, 26, 0.66), rgba(3, 21, 26, 0.78)),
+    url("/shared-assets/coastal-island-kingdom-day.png") center / cover;
   backdrop-filter: blur(12px);
   color: inherit;
   overscroll-behavior: contain;
@@ -3574,16 +3541,6 @@ select {
 }
 
 @media (max-width: 840px) {
-  .home-scenery {
-    object-position: 50% center;
-  }
-
-  .home-backdrop::after {
-    background:
-      linear-gradient(180deg, rgba(2, 44, 101, 0.2), rgba(1, 37, 91, 0.48)),
-      radial-gradient(ellipse at center, transparent, rgba(0, 40, 91, 0.22));
-  }
-
   .home-page {
     grid-template-rows: auto minmax(0, 1fr);
   }
@@ -3714,10 +3671,6 @@ select {
 
   .auth-page {
     padding-inline: max(1rem, env(safe-area-inset-left));
-  }
-
-  .auth-scenery {
-    object-position: 50% center;
   }
 
   .auth-login {

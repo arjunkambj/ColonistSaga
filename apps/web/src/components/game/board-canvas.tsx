@@ -13,8 +13,8 @@ import {
   ISLAND_SHELF_ASSET_PATH,
   PORT_SKIFF_ASSET_PATH,
   getTerrainAssetPath,
-  type TerrainAssetVariant,
 } from "@/constants/game/board-assets";
+import { getResourceCardRuntimeAssetPath } from "@/constants/game/card-assets";
 import {
   BOARD_CANVAS,
   getEdgePlacement,
@@ -44,14 +44,12 @@ export interface BoardCanvasProps {
   playerThemes: ReadonlyMap<string, PlayerColor>;
   renderScale: number;
   targets: readonly BoardCanvasTarget[];
-  terrainVariants: readonly TerrainAssetVariant[];
 }
 
 interface StaticScene {
   boardLayout: BoardLayout;
   ports: Board["ports"];
   renderScale: number;
-  terrainVariants: readonly TerrainAssetVariant[];
   tiles: Board["tiles"];
 }
 
@@ -86,14 +84,6 @@ const PLAYER_COLOR_VALUES: Readonly<Record<PlayerColor, string>> = {
   yellow: "#bd8100",
 };
 
-const RESOURCE_ASSET_PATHS: Readonly<Record<ResourceType, string>> = {
-  brick: "/game-assets/resources/brick.png",
-  sheep: "/game-assets/resources/sheep.png",
-  stone: "/game-assets/resources/stone.png",
-  tree: "/game-assets/resources/tree.png",
-  wheat: "/game-assets/resources/wheat.png",
-};
-
 const BOARD_CANVAS_STYLE: CSSProperties = {
   display: "block",
   height: "100%",
@@ -121,7 +111,6 @@ export const BoardCanvas = memo(function BoardCanvas({
   playerThemes,
   renderScale,
   targets,
-  terrainVariants,
 }: BoardCanvasProps) {
   const staticCanvasRef = useRef<HTMLCanvasElement>(null);
   const dynamicCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -129,7 +118,6 @@ export const BoardCanvas = memo(function BoardCanvas({
     boardLayout,
     ports: board.ports,
     renderScale,
-    terrainVariants,
     tiles: board.tiles,
   };
   const dynamicScene: DynamicScene = {
@@ -241,11 +229,9 @@ async function renderStaticScene(
   scene: StaticScene,
   isCancelled: () => boolean,
 ) {
-  const terrainPaths = scene.tiles.map((tile, index) =>
-    getTerrainAssetPath(tile.terrain, scene.terrainVariants[index]),
-  );
+  const terrainPaths = scene.tiles.map((tile) => getTerrainAssetPath(tile.terrain));
   const portResourcePaths = scene.ports.flatMap((port) =>
-    port.trade === "any" ? [] : [RESOURCE_ASSET_PATHS[port.trade]],
+    port.trade === "any" ? [] : [getResourceCardRuntimeAssetPath(port.trade)],
   );
   const images = await loadImages([
     ISLAND_SHELF_ASSET_PATH,
@@ -466,7 +452,9 @@ function drawPorts(
       placement,
       port.trade,
       images.get(PORT_SKIFF_ASSET_PATH) ?? null,
-      port.trade === "any" ? null : (images.get(RESOURCE_ASSET_PATHS[port.trade]) ?? null),
+      port.trade === "any"
+        ? null
+        : (images.get(getResourceCardRuntimeAssetPath(port.trade)) ?? null),
     );
   }
 }
@@ -913,7 +901,6 @@ function createStaticSceneKey(scene: StaticScene): string {
     layout: getLayoutKey(scene.boardLayout),
     ports: scene.ports.map(({ edgeKey, id, trade }) => [edgeKey, id, trade]),
     renderScale: scene.renderScale,
-    terrainVariants: scene.terrainVariants,
     tiles: scene.tiles.map(({ id, numberToken, q, r, terrain }) => [
       id,
       numberToken,

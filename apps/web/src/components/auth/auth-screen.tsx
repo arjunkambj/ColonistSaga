@@ -2,9 +2,9 @@
 
 import { useHexclaveApp } from "@hexclave/next";
 import { Button, Spinner } from "@heroui/react";
-import Image from "next/image";
 import { useState } from "react";
 
+import { AppScenery } from "@/components/ui/app-scenery";
 import { Brand } from "@/components/ui/brand";
 import { LiveMessage } from "@/components/ui/live-message";
 
@@ -43,32 +43,11 @@ export function AuthScreenView({
 }) {
   return (
     <main className="auth-page auth-reference-page" id="main-content">
-      <div className="auth-backdrop auth-reference-backdrop" aria-hidden="true">
-        <Image
-          alt=""
-          className="auth-scenery auth-reference-scenery"
-          fill
-          priority
-          sizes="100vw"
-          src="/shared-assets/coastal-cove-day-v1.jpg"
-        />
-      </div>
+      <AppScenery />
 
       <section aria-labelledby="auth-title" className="auth-login auth-reference-panel">
         <div className="auth-reference-brand">
           <Brand />
-        </div>
-
-        <div className="auth-reference-island" aria-hidden="true">
-          <Image
-            alt=""
-            className="auth-reference-island-image"
-            height={1121}
-            priority
-            sizes="(max-width: 640px) 58vw, 20rem"
-            src="/shared-assets/login-castle-island-v1.avif"
-            width={1403}
-          />
         </div>
 
         <div className="auth-reference-copy">

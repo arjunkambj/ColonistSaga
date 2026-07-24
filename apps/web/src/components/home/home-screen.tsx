@@ -19,6 +19,7 @@ import {
   type BotCount,
   type LobbySettingsValue,
 } from "@/components/lobby/lobby-settings";
+import { AppScenery } from "@/components/ui/app-scenery";
 import { Brand } from "@/components/ui/brand";
 import { LiveMessage } from "@/components/ui/live-message";
 import { VoyageCard } from "@/components/ui/voyage-card";
@@ -100,16 +101,7 @@ export function HomeScreen({
 
   return (
     <main className="home-page voyage-home" id="main-content">
-      <div className="home-backdrop voyage-home__backdrop" aria-hidden="true">
-        <Image
-          alt=""
-          className="home-scenery voyage-home__scenery"
-          fill
-          priority
-          sizes="100vw"
-          src="/shared-assets/coastal-cove-day-v1.jpg"
-        />
-      </div>
+      <AppScenery />
 
       <header className="site-header voyage-header">
         <Brand />
@@ -139,7 +131,7 @@ export function HomeScreen({
                 alt=""
                 className="voyage-profile__avatar-image"
                 height={128}
-                src={profileImageUrl ?? "/game-assets/players/red-navigator-v1.png"}
+                src={profileImageUrl ?? "/game-assets/players/red-navigator.png"}
                 width={128}
               />
             </span>

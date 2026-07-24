@@ -8,8 +8,7 @@
   "scripts": {
     "check-types": "tsc --noEmit -p convex/tsconfig.json",
     "dev": "convex dev",
-    "dev:setup": "convex dev --configure --until-success",
-    "test": "node --test --experimental-strip-types lib/*.test.ts"
+    "dev:setup": "convex dev --configure --until-success"
   },
   "dependencies": {
     "@colonistsaga/game": "workspace:*",

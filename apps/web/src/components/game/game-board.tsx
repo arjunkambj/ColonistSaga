@@ -35,7 +35,6 @@ import {
   getVertexPoint,
 } from "@/lib/game/board-layout";
 import { BOARD_VIEWPORT_SCALE, DEFAULT_BOARD_VIEWPORT } from "@/lib/game/board-viewport";
-import { getTerrainAssetVariant } from "@/constants/game/board-assets";
 import {
   createBoardCanvasTargetModels,
   findNearestBoardTarget,
@@ -123,15 +122,6 @@ export function GameBoard({
     [game.players],
   );
   const boardLayout = useMemo(() => createBoardLayout(game.board.tiles), [game.board.tiles]);
-  const terrainVariants = useMemo(() => {
-    const occurrences = new Map<TerrainType, number>();
-
-    return game.board.tiles.map((tile) => {
-      const occurrence = occurrences.get(tile.terrain) ?? 0;
-      occurrences.set(tile.terrain, occurrence + 1);
-      return getTerrainAssetVariant(occurrence);
-    });
-  }, [game.board.tiles]);
   const viewerTheme = playerDetailsById.get(game.viewerPlayerId)?.theme ?? "red";
   const ports = useMemo(
     () =>
@@ -490,7 +480,6 @@ export function GameBoard({
             playerThemes={playerThemes}
             renderScale={boardViewport.scale}
             targets={canvasTargets}
-            terrainVariants={terrainVariants}
           />
 
           {game.board.tiles.map((tile, index) => {

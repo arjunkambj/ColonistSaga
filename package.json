@@ -10,7 +10,6 @@
     "dev": "turbo run dev",
     "build": "turbo run build --filter='!desktop' && turbo run build -F desktop",
     "check-types": "turbo run check-types",
-    "test": "turbo run test",
     "dev:web": "turbo run dev -F web",
     "dev:desktop": "turbo run dev:hmr -F desktop",
     "build:desktop": "turbo run build:stable -F desktop",

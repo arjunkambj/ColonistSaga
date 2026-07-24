@@ -1,54 +1,54 @@
 import type { ResourceType } from "@colonistsaga/game";
 
 export const RESOURCE_CARD_ASSET_PATHS: Readonly<Record<ResourceType, string>> = {
-  brick: "/game-assets/cards/resources/brick-card-v1.png",
-  sheep: "/game-assets/cards/resources/sheep-card-v1.png",
-  stone: "/game-assets/cards/resources/stone-card-v1.png",
-  tree: "/game-assets/cards/resources/tree-card-v1.png",
-  wheat: "/game-assets/cards/resources/wheat-card-v1.png",
+  brick: "/game-assets/cards/resources/brick-card.png",
+  sheep: "/game-assets/cards/resources/sheep-card.png",
+  stone: "/game-assets/cards/resources/stone-card.png",
+  tree: "/game-assets/cards/resources/tree-card.png",
+  wheat: "/game-assets/cards/resources/wheat-card.png",
 };
 
 export const ACTION_CARD_ASSET_PATHS = {
-  city: "/game-assets/cards/actions/city-card-v1.png",
-  endTurn: "/game-assets/cards/actions/end-turn-card-v1.png",
-  road: "/game-assets/cards/actions/road-card-v1.png",
-  settlement: "/game-assets/cards/actions/settlement-card-v1.png",
-  trade: "/game-assets/cards/actions/trade-card-v1.png",
+  city: "/game-assets/cards/actions/city-card.png",
+  endTurn: "/game-assets/cards/actions/end-turn-card.png",
+  road: "/game-assets/cards/actions/road-card.png",
+  settlement: "/game-assets/cards/actions/settlement-card.png",
+  trade: "/game-assets/cards/actions/trade-card.png",
 } as const;
 
 export const DEVELOPMENT_CARD_BACK_ASSET_PATH =
-  "/game-assets/cards/development/hidden-card-back-v1.png";
+  "/game-assets/cards/development/hidden-card-back.png";
 
 export const DEVELOPMENT_CARD_ASSETS = [
   {
     description: "Move the robber and steal a resource.",
     id: "knight",
     label: "Knight",
-    path: "/game-assets/cards/development/knight-v1.png",
+    path: "/game-assets/cards/development/knight.png",
   },
   {
     description: "Build two roads without paying their resource costs.",
     id: "road-building",
     label: "Road Building",
-    path: "/game-assets/cards/development/road-building-v1.png",
+    path: "/game-assets/cards/development/road-building.png",
   },
   {
     description: "Take two available resources from the bank.",
     id: "year-of-plenty",
     label: "Year of Plenty",
-    path: "/game-assets/cards/development/year-of-plenty-v1.png",
+    path: "/game-assets/cards/development/year-of-plenty.png",
   },
   {
     description: "Collect one named resource from every opponent.",
     id: "monopoly",
     label: "Monopoly",
-    path: "/game-assets/cards/development/monopoly-v1.png",
+    path: "/game-assets/cards/development/monopoly.png",
   },
   {
     description: "A hidden victory point toward winning the game.",
     id: "victory-point",
     label: "Victory Point",
-    path: "/game-assets/cards/development/victory-point-v1.png",
+    path: "/game-assets/cards/development/victory-point.png",
   },
 ] as const;
 
@@ -66,6 +66,10 @@ export function getCardRuntimeAssetPath(sourcePath: string): string {
   }
 
   return sourcePath.replace(cardRoot, `${cardRoot}runtime/`).replace(/\.png$/, ".webp");
+}
+
+export function getResourceCardRuntimeAssetPath(resource: ResourceType): string {
+  return getCardRuntimeAssetPath(RESOURCE_CARD_ASSET_PATHS[resource]);
 }
 
 export const GAME_CARD_RUNTIME_ASSET_PATHS = GAME_CARD_ASSET_PATHS.map(getCardRuntimeAssetPath);

@@ -24,10 +24,6 @@ Run commands from the root through package scripts and `turbo run`.
 
 Use TypeScript, ES modules, two-space indentation, and trailing commas. Oxfmt and Oxlint are authoritative. Favor pure functions, immutable data, early returns, and simple composition. Choose domain names such as `createGame`, `rollDice`, and `activePlayerId`; avoid generic names and unexplained abbreviations. Use `PascalCase` for components and types, `camelCase` for functions and variables, `UPPER_SNAKE_CASE` for constants, and kebab-case filenames. Keep game rules in one source of truth.
 
-## Testing Guidelines
-
-No test runner or coverage threshold is configured yet. For new behavior, add focused tests beside the source as `*.test.ts` or `*.test.tsx`. Add a `test` script to the owning package and register the task in `turbo.json`; then run it with `pnpm turbo run test --filter=<package>`.
-
 ## Commit & Pull Request Guidelines
 
 Git history is unavailable here. Use Conventional Commits, for example `feat(web): add lobby route` or `fix(backend): validate player count`. Pull requests must explain intent, list verification commands, link issues, and include screenshots for UI changes. Call out schema, environment, or deployment impacts.
