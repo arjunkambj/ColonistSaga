@@ -102,7 +102,6 @@ const BOARD_CANVAS_CONTAINER_STYLE: CSSProperties = {
 };
 
 const imagePromises = new Map<string, Promise<HTMLImageElement | null>>();
-const pieceSilhouetteCanvases = new Map<string, HTMLCanvasElement>();
 const tintedPieceCanvases = new Map<string, HTMLCanvasElement>();
 
 export const BoardCanvas = memo(function BoardCanvas({
@@ -706,42 +705,15 @@ function drawPlayerPiece(
   angle = 0,
 ) {
   const tintedPiece = getTintedPieceCanvas(image, path, theme, PLAYER_COLOR_VALUES[theme]);
-  const silhouette = getPieceSilhouetteCanvas(image, path);
-  const outlineSize = size + Math.max(7, size * 0.07);
 
   context.save();
   context.translate(point.x, point.y);
   context.rotate((angle * Math.PI) / 180);
-  context.shadowBlur = 8;
-  context.shadowColor = "rgba(15, 38, 58, 0.62)";
-  context.shadowOffsetY = 4;
-  context.drawImage(silhouette, -outlineSize / 2, -outlineSize / 2, outlineSize, outlineSize);
-  context.shadowColor = "transparent";
-  context.shadowOffsetY = 0;
+  context.shadowBlur = 4;
+  context.shadowColor = "rgba(15, 38, 58, 0.34)";
+  context.shadowOffsetY = 2;
   context.drawImage(tintedPiece, -size / 2, -size / 2, size, size);
   context.restore();
-}
-
-function getPieceSilhouetteCanvas(image: HTMLImageElement, path: string): HTMLCanvasElement {
-  const cached = pieceSilhouetteCanvases.get(path);
-  if (cached) {
-    return cached;
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
-  const context = canvas.getContext("2d");
-  if (!context) {
-    return canvas;
-  }
-
-  context.drawImage(image, 0, 0);
-  context.globalCompositeOperation = "source-in";
-  context.fillStyle = "rgba(255, 250, 226, 0.98)";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  pieceSilhouetteCanvases.set(path, canvas);
-  return canvas;
 }
 
 function getTintedPieceCanvas(

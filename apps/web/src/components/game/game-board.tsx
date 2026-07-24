@@ -9,12 +9,6 @@ import {
   type ResourceType,
   type TerrainType,
 } from "@colonistsaga/game";
-import { Button } from "@heroui/react";
-import moveIcon from "@iconify-icons/game-icons/move";
-import minusIcon from "@iconify-icons/solar/minus-circle-outline";
-import plusIcon from "@iconify-icons/solar/add-circle-outline";
-import scanIcon from "@iconify-icons/solar/scanner-outline";
-import { Icon } from "@iconify/react";
 import {
   useEffect,
   useMemo,
@@ -34,7 +28,7 @@ import {
   getTilePoint,
   getVertexPoint,
 } from "@/lib/game/board-layout";
-import { BOARD_VIEWPORT_SCALE, DEFAULT_BOARD_VIEWPORT } from "@/lib/game/board-viewport";
+import { BOARD_VIEWPORT_SCALE } from "@/lib/game/board-viewport";
 import {
   createBoardCanvasTargetModels,
   findNearestBoardTarget,
@@ -238,7 +232,6 @@ export function GameBoard({
     resetBoardViewport,
     startPointerGesture,
     stopPointerGesture,
-    zoomOutputRef,
   } = useBoardCamera();
   const findPointerTarget = (clientX: number, clientY: number) => {
     const bounds = boardSceneRef.current?.getBoundingClientRect();
@@ -411,55 +404,6 @@ export function GameBoard({
           {buildMode !== null && onCancelBuildMode ? " Press Escape to cancel." : null}
         </p>
       ) : null}
-      <div className="board-navigation">
-        <span className="board-gesture-hint">
-          <Icon aria-hidden="true" icon={moveIcon} />
-          <span>Drag or use arrows</span>
-          <small>Scroll or +/− to zoom</small>
-        </span>
-        <div aria-label="Board zoom controls" role="group">
-          <Button
-            aria-label="Zoom out"
-            className="board-navigation-button"
-            isDisabled={boardViewport.scale <= BOARD_VIEWPORT_SCALE.min}
-            isIconOnly
-            onPress={() => changeZoomBy(-BOARD_VIEWPORT_SCALE.step)}
-            size="sm"
-            variant="secondary"
-          >
-            <Icon aria-hidden="true" icon={minusIcon} />
-          </Button>
-          <output aria-label="Current board zoom" className="board-zoom-level" ref={zoomOutputRef}>
-            {Math.round(boardViewport.scale * 100)}%
-          </output>
-          <Button
-            aria-label="Zoom in"
-            className="board-navigation-button"
-            isDisabled={boardViewport.scale >= BOARD_VIEWPORT_SCALE.max}
-            isIconOnly
-            onPress={() => changeZoomBy(BOARD_VIEWPORT_SCALE.step)}
-            size="sm"
-            variant="secondary"
-          >
-            <Icon aria-hidden="true" icon={plusIcon} />
-          </Button>
-          <Button
-            aria-label="Reset board view"
-            className="board-navigation-button"
-            isDisabled={
-              boardViewport.scale === DEFAULT_BOARD_VIEWPORT.scale &&
-              boardViewport.x === DEFAULT_BOARD_VIEWPORT.x &&
-              boardViewport.y === DEFAULT_BOARD_VIEWPORT.y
-            }
-            isIconOnly
-            onPress={resetBoardViewport}
-            size="sm"
-            variant="secondary"
-          >
-            <Icon aria-hidden="true" icon={scanIcon} />
-          </Button>
-        </div>
-      </div>
       <div
         className="board-stage"
         ref={boardStageRef}

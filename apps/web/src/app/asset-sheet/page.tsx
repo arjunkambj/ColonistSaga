@@ -192,7 +192,7 @@ const ASSET_CATEGORIES = [
       })),
       {
         name: "Hidden card back",
-        description: "Shared concealed development-card back used by the hand reference trigger.",
+        description: "Shared concealed development-card back retained for deck previews.",
         format: "PNG · 512×768",
         path: DEVELOPMENT_CARD_BACK_ASSET_PATH,
         status: "generated" as const,

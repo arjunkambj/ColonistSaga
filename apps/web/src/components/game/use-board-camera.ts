@@ -76,14 +76,12 @@ export interface BoardCamera {
   resetBoardViewport(): void;
   startPointerGesture: PointerEventHandler<HTMLElement>;
   stopPointerGesture: PointerEventHandler<HTMLElement>;
-  zoomOutputRef: RefObject<HTMLOutputElement | null>;
 }
 
 export function useBoardCamera(): BoardCamera {
   const boardShellRef = useRef<HTMLElement | null>(null);
   const boardStageRef = useRef<HTMLDivElement | null>(null);
   const boardSceneRef = useRef<HTMLDivElement | null>(null);
-  const zoomOutputRef = useRef<HTMLOutputElement | null>(null);
   const [boardViewport, setBoardViewport] = useState(DEFAULT_BOARD_VIEWPORT);
   const viewportRef = useRef(DEFAULT_BOARD_VIEWPORT);
   const stageBoundsRef = useRef<BoardViewportRect>({ ...FALLBACK_STAGE_BOUNDS });
@@ -114,10 +112,6 @@ export function useBoardCamera(): BoardCamera {
         scene.style.transform = getBoardViewportTransform(viewport);
       }
 
-      const zoomOutput = zoomOutputRef.current;
-      if (zoomOutput) {
-        zoomOutput.textContent = `${Math.round(viewport.scale * 100)}%`;
-      }
     });
   }, []);
 
@@ -532,7 +526,6 @@ export function useBoardCamera(): BoardCamera {
     resetBoardViewport,
     startPointerGesture,
     stopPointerGesture,
-    zoomOutputRef,
   };
 }
 
@@ -648,7 +641,7 @@ function shouldIgnorePointerGesture(target: EventTarget | null): boolean {
 
   return Boolean(
     target.closest(
-      '.board-navigation, a, button:not(.build-target), input, select, textarea, [contenteditable="true"]',
+      'a, button:not(.build-target), input, select, textarea, [contenteditable="true"]',
     ),
   );
 }

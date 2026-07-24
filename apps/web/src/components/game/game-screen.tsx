@@ -48,7 +48,7 @@ import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
 
 import { ActionTile } from "./action-tile";
-import { DevelopmentDeckGuide } from "./development-deck-guide";
+import { DevelopmentCardHand } from "./development-card-hand";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { getPieceAssetPath, PieceIcon } from "./piece-icon";
@@ -347,12 +347,7 @@ export function GameScreen({
       >
         <ResourceHand me={me} />
 
-        <DevelopmentHand
-          game={game}
-          me={me}
-          onCommand={(command, message) => void sendCommand(command, message)}
-          pending={pendingCommand !== null}
-        />
+        <DevelopmentHand me={me} />
 
         <ActionDock
           buildMode={buildMode}
@@ -953,37 +948,14 @@ function ResourceHand({ me }: { me: PrivatePlayerState }) {
   );
 }
 
-function DevelopmentHand({
-  game,
-  me,
-  onCommand,
-  pending,
-}: {
-  game: PlayerGameView;
-  me: PrivatePlayerState;
-  onCommand(command: GameCommand, message: string): void;
-  pending: boolean;
-}) {
-  const disabledReason = getDevelopmentCardActionDisabledReason({ game, me, pending });
-
+function DevelopmentHand({ me }: { me: PrivatePlayerState }) {
   return (
     <section aria-labelledby="development-hand-title" className="development-hand">
       <div className="dock-section-heading">
         <h2 id="development-hand-title">Development</h2>
         <span>{me.developmentCardCount} owned</span>
       </div>
-      <ul aria-label="Your development cards">
-        <DevelopmentDeckGuide cards={me.developmentCards} supply={game.developmentCardSupply} />
-      </ul>
-      <div className="development-purchase">
-        <DevelopmentCardAction
-          cost={DEVELOPMENT_CARD_COST}
-          disabledReason={disabledReason}
-          onPress={() => onCommand({ kind: "buy_development_card" }, "Development card purchased.")}
-          resources={me.resources}
-          supply={game.developmentCardSupply}
-        />
-      </div>
+      <DevelopmentCardHand cards={me.developmentCards} />
     </section>
   );
 }
@@ -1152,6 +1124,15 @@ function BuildingActionsDock({
       piecesRemaining: me.piecesRemaining.cities,
       resources: me.resources,
     });
+  const developmentCardDisabledReason =
+    disabledReasonOverride ??
+    getDevelopmentCardDisabledReason({
+      canBuy: legal.canBuyDevelopmentCard,
+      cost: DEVELOPMENT_CARD_COST,
+      pending,
+      resources: me.resources,
+      supply: game.developmentCardSupply,
+    });
   return (
     <section
       aria-labelledby="building-actions-title"
@@ -1168,6 +1149,16 @@ function BuildingActionsDock({
         onCommand={onCommand}
       />
       <div className="action-group build-actions">
+        <DevelopmentCardAction
+          cost={DEVELOPMENT_CARD_COST}
+          disabledReason={developmentCardDisabledReason}
+          onPress={() => {
+            onBuildMode(null);
+            onCommand({ kind: "buy_development_card" }, "Development card purchased.");
+          }}
+          resources={me.resources}
+          supply={game.developmentCardSupply}
+        />
         <BuildAction
           active={buildMode === "road"}
           asset="road"
@@ -1433,7 +1424,7 @@ function DevelopmentCardAction({
         count={supply}
         kind="development-card"
         meta={<CostSummary cost={cost} resources={resources} />}
-        onPress={disabledReason ? () => undefined : onPress}
+        onPress={onPress}
         title="Dev Card"
         unavailable={disabledReason !== null}
       />
@@ -1582,34 +1573,6 @@ function getDevelopmentCardDisabledReason({
   }
 
   return canBuy ? null : "Unavailable this turn";
-}
-
-function getDevelopmentCardActionDisabledReason({
-  game,
-  me,
-  pending,
-}: {
-  game: PlayerGameView;
-  me: PrivatePlayerState;
-  pending: boolean;
-}): string | null {
-  if (!game.legalActions.isRequiredActor) {
-    return "Wait for your turn";
-  }
-  if (game.phase.kind === "roll") {
-    return "Roll the dice first";
-  }
-  if (game.phase.kind !== "build_and_trade") {
-    return "Finish the required action first";
-  }
-
-  return getDevelopmentCardDisabledReason({
-    canBuy: game.legalActions.canBuyDevelopmentCard,
-    cost: DEVELOPMENT_CARD_COST,
-    pending,
-    resources: me.resources,
-    supply: game.developmentCardSupply,
-  });
 }
 
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {

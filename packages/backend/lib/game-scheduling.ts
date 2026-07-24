@@ -1,6 +1,6 @@
 import type { BaseGameSettings } from "@colonistsaga/game";
 
-export const BOT_ACTION_DELAY_MS = 650;
+export const BOT_ACTION_DELAY_MS = 950;
 
 export interface AutomatedActor {
   isBot: boolean;

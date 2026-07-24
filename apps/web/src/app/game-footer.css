@@ -23,7 +23,7 @@
   display: grid;
   min-width: 0;
   height: 100%;
-  grid-template-columns: minmax(4.4rem, 0.72fr) minmax(6.2rem, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
   gap: 0.32rem;
   padding: 1.05rem 0.42rem 0.42rem;
@@ -53,56 +53,71 @@
   font-weight: 750;
 }
 
-.reference-game .development-hand ul {
+.reference-game .development-card-hand {
+  display: flex;
   min-width: 0;
+  width: 100%;
   height: 100%;
-  padding: 0;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(156, 220, 250, 0.24);
+  border-radius: 0.72rem;
   margin: 0;
+  background: rgba(2, 42, 94, 0.48);
+  overflow-x: auto;
+  overflow-y: hidden;
   list-style: none;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
 }
 
-.reference-game .development-hand .development-card-slot,
-.reference-game .development-hand .development-card-trigger {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
+.reference-game .development-card-owned {
+  flex: 0 0 auto;
+  height: min(100%, 5.45rem);
+  aspect-ratio: 2 / 3;
+  padding: 0.15rem;
+  border: 1px solid rgba(235, 247, 255, 0.42);
+  border-radius: 0.65rem;
+  background: rgba(9, 72, 132, 0.74);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 4px 10px rgba(0, 19, 55, 0.24);
 }
 
-.reference-game .development-hand .development-card-slot {
+.reference-game .development-card-owned > img {
   display: block;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.reference-game .development-purchase,
-.reference-game .development-purchase > .action-button {
-  min-width: 0;
   width: 100%;
   height: 100%;
+  border-radius: 0.48rem;
+  object-fit: contain;
 }
 
-.reference-game .development-purchase > .action-button {
-  grid-template-columns: 2.6rem minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  gap: 0.08rem 0.28rem;
-  padding: 0.28rem;
+.reference-game .development-card-empty {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  place-items: center;
+  color: #a8cce4;
+  font-size: 0.58rem;
+  font-weight: 750;
+  text-align: center;
 }
 
-.reference-game .development-purchase .action-tile-preset__art {
-  grid-row: 1 / 4;
+.reference-game .game-footer--four-sections .resource-card-list {
+  align-items: center;
+  justify-items: center;
+  gap: 0.22rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(156, 220, 250, 0.24);
+  border-radius: 0.72rem;
+  background: rgba(2, 42, 94, 0.48);
+  overflow: hidden;
 }
 
-.reference-game .development-purchase .action-tile-preset__title,
-.reference-game .development-purchase .action-tile-preset__meta,
-.reference-game .development-purchase .action-tile-preset__caption {
-  grid-column: 2;
-  justify-content: flex-start;
-}
-
-.reference-game .development-purchase .action-card-art {
-  width: 2.2rem;
-  height: 3.3rem;
+.reference-game .game-footer--four-sections .resource-card-image {
+  object-fit: contain;
+  object-position: center;
 }
 
 .reference-game .turn-control {
@@ -180,6 +195,15 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
+  .reference-game .game-footer--four-sections .resource-card-face {
+    width: min(100%, 3.55rem);
+    min-width: 0;
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: 2 / 3;
+    padding: 0.15rem;
+  }
+
   .reference-game .game-footer--four-sections .building-actions-dock {
     width: 100%;
     height: 100%;
@@ -199,14 +223,6 @@
 @media (min-width: 841px) and (max-width: 1240px) and (min-height: 561px) {
   .reference-game .game-footer.game-footer--four-sections {
     grid-template-columns: minmax(19rem, 0.9fr) minmax(9rem, 0.42fr) minmax(22rem, 1fr) 7rem;
-  }
-
-  .reference-game .development-hand {
-    grid-template-columns: minmax(3.8rem, 1fr);
-  }
-
-  .reference-game .development-purchase {
-    display: none;
   }
 }
 
@@ -240,18 +256,20 @@
   }
 
   .reference-game .game-footer--four-sections .resource-card-face {
+    width: min(100%, 4rem);
     min-width: 0;
-    height: 100%;
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: 2 / 3;
+    padding: 0.12rem;
   }
 
   .reference-game .development-hand {
     grid-area: development;
-    grid-template-columns: 1fr;
     padding: 0.3rem;
   }
 
-  .reference-game .development-hand .dock-section-heading,
-  .reference-game .development-purchase {
+  .reference-game .development-hand .dock-section-heading {
     display: none;
   }
 
