@@ -1,4 +1,6 @@
 .page {
+  --asset-card-surface: oklch(0.992 0.008 80);
+  --asset-preview-surface: oklch(0.965 0.012 80);
   width: 100%;
   height: 100dvh;
   overflow-x: hidden;
@@ -6,6 +8,11 @@
   background: var(--background);
   color: var(--foreground);
   scrollbar-color: var(--scrollbar-color);
+}
+
+:global([data-theme="dark"]) .page {
+  --asset-card-surface: oklch(0.24 0.012 315);
+  --asset-preview-surface: oklch(0.205 0.01 315);
 }
 
 .shell {
@@ -241,7 +248,7 @@
   padding: 0;
   border: 1px solid var(--separator);
   border-radius: 1.15rem;
-  background: var(--surface-secondary);
+  background: var(--asset-card-surface);
   box-shadow: 0 18px 36px color-mix(in oklch, var(--background) 18%, transparent);
   overflow: hidden;
 }
@@ -256,6 +263,7 @@
   grid-template-rows: auto auto;
   gap: 0;
   padding: 0;
+  background: var(--asset-card-surface);
 }
 
 .preview {
@@ -266,7 +274,7 @@
   min-width: 0;
   overflow: hidden;
   border-bottom: 1px solid var(--separator);
-  background-color: var(--surface-secondary);
+  background-color: var(--asset-preview-surface);
   background-image:
     linear-gradient(
       45deg,
@@ -323,7 +331,7 @@
   overflow: hidden;
   border: 1px solid var(--separator);
   border-radius: 1.15rem;
-  background: var(--surface-secondary);
+  background: var(--asset-card-surface);
 }
 
 .assetPreviewDialogBody {

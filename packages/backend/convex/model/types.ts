@@ -14,7 +14,9 @@ export type GameId = Id<"games">;
 export type SeatId = Id<"seats">;
 export type RoomView = Infer<typeof roomViewValidator>;
 export type GameEventView = {
+  actorPlayerId: string;
   createdAt: number;
+  kind: string;
   sequence: number;
   text: string;
 };

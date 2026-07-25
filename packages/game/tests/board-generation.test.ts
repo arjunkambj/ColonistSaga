@@ -40,7 +40,7 @@ function createNumberSpirals(tiles: readonly TileState[]) {
   ).flat();
 }
 
-describe("base board number generation", () => {
+describe("base board generation", () => {
   test("places the official sequence outer-ring inward under a seeded dihedral orientation", () => {
     for (const seed of ["base-sequence-a", "base-sequence-b", "base-sequence-c"]) {
       const board = createBoard("base", seed);
@@ -80,6 +80,33 @@ describe("base board number generation", () => {
           expect(secondNumber === 6 || secondNumber === 8).toBe(false);
         }
       }
+    }
+  });
+
+  test("keeps same-terrain groups to at most two connected tiles", () => {
+    for (let index = 0; index < 100; index += 1) {
+      const board = createBoard("base", `base-terrain-clusters-${index}`);
+      const topology = getBoardTopology(board.tiles);
+      const terrainByTileId = new Map(board.tiles.map((tile) => [tile.id, tile.terrain]));
+      const matchingNeighborCounts = new Map<string, number>();
+
+      for (const tileIds of Object.values(topology.edgeTileIds)) {
+        if (tileIds.length !== 2) continue;
+        const [firstTileId, secondTileId] = tileIds;
+        if (!firstTileId || !secondTileId) continue;
+
+        const firstTerrain = terrainByTileId.get(firstTileId);
+        const secondTerrain = terrainByTileId.get(secondTileId);
+        if (!firstTerrain || firstTerrain === "desert" || firstTerrain !== secondTerrain) continue;
+
+        matchingNeighborCounts.set(firstTileId, (matchingNeighborCounts.get(firstTileId) ?? 0) + 1);
+        matchingNeighborCounts.set(
+          secondTileId,
+          (matchingNeighborCounts.get(secondTileId) ?? 0) + 1,
+        );
+      }
+
+      expect(Math.max(0, ...matchingNeighborCounts.values())).toBeLessThanOrEqual(1);
     }
   });
 });

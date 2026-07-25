@@ -20,6 +20,7 @@ import type {
 } from "./types";
 
 const PORT_RESOURCE_ORDER: readonly ResourceType[] = ["tree", "brick", "sheep", "wheat", "stone"];
+const BOARD_GENERATION_ATTEMPTS = 100;
 const HEX_SIDE_COUNT = 6;
 
 function coordinateRadius({ q, r }: AxialCoordinate): number {
@@ -69,6 +70,70 @@ function createTerrainPool(mapId: GameMapId): TerrainType[] {
   }
 
   return terrains;
+}
+
+function hasLargeTerrainCluster(
+  terrainTiles: readonly Omit<TileState, "numberToken">[],
+  topology: BoardTopology,
+): boolean {
+  const terrainByTileId = new Map(terrainTiles.map((tile) => [tile.id, tile.terrain]));
+  const matchingNeighborCounts = new Map<string, number>();
+
+  for (const tileIds of Object.values(topology.edgeTileIds)) {
+    if (tileIds.length !== 2) {
+      continue;
+    }
+
+    const [firstTileId, secondTileId] = tileIds;
+    if (!firstTileId || !secondTileId) {
+      continue;
+    }
+
+    const firstTerrain = terrainByTileId.get(firstTileId);
+    const secondTerrain = terrainByTileId.get(secondTileId);
+    if (!firstTerrain || firstTerrain === "desert" || firstTerrain !== secondTerrain) {
+      continue;
+    }
+
+    const firstCount = (matchingNeighborCounts.get(firstTileId) ?? 0) + 1;
+    const secondCount = (matchingNeighborCounts.get(secondTileId) ?? 0) + 1;
+    if (firstCount > 1 || secondCount > 1) {
+      return true;
+    }
+
+    matchingNeighborCounts.set(firstTileId, firstCount);
+    matchingNeighborCounts.set(secondTileId, secondCount);
+  }
+
+  return false;
+}
+
+function createTerrainTiles(
+  mapId: GameMapId,
+  coordinates: readonly AxialCoordinate[],
+  topology: BoardTopology,
+  seed: string,
+): Omit<TileState, "numberToken">[] {
+  const terrainPool = createTerrainPool(mapId);
+
+  for (let attempt = 0; attempt < BOARD_GENERATION_ATTEMPTS; attempt += 1) {
+    const terrainSeed = attempt === 0 ? `${seed}:terrain` : `${seed}:terrain:${attempt}`;
+    const terrains = deterministicShuffle(terrainPool, terrainSeed);
+    const terrainTiles = coordinates.map((coordinate, index) => {
+      const terrain = terrains[index];
+      if (!terrain) {
+        throw new Error(`Missing terrain for ${getTileId(coordinate)}`);
+      }
+
+      return { ...coordinate, id: getTileId(coordinate), terrain };
+    });
+
+    if (mapId !== "base" || !hasLargeTerrainCluster(terrainTiles, topology)) {
+      return terrainTiles;
+    }
+  }
+
+  throw new Error(`Could not create a separated terrain layout for ${mapId}`);
 }
 
 function clockwiseAngleFromTop(coordinate: AxialCoordinate): number {
@@ -167,7 +232,7 @@ function assignNumberTokens(
   const redNumbers = numberTokens.filter((number) => number === 6 || number === 8);
   const regularNumbers = numberTokens.filter((number) => number !== 6 && number !== 8);
 
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < BOARD_GENERATION_ATTEMPTS; attempt += 1) {
     const redTiles: typeof producingTiles = [];
     const candidates = deterministicShuffle(producingTiles, `${seed}:red-tiles:${attempt}`);
 
@@ -256,14 +321,7 @@ function createPorts(topology: BoardTopology, mapId: GameMapId, seed: string): P
 export function createBoard(mapId: GameMapId, seed = "default-board"): BoardState {
   const coordinates = createMapCoordinates(getGameMapDefinition(mapId).tileCount);
   const topology = getBoardTopology(coordinates);
-  const terrains = deterministicShuffle(createTerrainPool(mapId), `${seed}:terrain`);
-  const terrainTiles = coordinates.map((coordinate, index) => {
-    const terrain = terrains[index];
-    if (!terrain) {
-      throw new Error(`Missing terrain for ${getTileId(coordinate)}`);
-    }
-    return { ...coordinate, id: getTileId(coordinate), terrain };
-  });
+  const terrainTiles = createTerrainTiles(mapId, coordinates, topology, seed);
   const tiles = assignNumberTokens(terrainTiles, mapId, seed, topology);
   const desert = tiles.find((tile) => TERRAIN_RESOURCE[tile.terrain] === null);
 

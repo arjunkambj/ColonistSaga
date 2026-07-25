@@ -1,8 +1,5 @@
+import { FullPageStatus } from "@/components/ui/full-page-status";
+
 export default function Loading() {
-  return (
-    <main className="centered-page" id="main-content">
-      <div className="loading-mark" aria-hidden="true" />
-      <p role="status">Loading…</p>
-    </main>
-  );
+  return <FullPageStatus label="Building your island…" />;
 }

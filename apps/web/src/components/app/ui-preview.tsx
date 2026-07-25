@@ -22,6 +22,7 @@ import { GameScreen } from "@/components/game/game-screen";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { ACTION_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
+import { DEFAULT_AUDIO_SETTINGS } from "@/lib/audio-settings";
 import type { RoomEventView } from "@/lib/game/types";
 
 export type UiPreviewMode =
@@ -78,13 +79,13 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
     return (
       <HomeScreen
         accountLabel="Level 24"
+        audioSettings={DEFAULT_AUDIO_SETTINGS}
         displayName="Arjun Kamboj"
         error=""
-        musicVolume={35}
+        onAudioSettingsChange={() => undefined}
         onCreateRoom={async () => undefined}
         onDisplayNameChange={() => undefined}
         onJoinRoom={async () => undefined}
-        onMusicVolumeChange={() => undefined}
         onQuickPlay={async () => undefined}
         onSignOut={async () => undefined}
         pendingAction={null}
@@ -99,6 +100,7 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
 
   return (
     <GameScreen
+      audioSettings={DEFAULT_AUDIO_SETTINGS}
       botThinking={false}
       code="NW9C4B"
       events={PREVIEW_EVENTS}
@@ -109,6 +111,7 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
       }
       isHost
       nextActionAt={previewDeadline}
+      onAudioSettingsChange={() => undefined}
       onLeave={async () => undefined}
       viewerProfileImageUrl="/game-assets/players/red-navigator.png"
     />
@@ -296,16 +299,18 @@ function completePreviewSetup(initialState: GameState) {
 
 const PREVIEW_EVENT_ANCHOR = Date.UTC(2026, 6, 19, 22, 30);
 const PREVIEW_EVENTS: RoomEventView[] = [
-  "Arjun placed a Settlement",
-  "Arjun received starting resources",
-  "Arjun placed a Road",
-  "Bot 2 placed a Settlement",
-  "Bot 2 received starting resources",
-  "Bot 3 placed a Road",
-  "Bot 4 placed a Settlement",
-  "Bot 4 received starting resources",
-].map((text, index) => ({
+  ["Arjun placed a Settlement", "place_settlement"],
+  ["Arjun received starting resources", "steal"],
+  ["Arjun placed a Road", "place_road"],
+  ["Bot 2 placed a Settlement", "place_settlement"],
+  ["Bot 2 received starting resources", "steal"],
+  ["Bot 3 placed a Road", "place_road"],
+  ["Bot 4 placed a Settlement", "place_settlement"],
+  ["Bot 4 received starting resources", "steal"],
+].map(([text, kind], index) => ({
+  actorPlayerId: index < 3 ? "player-1" : `player-${(index % 3) + 2}`,
   createdAt: PREVIEW_EVENT_ANCHOR - (8 - index) * 60_000,
+  kind,
   sequence: index + 1,
   text,
 }));

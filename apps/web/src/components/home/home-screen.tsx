@@ -1,7 +1,7 @@
 "use client";
 
 import { DEFAULT_BASE_GAME_SETTINGS } from "@colonistsaga/game";
-import { Button, Input, Label, Modal, Slider, TextField } from "@heroui/react";
+import { Button, Input, Label, Modal, TextField } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
 import houseIcon from "@iconify-icons/game-icons/house";
@@ -9,18 +9,19 @@ import closeIcon from "@iconify-icons/solar/close-circle-outline";
 import logoutIcon from "@iconify-icons/solar/logout-2-outline";
 import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
 import usersIcon from "@iconify-icons/solar/users-group-rounded-outline";
-import volumeIcon from "@iconify-icons/solar/volume-loud-outline";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useState } from "react";
 
 import { LobbySettings, type LobbySettingsValue } from "@/components/lobby/lobby-settings";
+import { AudioSettingsControls } from "@/components/audio/audio-settings-controls";
 import { AppScenery } from "@/components/ui/app-scenery";
 import { Brand } from "@/components/ui/brand";
 import { LiveMessage } from "@/components/ui/live-message";
 import { VoyageCard } from "@/components/ui/voyage-card";
 import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
+import type { AudioSettings } from "@/lib/audio-settings";
 import { toBotCount } from "@/lib/lobby/lobby-settings-model";
 import { isRoomCode, normalizeRoomCode } from "@/lib/session";
 
@@ -31,13 +32,13 @@ import playerSettingsStyles from "./player-settings.module.css";
 
 export interface HomeScreenProps {
   accountLabel: string;
+  audioSettings: AudioSettings;
   displayName: string;
   error: string;
-  musicVolume: number;
   onCreateRoom(): Promise<void>;
+  onAudioSettingsChange(settings: AudioSettings): void;
   onDisplayNameChange(value: string): void;
   onJoinRoom(code: string): Promise<void>;
-  onMusicVolumeChange(value: number): void;
   onQuickPlay(value: LobbySettingsValue): Promise<void>;
   onSignOut(): Promise<void | null>;
   pendingAction: PendingAction;
@@ -46,13 +47,13 @@ export interface HomeScreenProps {
 
 export function HomeScreen({
   accountLabel,
+  audioSettings,
   displayName,
   error,
-  musicVolume,
   onCreateRoom,
+  onAudioSettingsChange,
   onDisplayNameChange,
   onJoinRoom,
-  onMusicVolumeChange,
   onQuickPlay,
   onSignOut,
   pendingAction,
@@ -63,8 +64,8 @@ export function HomeScreen({
   const [showBotSetup, setShowBotSetup] = useState(false);
   const [showPlayerSettings, setShowPlayerSettings] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState(displayName);
-  const [musicVolumeDraft, setMusicVolumeDraft] = useState(musicVolume);
-  const [musicVolumeAtOpen, setMusicVolumeAtOpen] = useState(musicVolume);
+  const [audioSettingsDraft, setAudioSettingsDraft] = useState(audioSettings);
+  const [audioSettingsAtOpen, setAudioSettingsAtOpen] = useState(audioSettings);
   const [quickSettings, setQuickSettings] = useState<LobbySettingsValue>({
     botCount: 3,
     botDifficulty: "medium",
@@ -74,8 +75,8 @@ export function HomeScreen({
 
   const openPlayerSettings = () => {
     setDisplayNameDraft(displayName);
-    setMusicVolumeDraft(musicVolume);
-    setMusicVolumeAtOpen(musicVolume);
+    setAudioSettingsDraft(audioSettings);
+    setAudioSettingsAtOpen(audioSettings);
     setShowPlayerSettings(true);
   };
 
@@ -85,14 +86,13 @@ export function HomeScreen({
   };
 
   const cancelPlayerSettings = () => {
-    onMusicVolumeChange(musicVolumeAtOpen);
+    onAudioSettingsChange(audioSettingsAtOpen);
     setShowPlayerSettings(false);
   };
 
-  const updateMusicVolumeDraft = (value: number | number[]) => {
-    const nextVolume = Array.isArray(value) ? value[0] : value;
-    setMusicVolumeDraft(nextVolume);
-    onMusicVolumeChange(nextVolume);
+  const updateAudioSettingsDraft = (settings: AudioSettings) => {
+    setAudioSettingsDraft(settings);
+    onAudioSettingsChange(settings);
   };
 
   return (
@@ -325,9 +325,9 @@ export function HomeScreen({
               >
                 <div>
                   <p className="eyebrow">Player Settings</p>
-                  <Modal.Heading>Your Island Name</Modal.Heading>
+                  <Modal.Heading>Player &amp; Audio</Modal.Heading>
                   <p id="player-settings-description">
-                    This is the name other players will see at the table.
+                    Choose the name other players see and set each part of the game audio.
                   </p>
                 </div>
                 <Button
@@ -368,27 +368,10 @@ export function HomeScreen({
                     />
                   </TextField>
 
-                  <div className={playerSettingsStyles.volume}>
-                    <Slider
-                      className={playerSettingsStyles.slider}
-                      formatOptions={{ style: "unit", unit: "percent" }}
-                      maxValue={100}
-                      minValue={0}
-                      onChange={updateMusicVolumeDraft}
-                      step={1}
-                      value={musicVolumeDraft}
-                    >
-                      <Label className={playerSettingsStyles.volumeLabel}>
-                        <Icon aria-hidden="true" icon={volumeIcon} /> Music Volume
-                      </Label>
-                      <Slider.Output className={playerSettingsStyles.output} />
-                      <Slider.Track className={playerSettingsStyles.track}>
-                        <Slider.Fill className={playerSettingsStyles.fill} />
-                        <Slider.Thumb className={playerSettingsStyles.thumb} />
-                      </Slider.Track>
-                    </Slider>
-                    <p className={playerSettingsStyles.help}>Adjust the menu soundtrack volume.</p>
-                  </div>
+                  <AudioSettingsControls
+                    onChange={updateAudioSettingsDraft}
+                    settings={audioSettingsDraft}
+                  />
                 </form>
               </Modal.Body>
               <Modal.Footer className={`${setupShellStyles.footer} ${playerSettingsStyles.footer}`}>

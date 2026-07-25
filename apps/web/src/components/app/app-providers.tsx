@@ -64,7 +64,7 @@ export function AppProviders({
   }
 
   if (!clients) {
-    return <FullPageStatus label="Loading…" />;
+    return <FullPageStatus label="Gathering your crew…" />;
   }
 
   return (

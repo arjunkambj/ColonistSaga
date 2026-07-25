@@ -2,8 +2,8 @@ import {
   NUMBER_TOKEN_PIPS,
   PLAYER_COLORS,
   TERRAIN_RESOURCE,
+  getLongestRoadLength,
   type GameCommand,
-  type PlayerColor,
   type PlayerGameView,
   type PlayerViewState,
   type ResourceType,
@@ -26,7 +26,6 @@ import {
   getPointStyle,
   getPortPlacement,
   getTilePoint,
-  getVertexPoint,
 } from "@/lib/game/board-layout";
 import { BOARD_VIEWPORT_SCALE } from "@/lib/game/board-viewport";
 import {
@@ -51,16 +50,9 @@ const TERRAIN_LABELS: Readonly<Record<TerrainType, string>> = {
   mountains: "Mountains",
   pasture: "Pasture",
 };
-const PIECE_LABELS = {
-  city: "City",
-  road: "Road",
-  settlement: "Settlement",
-} as const;
 const KEYBOARD_PAN_STEP = 48;
 
-type BoardPieceAsset = keyof typeof PIECE_LABELS;
 type BoardTile = PlayerGameView["board"]["tiles"][number];
-type PlayerTheme = PlayerColor;
 
 interface BoardInspectionDetail {
   label: string;
@@ -73,6 +65,7 @@ interface BoardInspection {
   details: readonly BoardInspectionDetail[];
   id: string;
   kicker: string;
+  layout?: "compact";
   resource?: ResourceType;
   title: string;
 }
@@ -115,6 +108,12 @@ export function GameBoard({
     () => new Map(game.players.map((player) => [player.id, getPlayerTheme(player)])),
     [game.players],
   );
+  const longestRoadLengthByPlayerId = useMemo(() => {
+    const roadOwnerIds = new Set(game.board.roads.map((road) => road.playerId));
+    return new Map(
+      [...roadOwnerIds].map((playerId) => [playerId, getLongestRoadLength(game.board, playerId)]),
+    );
+  }, [game.board]);
   const boardLayout = useMemo(() => createBoardLayout(game.board.tiles), [game.board.tiles]);
   const viewerTheme = playerDetailsById.get(game.viewerPlayerId)?.theme ?? "red";
   const ports = useMemo(
@@ -143,27 +142,13 @@ export function GameBoard({
     () =>
       game.board.roads.map((road) => {
         const owner = playerDetailsById.get(road.playerId);
-        return createPieceInspection(
+        return createRoadInspection(
           `road:${road.edgeKey}`,
-          "road",
           owner?.displayName ?? "Unknown player",
-          owner?.theme ?? "red",
+          longestRoadLengthByPlayerId.get(road.playerId) ?? 0,
         );
       }),
-    [game.board.roads, playerDetailsById],
-  );
-  const buildingInspections = useMemo(
-    () =>
-      game.board.buildings.map((building) => {
-        const owner = playerDetailsById.get(building.playerId);
-        return createPieceInspection(
-          `building:${building.vertexKey}`,
-          building.kind,
-          owner?.displayName ?? "Unknown player",
-          owner?.theme ?? "red",
-        );
-      }),
-    [game.board.buildings, playerDetailsById],
+    [game.board.roads, longestRoadLengthByPlayerId, playerDetailsById],
   );
   const tilesById = useMemo(
     () => new Map(game.board.tiles.map((tile) => [tile.id, tile])),
@@ -181,11 +166,10 @@ export function GameBoard({
           ...tileInspections,
           ...portInspections,
           ...roadInspections,
-          ...buildingInspections,
           ...(robberInspection ? [robberInspection] : []),
         ].map((inspection) => [inspection.id, inspection]),
       ),
-    [buildingInspections, portInspections, roadInspections, robberInspection, tileInspections],
+    [portInspections, roadInspections, robberInspection, tileInspections],
   );
   const inspectionOrder = useMemo(() => [...inspectionById.keys()], [inspectionById]);
   const firstInspectionId = inspectionOrder[0] ?? null;
@@ -471,30 +455,11 @@ export function GameBoard({
             return point && inspection ? (
               <BoardHitTarget
                 angle={point.angle}
-                className="piece-hit-target piece-hit-target-road"
+                className="piece-hit-target-road"
                 inspection={inspection}
                 isInspected={inspection.id === inspectedItemId}
                 isKeyboardTarget={inspection.id === keyboardInspectionId}
                 key={road.edgeKey}
-                kind="piece"
-                onInspect={inspectBoardItem}
-                onKeyboardFocus={focusBoardItem}
-                onKeyboardNavigate={navigateBoardItems}
-                point={point}
-              />
-            ) : null;
-          })}
-
-          {game.board.buildings.map((building, index) => {
-            const point = getVertexPoint(boardLayout, building.vertexKey);
-            const inspection = buildingInspections[index];
-            return point && inspection ? (
-              <BoardHitTarget
-                className={`piece-hit-target piece-hit-target-${building.kind}`}
-                inspection={inspection}
-                isInspected={inspection.id === inspectedItemId}
-                isKeyboardTarget={inspection.id === keyboardInspectionId}
-                key={building.vertexKey}
                 kind="piece"
                 onInspect={inspectBoardItem}
                 onKeyboardFocus={focusBoardItem}
@@ -636,37 +601,33 @@ function BuildTarget({
 }
 
 function BoardInspector({ inspection }: { inspection: BoardInspection | null }) {
+  if (!inspection) {
+    return null;
+  }
+
   return (
     <aside
       aria-label="Board inspector"
-      className={inspection ? "board-inspector is-active" : "board-inspector is-idle"}
+      className={`board-inspector${inspection.layout === "compact" ? " is-compact" : ""}`}
     >
-      <span className="board-inspector-kicker">{inspection?.kicker ?? "Island guide"}</span>
+      <span className="board-inspector-kicker">{inspection.kicker}</span>
       <span className="board-inspector-title-row">
-        {inspection?.resource ? (
+        {inspection.resource ? (
           <ResourceIcon decorative resource={inspection.resource} size={34} />
         ) : null}
-        <strong className="board-inspector-title">
-          {inspection?.title ?? "Inspect the board"}
-        </strong>
+        <strong className="board-inspector-title">{inspection.title}</strong>
       </span>
-      {inspection ? (
-        <dl className="board-inspector-details">
-          {inspection.details.map((detail) => (
-            <div
-              className={`board-inspector-detail${detail.tone === "alert" ? " is-alert" : ""}`}
-              key={detail.label}
-            >
-              <dt className="sr-only">{detail.label}</dt>
-              <dd className="board-inspector-value">{detail.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : (
-        <p className="board-inspector-hint">
-          Hover an item, or Tab into the board and use arrows to inspect.
-        </p>
-      )}
+      <dl className="board-inspector-details">
+        {inspection.details.map((detail) => (
+          <div
+            className={`board-inspector-detail${detail.tone === "alert" ? " is-alert" : ""}`}
+            key={detail.label}
+          >
+            <dt className="sr-only">{detail.label}</dt>
+            <dd className="board-inspector-value">{detail.value}</dd>
+          </div>
+        ))}
+      </dl>
     </aside>
   );
 }
@@ -746,19 +707,21 @@ function createPortInspection(
   };
 }
 
-function createPieceInspection(
+function createRoadInspection(
   id: string,
-  asset: BoardPieceAsset,
   ownerName: string,
-  theme: PlayerTheme,
+  longestRoadLength: number,
 ): BoardInspection {
-  const pieceLabel = PIECE_LABELS[asset];
   return {
-    accessibleLabel: `${ownerName}'s ${theme} ${asset}.`,
-    details: [{ label: "Owner", value: `Owned by ${ownerName}` }],
+    accessibleLabel: `${ownerName}'s road; longest road is ${longestRoadLength} segments.`,
+    details: [
+      { label: "Owner", value: ownerName },
+      { label: "Longest road", value: `Longest: ${longestRoadLength}` },
+    ],
     id,
     kicker: ownerName,
-    title: pieceLabel,
+    layout: "compact",
+    title: "Road",
   };
 }
 

@@ -691,17 +691,25 @@ function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
     board: { ...state.board, robberTileId: tileId },
   };
 
-  return {
+  if (eligibleVictimIds.length === 0) {
+    return {
+      ...withRobber,
+      phase: { kind: "build_and_trade" as const },
+    };
+  }
+
+  const awaitingVictimSelection: GameState = {
     ...withRobber,
-    phase:
-      eligibleVictimIds.length > 0
-        ? {
-            eligibleVictimIds,
-            kind: "steal" as const,
-            rollerPlayerId: state.phase.rollerPlayerId,
-          }
-        : { kind: "build_and_trade" as const },
+    phase: {
+      eligibleVictimIds,
+      kind: "steal",
+      rollerPlayerId: state.phase.rollerPlayerId,
+    },
   };
+
+  return eligibleVictimIds.length === 1
+    ? stealResource(awaitingVictimSelection, playerId, eligibleVictimIds[0]!)
+    : awaitingVictimSelection;
 }
 
 function stealResource(state: GameState, playerId: PlayerId, victimPlayerId: PlayerId) {

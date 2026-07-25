@@ -8,7 +8,9 @@ import {
 } from "../schema";
 
 export const gameEventViewValidator = v.object({
+  actorPlayerId: v.string(),
   createdAt: v.number(),
+  kind: v.string(),
   sequence: v.number(),
   text: v.string(),
 });

@@ -271,6 +271,79 @@ describe("friendly robber", () => {
   });
 });
 
+describe("robber theft", () => {
+  function robberReadyState(victimPlayerIds: string[]) {
+    const created = createGame(`robber-theft:${victimPlayerIds.length}`);
+    const tile = created.board.tiles.find(
+      (candidate) => candidate.id !== created.board.robberTileId,
+    );
+    if (!tile) throw new Error("Robber needs another tile");
+
+    const vertexKeys = getBoardTopology(created.board.tiles).tileById[tile.id]?.vertexKeys ?? [];
+    if (vertexKeys.length < victimPlayerIds.length) {
+      throw new Error("Robber tile needs enough adjacent vertices");
+    }
+
+    const victimIdSet = new Set(victimPlayerIds);
+    const state: GameState = {
+      ...created,
+      activePlayerId: PLAYERS[0]!.id,
+      bank: {
+        ...created.bank,
+        brick: created.bank.brick - victimPlayerIds.length,
+      },
+      board: {
+        ...created.board,
+        buildings: victimPlayerIds.map((playerId, index) => ({
+          kind: "settlement",
+          playerId,
+          vertexKey: vertexKeys[index]!,
+        })),
+      },
+      phase: { kind: "move_robber", rollerPlayerId: PLAYERS[0]!.id },
+      players: created.players.map((player) =>
+        victimIdSet.has(player.id)
+          ? {
+              ...player,
+              piecesRemaining: { ...player.piecesRemaining, settlements: 4 },
+              resources: { ...player.resources, brick: 1 },
+              victoryPoints: 1,
+            }
+          : player,
+      ),
+      settings: { ...created.settings, friendlyRobber: false },
+    };
+
+    return { state, tileId: tile.id };
+  }
+
+  test("automatically steals when only one adjacent player is eligible", () => {
+    const { state, tileId } = robberReadyState([PLAYERS[1]!.id]);
+    const next = applyCommand(state, PLAYERS[0]!.id, { kind: "move_robber", tileId });
+
+    expect(next.phase).toEqual({ kind: "build_and_trade" });
+    expect(next.players[0]!.resources.brick).toBe(1);
+    expect(next.players[1]!.resources.brick).toBe(0);
+    expect(next.randomIndex).toBe(state.randomIndex + 1);
+    expectConservedState(next);
+  });
+
+  test("still asks for a victim when multiple adjacent players are eligible", () => {
+    const victimPlayerIds = [PLAYERS[1]!.id, PLAYERS[2]!.id];
+    const { state, tileId } = robberReadyState(victimPlayerIds);
+    const next = applyCommand(state, PLAYERS[0]!.id, { kind: "move_robber", tileId });
+
+    expect(next.phase).toEqual({
+      eligibleVictimIds: victimPlayerIds,
+      kind: "steal",
+      rollerPlayerId: PLAYERS[0]!.id,
+    });
+    expect(next.players[0]!.resources.brick).toBe(0);
+    expect(next.randomIndex).toBe(state.randomIndex);
+    expectConservedState(next);
+  });
+});
+
 describe("maps and turn limits", () => {
   test("each supported map exposes only its intended player counts", () => {
     expect(GAME_MAP_IDS).toEqual(["base", "extended-6", "extended-8"]);

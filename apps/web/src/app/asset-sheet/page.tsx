@@ -49,37 +49,30 @@ interface AssetSubcategory {
 
 const MUSIC_ASSETS = [
   {
-    description: "The single optional loop used on the signed-in home screen.",
-    format: "MP3 · 256 kbps",
+    description: "A welcoming magical-island theme used on the signed-in home screen.",
+    format: "MP3 · 44.1 kHz · 192 kbps",
     kind: "audio",
     name: "Home music",
-    path: "/music/main-loby-music.mp3",
+    path: "/music/main-lobby-music.mp3",
     status: "generated",
-  },
-  {
-    description: "One low-fatigue loop for ordinary turns, resources, building, and trade.",
-    format: "Target · 48 kHz WAV + runtime copy",
-    kind: "audio",
-    name: "In-game ambience",
-    status: "needed",
   },
 ] satisfies readonly AssetItem[];
 
 const SOUND_EFFECT_ASSETS = [
-  ["Interface press", "Shared tactile feedback for buttons, tabs, steppers, and toggles."],
-  ["Action feedback", "A restrained confirmation or invalid-action response."],
-  ["Your turn", "One notification when the required actor changes to the viewer."],
-  ["Dice result", "One compact roll-and-settle cue after the server confirms the total."],
-  ["Resource change", "One bundled cue for the viewer gaining or losing resources."],
-  ["Piece placed", "Shared placement cue for roads, settlements, and cities."],
-  ["Robber alert", "Brief interruption for the seven, discard, and robber sequence."],
-  ["Trade resolved", "Shared confirmation when a bank or player trade completes."],
-].map(([name, description]) => ({
+  ["Action feedback", "Generic game action confirmation.", "action-feedback"],
+  ["Your turn", "Notification when your turn begins.", "your-turn"],
+  ["Resource change", "Resource gain or loss cue.", "resource-change"],
+  ["Piece placed", "Road or building placement cue.", "piece-placed"],
+  ["Robber alert", "Robber sequence warning.", "robber-alert"],
+  ["Trade resolved", "Completed trade confirmation.", "trade-resolved"],
+  ["Victory", "Match-winning celebration.", "victory"],
+].map(([name, description, filename]) => ({
   name,
   description,
-  format: "Target · 48 kHz WAV + runtime copy",
+  format: "MP3 · 44.1 kHz · 192 kbps",
   kind: "audio" as const,
-  status: "needed" as const,
+  path: `/sound-effects/${filename}.mp3`,
+  status: "generated" as const,
 }));
 
 const selectAssets = (assets: readonly AssetItem[], names: readonly string[]) =>
@@ -96,21 +89,16 @@ const TERRAIN_TYPES = [
 
 const SOUND_EFFECT_SUBCATEGORIES = [
   {
-    name: "Interface",
-    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Interface press", "Action feedback"]),
+    name: "General",
+    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Action feedback"]),
   },
   {
     name: "Game round",
-    assets: selectAssets(SOUND_EFFECT_ASSETS, [
-      "Your turn",
-      "Dice result",
-      "Resource change",
-      "Piece placed",
-    ]),
+    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Your turn", "Resource change", "Piece placed"]),
   },
   {
     name: "High-priority events",
-    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Robber alert", "Trade resolved"]),
+    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Robber alert", "Trade resolved", "Victory"]),
   },
 ] satisfies readonly AssetSubcategory[];
 
@@ -424,22 +412,22 @@ const ASSET_CATEGORIES = [
         status: "generated",
       },
       {
-        name: "Island light palette",
+        name: "Parchment light palette",
         description:
-          "Paper-white surfaces, slate ink, harvest gold, and lagoon cyan provide the clear daytime board and action hierarchy.",
-        format: "#F4F9FF · #33405A · #F5AD3F · #25BFCA",
+          "Warm parchment, aubergine ink, royal purple, and token gold mirror the development-card materials and action hierarchy.",
+        format: "#FFF7ED · #43284B · #824193 · #E5A72E",
         kind: "brand",
         status: "generated",
-        swatches: ["#F4F9FF", "#33405A", "#F5AD3F", "#25BFCA"],
+        swatches: ["#FFF7ED", "#43284B", "#824193", "#E5A72E"],
       },
       {
-        name: "Ocean dark palette",
+        name: "Royal purple dark palette",
         description:
-          "Deep ocean blue, cloud-white type, warm token gold, and bright cyan feedback preserve contrast around the board at night.",
-        format: "#063A78 · #F4F9FF · #FFD15A · #54D8FF",
+          "Deep aubergine, parchment type, token gold, and bright amethyst carry the same card-table atmosphere into dark play.",
+        format: "#2A1234 · #FFF7ED · #F2B83F · #C078CB",
         kind: "brand",
         status: "generated",
-        swatches: ["#063A78", "#F4F9FF", "#FFD15A", "#54D8FF"],
+        swatches: ["#2A1234", "#FFF7ED", "#F2B83F", "#C078CB"],
       },
       {
         name: "Player seat colors",

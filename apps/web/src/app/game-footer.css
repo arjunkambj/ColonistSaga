@@ -1,12 +1,12 @@
 /* Stable bottom-dock UX: resources, building actions, then turn control. */
 
 .reference-game .turn-control {
-  border: 1px solid rgba(135, 210, 248, 0.26);
+  border: 1px solid rgba(225, 184, 230, 0.3);
   border-radius: 1.05rem;
-  background: linear-gradient(145deg, rgba(8, 83, 151, 0.68), rgba(2, 40, 92, 0.86));
+  background: linear-gradient(145deg, rgba(111, 57, 126, 0.78), rgba(49, 20, 61, 0.92));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 10px 24px rgba(0, 24, 67, 0.24);
+    0 10px 24px rgba(34, 10, 42, 0.3);
   backdrop-filter: blur(18px) saturate(138%);
   -webkit-backdrop-filter: blur(18px) saturate(138%);
 }
@@ -21,9 +21,9 @@
   justify-items: center;
   gap: 0.22rem;
   padding: 0.25rem;
-  border: 1px solid rgba(156, 220, 250, 0.24);
+  border: 1px solid rgba(225, 184, 230, 0.28);
   border-radius: 0.72rem;
-  background: rgba(2, 42, 94, 0.48);
+  background: rgba(48, 19, 60, 0.54);
   overflow: hidden;
 }
 
@@ -50,9 +50,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  border: 1px solid rgba(140, 214, 250, 0.24);
+  border: 1px solid rgba(225, 184, 230, 0.26);
   border-radius: 0.72rem;
-  background: rgba(3, 47, 103, 0.58);
+  background: rgba(48, 19, 60, 0.62);
 }
 
 .reference-game .turn-control .roll-preview-card .die-face {
@@ -83,7 +83,7 @@
   grid-template-rows: auto auto;
   place-content: center;
   justify-items: center;
-  color: #a8cce4;
+  color: #cbb0ce;
   font-size: 0.68rem;
   font-weight: 800;
 }

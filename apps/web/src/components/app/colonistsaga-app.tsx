@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { MenuMusic } from "@/components/audio/menu-music";
+import { BackgroundMusic } from "@/components/audio/background-music";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { GameScreen } from "@/components/game/game-screen";
 import { HomeScreen } from "@/components/home/home-screen";
@@ -18,13 +18,14 @@ import { toActionableError } from "@/lib/app/action-errors";
 import { createCachedValue } from "@/lib/app/cached-value";
 import { cleanDisplayName } from "@/lib/app/display-name";
 import type { PendingAction } from "@/lib/app/pending-action";
-import { parsePlayerView } from "@/lib/game/types";
 import {
-  DEFAULT_MUSIC_VOLUME,
-  normalizeMusicVolume,
-  readMusicVolume,
-  writeMusicVolume,
-} from "@/lib/music-volume";
+  DEFAULT_AUDIO_SETTINGS,
+  normalizeAudioSettings,
+  readAudioSettings,
+  writeAudioSettings,
+  type AudioSettings,
+} from "@/lib/audio-settings";
+import { parsePlayerView } from "@/lib/game/types";
 import {
   type PlayerSession,
   isRoomCode,
@@ -42,24 +43,18 @@ export function ColonistSagaApp() {
   const hexclave = useHexclaveApp();
   const [user, setUser] = useState<CurrentUser | null>();
   const [userLoadFailed, setUserLoadFailed] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(DEFAULT_MUSIC_VOLUME);
+  const [audioSettings, setAudioSettings] = useState(DEFAULT_AUDIO_SETTINGS);
 
   useEffect(() => {
-    setMusicVolume(readMusicVolume(window.localStorage));
+    setAudioSettings(readAudioSettings(window.localStorage));
   }, []);
-
-  const updateMusicVolume = (volume: number) => {
-    const nextVolume = normalizeMusicVolume(volume);
-    setMusicVolume(nextVolume);
-    writeMusicVolume(window.localStorage, nextVolume);
-  };
 
   useEffect(() => {
     let cancelled = false;
 
     const loadUser = async () => {
       try {
-        const currentUser = await hexclave.getUser();
+        const currentUser = await hexclave.getUser({ includeRestricted: true });
         if (!cancelled) {
           setUser(currentUser);
         }
@@ -76,6 +71,12 @@ export function ColonistSagaApp() {
       cancelled = true;
     };
   }, [hexclave]);
+
+  const updateAudioSettings = (settings: AudioSettings) => {
+    const nextSettings = normalizeAudioSettings(settings);
+    setAudioSettings(nextSettings);
+    writeAudioSettings(window.localStorage, nextSettings);
+  };
 
   if (userLoadFailed) {
     return (
@@ -104,9 +105,9 @@ export function ColonistSagaApp() {
   return (
     <AuthenticatedApp
       accountLabel={accountLabel}
+      audioSettings={audioSettings}
       defaultDisplayName={defaultDisplayName}
-      musicVolume={musicVolume}
-      onMusicVolumeChange={updateMusicVolume}
+      onAudioSettingsChange={updateAudioSettings}
       onSignOut={() => user.signOut({ redirectUrl: "/" })}
       profileImageUrl={user.profileImageUrl}
       userId={user.id}
@@ -116,17 +117,17 @@ export function ColonistSagaApp() {
 
 function AuthenticatedApp({
   accountLabel,
+  audioSettings,
   defaultDisplayName,
-  musicVolume,
-  onMusicVolumeChange,
+  onAudioSettingsChange,
   onSignOut,
   profileImageUrl,
   userId,
 }: {
   accountLabel: string;
+  audioSettings: AudioSettings;
   defaultDisplayName: string;
-  musicVolume: number;
-  onMusicVolumeChange(value: number): void;
+  onAudioSettingsChange(settings: AudioSettings): void;
   onSignOut(): Promise<void>;
   profileImageUrl: string | null;
   userId: string;
@@ -308,16 +309,19 @@ function AuthenticatedApp({
   if (!session.activeCode) {
     return (
       <>
-        <MenuMusic volume={musicVolume} />
+        <BackgroundMusic
+          src="/music/main-lobby-music.mp3"
+          volume={audioSettings.lobbyMusicVolume}
+        />
         <HomeScreen
           accountLabel={accountLabel}
+          audioSettings={audioSettings}
           displayName={session.displayName}
           error={error}
           onCreateRoom={handleCreateRoom}
           onDisplayNameChange={updateDisplayName}
           onJoinRoom={handleJoinRoom}
-          musicVolume={musicVolume}
-          onMusicVolumeChange={onMusicVolumeChange}
+          onAudioSettingsChange={onAudioSettingsChange}
           onQuickPlay={handleQuickPlay}
           onSignOut={() => perform("signout", onSignOut)}
           pendingAction={pendingAction}
@@ -344,15 +348,21 @@ function AuthenticatedApp({
 
   if (room.status === "waiting") {
     return (
-      <LobbyScreen
-        error={error}
-        onLeave={leaveRoom}
-        onReplacePlayer={handleReplacePlayer}
-        onSaveSettings={handleRoomSettings}
-        onStart={handleStartGame}
-        pendingAction={pendingAction}
-        room={room}
-      />
+      <>
+        <BackgroundMusic
+          src="/music/main-lobby-music.mp3"
+          volume={audioSettings.lobbyMusicVolume}
+        />
+        <LobbyScreen
+          error={error}
+          onLeave={leaveRoom}
+          onReplacePlayer={handleReplacePlayer}
+          onSaveSettings={handleRoomSettings}
+          onStart={handleStartGame}
+          pendingAction={pendingAction}
+          room={room}
+        />
+      </>
     );
   }
 
@@ -376,12 +386,14 @@ function AuthenticatedApp({
 
   return (
     <GameScreen
+      audioSettings={audioSettings}
       botThinking={room.botThinking}
       code={room.code}
       events={room.events}
       game={game}
       isHost={room.isHost}
       nextActionAt={room.nextActionAt}
+      onAudioSettingsChange={onAudioSettingsChange}
       onLeave={leaveRoom}
       viewerProfileImageUrl={profileImageUrl}
     />

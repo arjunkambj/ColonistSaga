@@ -1,4 +1,5 @@
 import { PLAYER_COLORS } from "./constants";
+import { parseCommandKind } from "./commands";
 import { fail } from "./errors";
 import {
   parseGameState,
@@ -17,7 +18,9 @@ async function listGameEvents(ctx: ReadCtx, gameId: GameId): Promise<GameEventVi
     .order("desc")
     .take(40);
   return [...events].reverse().map((event) => ({
+    actorPlayerId: String(event.actorSeatId),
     createdAt: event.createdAt,
+    kind: parseCommandKind(event.commandJson),
     sequence: event._creationTime,
     text: event.text,
   }));

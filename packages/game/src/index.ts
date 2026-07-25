@@ -1,6 +1,7 @@
 export * from "./board";
 export * from "./bots";
 export * from "./constants";
+export * from "./longest-road";
 export * from "./maps";
 export * from "./random";
 export * from "./resources";

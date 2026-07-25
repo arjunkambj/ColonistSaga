@@ -33,6 +33,8 @@ import { useMutation } from "convex/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AudioSettingsControls } from "@/components/audio/audio-settings-controls";
+import { GameAudio } from "@/components/audio/game-audio";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
@@ -45,6 +47,7 @@ import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import { getTurnControlKind } from "@/lib/game/game-footer-model";
 import type { RoomEventView } from "@/lib/game/types";
 import { getPhaseCopy } from "@/lib/game/view";
+import type { AudioSettings } from "@/lib/audio-settings";
 
 import { ActionTile } from "./action-tile";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
@@ -78,21 +81,25 @@ const LOCAL_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
 });
 
 export function GameScreen({
+  audioSettings,
   code,
   events,
   game,
   isHost,
   botThinking,
   nextActionAt,
+  onAudioSettingsChange,
   onLeave,
   viewerProfileImageUrl,
 }: {
+  audioSettings: AudioSettings;
   code: string;
   events: RoomEventView[];
   game: PlayerGameView;
   isHost: boolean;
   botThinking: boolean;
   nextActionAt?: number;
+  onAudioSettingsChange(settings: AudioSettings): void;
   onLeave(): Promise<void>;
   viewerProfileImageUrl: string | null;
 }) {
@@ -218,6 +225,14 @@ export function GameScreen({
       className={`game-page reference-game${isBoardFocused ? " is-board-focused" : ""}`}
       id="main-content"
     >
+      <GameAudio
+        activePlayerId={game.activePlayerId}
+        events={events}
+        phaseKind={game.phase.kind}
+        soundEffectsVolume={audioSettings.soundEffectsVolume}
+        viewerPlayerId={me.id}
+        winnerPlayerId={game.winnerPlayerId}
+      />
       <header className="game-header">
         <Brand className="compact-brand" />
         <div className="game-room-meta">
@@ -369,11 +384,13 @@ export function GameScreen({
 
       {gameInfoView ? (
         <MobileGameInfo
+          audioSettings={audioSettings}
           code={code}
           events={events}
           game={game}
           isHost={isHost}
           onClose={() => setGameInfoView(null)}
+          onAudioSettingsChange={onAudioSettingsChange}
           onReplacePlayer={requestBotReplacement}
           pendingReplacementId={pendingReplacementId}
           viewerProfileImageUrl={viewerProfileImageUrl}
@@ -683,20 +700,24 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
 }
 
 function MobileGameInfo({
+  audioSettings,
   code,
   events,
   game,
   isHost,
+  onAudioSettingsChange,
   onClose,
   onReplacePlayer,
   pendingReplacementId,
   viewerProfileImageUrl,
   view,
 }: {
+  audioSettings: AudioSettings;
   code: string;
   events: RoomEventView[];
   game: PlayerGameView;
   isHost: boolean;
+  onAudioSettingsChange(settings: AudioSettings): void;
   onClose(): void;
   onReplacePlayer(playerId: string): void;
   pendingReplacementId: string | null;
@@ -777,6 +798,10 @@ function MobileGameInfo({
                 </ol>
               ) : (
                 <>
+                  <AudioSettingsControls
+                    onChange={onAudioSettingsChange}
+                    settings={audioSettings}
+                  />
                   <dl className="game-info-settings">
                     <div>
                       <dt>Room</dt>

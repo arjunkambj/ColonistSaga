@@ -63,6 +63,24 @@ export function serializeCommand(command: GameCommand): string {
   }
 }
 
+export function parseCommandKind(commandJson: string): string {
+  try {
+    const command: unknown = JSON.parse(commandJson);
+    if (
+      command &&
+      typeof command === "object" &&
+      "kind" in command &&
+      typeof command.kind === "string"
+    ) {
+      return command.kind;
+    }
+  } catch {
+    // Stored commands are validated when written; malformed historical data is displayed as unknown.
+  }
+
+  return "unknown";
+}
+
 export function commandText(
   command: GameCommand,
   displayName: string,

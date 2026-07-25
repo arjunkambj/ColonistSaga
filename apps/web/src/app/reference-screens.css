@@ -1000,14 +1000,14 @@
 /* Game table */
 
 .game-page.reference-game {
-  --foreground: #f4f9ff;
-  --muted: #b9d8ef;
-  --border: rgba(145, 215, 250, 0.24);
-  --warning: #ffd15a;
-  --success: #54d8ff;
-  color: #f4f9ff;
+  --foreground: #fff7ed;
+  --muted: #d6bdd8;
+  --border: rgba(225, 184, 230, 0.28);
+  --warning: #f2b83f;
+  --success: #c078cb;
+  color: #fff7ed;
   color-scheme: dark;
-  background: #063a78;
+  background: #2a1234;
 }
 
 .reference-game .icon-button,
@@ -1016,11 +1016,11 @@
 .reference-game .phase-banner,
 .reference-game .resource-hand,
 .reference-game .action-dock {
-  border-color: rgba(135, 210, 248, 0.26);
-  background: linear-gradient(145deg, rgba(8, 83, 151, 0.68), rgba(2, 40, 92, 0.86));
+  border-color: rgba(225, 184, 230, 0.3);
+  background: linear-gradient(145deg, rgba(111, 57, 126, 0.78), rgba(49, 20, 61, 0.92));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 10px 24px rgba(0, 24, 67, 0.24);
+    0 10px 24px rgba(34, 10, 42, 0.3);
   backdrop-filter: blur(18px) saturate(138%);
   -webkit-backdrop-filter: blur(18px) saturate(138%);
 }
@@ -1039,13 +1039,13 @@
 }
 
 .reference-game .icon-button {
-  color: #edf9ff;
+  color: #fff7ed;
 }
 
 .reference-game .icon-button:hover,
 .reference-game .icon-button[data-hovered="true"] {
-  border-color: rgba(194, 239, 255, 0.54);
-  background: rgba(17, 112, 188, 0.72);
+  border-color: rgba(245, 216, 239, 0.58);
+  background: rgba(133, 67, 148, 0.78);
 }
 
 .reference-game .phase-banner h1,
@@ -1053,7 +1053,7 @@
 .reference-game .hand-heading h2,
 .reference-game .action-heading strong,
 .reference-game .player-identity-line > strong {
-  color: #f8fcff;
+  color: #fffaf3;
 }
 
 .reference-game .phase-banner p:last-child,
@@ -1065,22 +1065,22 @@
 .reference-game .hand-heading > span,
 .reference-game .piece-supply-title,
 .reference-game .action-heading span {
-  color: #b8d5ea;
+  color: #d6bdd8;
 }
 
 .reference-game .phase-icon,
 .reference-game .turn-clock {
-  border-color: rgba(126, 208, 249, 0.2);
-  background: rgba(3, 47, 102, 0.54);
+  border-color: rgba(225, 184, 230, 0.22);
+  background: rgba(48, 19, 60, 0.58);
 }
 
 .reference-game .event-list li {
-  border-bottom-color: rgba(130, 205, 242, 0.13);
+  border-bottom-color: rgba(225, 184, 230, 0.15);
 }
 
 .reference-game .event-list li > span {
-  background: #54d8ff;
-  box-shadow: 0 0 0 0.18rem rgba(84, 216, 255, 0.1);
+  background: #c078cb;
+  box-shadow: 0 0 0 0.18rem rgba(192, 120, 203, 0.12);
 }
 
 .reference-game .event-copy {
@@ -1097,7 +1097,7 @@
 
 .reference-game .event-copy time {
   flex: 0 0 auto;
-  color: #8fb5d3;
+  color: #bfa2c4;
   font-size: 0.58rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1108,12 +1108,12 @@
 }
 
 .reference-game .player-summary.is-active {
-  border-color: color-mix(in srgb, var(--player-color), #a8e4ff 38%);
+  border-color: color-mix(in srgb, var(--player-color), #e7c4e8 38%);
   border-inline-start-color: var(--player-color);
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--player-color), rgba(8, 82, 151, 0.7) 82%),
-    rgba(2, 40, 92, 0.9)
+    color-mix(in srgb, var(--player-color), rgba(105, 50, 120, 0.74) 82%),
+    rgba(49, 20, 61, 0.92)
   );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
@@ -1131,7 +1131,7 @@
 }
 
 .reference-game .player-victory-stat small {
-  color: #b4d2e8;
+  color: #d0b7d3;
 }
 
 .reference-game .player-resource-stat strong {
@@ -1141,13 +1141,13 @@
 }
 
 .reference-game .player-avatar-fallback {
-  color: #f6fbff;
+  color: #fff7ed;
 }
 
 .reference-game .bank-grid li {
   min-height: 4rem;
   border-color: rgba(192, 232, 250, 0.2);
-  background: linear-gradient(180deg, rgba(23, 113, 177, 0.78), rgba(4, 56, 118, 0.86));
+  background: linear-gradient(180deg, rgba(132, 68, 148, 0.84), rgba(57, 23, 70, 0.92));
 }
 
 .reference-game .bank-grid li:nth-child(1) {
@@ -1175,7 +1175,7 @@
 }
 
 .reference-game .bank-grid li strong {
-  background: rgba(2, 33, 77, 0.78);
+  background: rgba(42, 16, 52, 0.8);
   color: #fff;
 }
 
@@ -1191,10 +1191,10 @@
 }
 
 .reference-game .board-inspector {
-  border-color: rgba(155, 218, 249, 0.28);
-  background: rgba(3, 47, 101, 0.84);
-  box-shadow: 0 10px 28px rgba(0, 28, 72, 0.28);
-  color: #edf9ff;
+  border-color: rgba(225, 184, 230, 0.3);
+  background: rgba(48, 19, 60, 0.88);
+  box-shadow: 0 10px 28px rgba(34, 10, 42, 0.34);
+  color: #fff7ed;
 }
 
 .reference-game .board-inspector.is-idle {
@@ -1203,16 +1203,16 @@
 
 .reference-game .board-inspector-title,
 .reference-game .board-inspector-value {
-  color: #eff9ff;
+  color: #fffaf3;
 }
 
 .reference-game .board-inspector-label,
 .reference-game .board-inspector-hint {
-  color: #a8cce4;
+  color: #cbb0ce;
 }
 
 .reference-game .board-inspector-detail {
-  background: rgba(8, 91, 157, 0.5);
+  background: rgba(116, 55, 132, 0.58);
 }
 
 .reference-game .resource-hand,
@@ -1222,12 +1222,12 @@
 
 .reference-game .resource-card-face {
   border-width: 2px;
-  border-color: rgba(245, 248, 255, 0.42);
-  background: linear-gradient(180deg, rgba(21, 102, 167, 0.84), rgba(2, 51, 108, 0.94));
+  border-color: rgba(255, 247, 237, 0.42);
+  background: linear-gradient(180deg, rgba(126, 62, 143, 0.88), rgba(49, 20, 61, 0.96));
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -3px 0 rgba(0, 25, 68, 0.32),
-    0 5px 12px rgba(0, 29, 72, 0.2);
+    inset 0 -3px 0 rgba(39, 13, 47, 0.4),
+    0 5px 12px rgba(34, 10, 42, 0.26);
 }
 
 .reference-game .resource-card-face.resource-tree {
@@ -1272,23 +1272,23 @@
 .reference-game .action-button,
 .reference-game .button-end-turn,
 .reference-game .trade-launch {
-  border: 2px solid rgba(144, 221, 255, 0.5);
-  background: linear-gradient(180deg, rgba(13, 126, 207, 0.92), rgba(4, 64, 137, 0.97));
+  border: 2px solid rgba(225, 184, 230, 0.52);
+  background: linear-gradient(180deg, rgba(132, 65, 149, 0.94), rgba(76, 31, 88, 0.98));
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -4px 0 rgba(0, 34, 91, 0.44),
-    0 7px 16px rgba(0, 30, 76, 0.24);
+    inset 0 -4px 0 rgba(42, 15, 50, 0.5),
+    0 7px 16px rgba(34, 10, 42, 0.3);
   color: #fff;
 }
 
 .reference-game .action-button:not(:disabled):not([aria-disabled="true"]):hover,
 .reference-game .action-button.is-selected {
-  border-color: rgba(224, 250, 255, 0.84);
-  background: linear-gradient(180deg, #168fe0, #0757ae);
+  border-color: rgba(255, 229, 182, 0.88);
+  background: linear-gradient(180deg, #a85ab5, #6c2e79);
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -4px 0 rgba(0, 34, 91, 0.42),
-    0 10px 22px rgba(0, 35, 88, 0.34);
+    inset 0 -4px 0 rgba(53, 18, 61, 0.48),
+    0 10px 22px rgba(34, 10, 42, 0.38);
 }
 
 .reference-game .build-actions .action-button > strong,
@@ -1296,12 +1296,12 @@
 .reference-game .mini-cost > span,
 .reference-game .build-action-status,
 .reference-game .action-tile-preset__caption {
-  color: #edf9ff;
+  color: #fff7ed;
 }
 
 .reference-game .action-button.is-unavailable {
-  border-color: rgba(139, 200, 231, 0.2);
-  background: linear-gradient(180deg, rgba(21, 85, 143, 0.78), rgba(5, 48, 103, 0.9));
+  border-color: rgba(204, 166, 210, 0.22);
+  background: linear-gradient(180deg, rgba(91, 48, 104, 0.8), rgba(46, 20, 57, 0.92));
   opacity: 0.58;
 }
 
@@ -1314,7 +1314,7 @@
   font-size: 1.2rem;
   font-weight: 950;
   line-height: 1;
-  text-shadow: 0 2px 2px rgba(0, 26, 74, 0.72);
+  text-shadow: 0 2px 2px rgba(42, 15, 50, 0.76);
 }
 
 .reference-game .action-tile-preset {
@@ -1323,16 +1323,16 @@
   isolation: isolate;
   display: grid;
   overflow: hidden;
-  border: 3px solid rgba(136, 226, 255, 0.9);
+  border: 3px solid rgba(242, 200, 236, 0.88);
   border-radius: var(--action-tile-radius);
   background:
-    radial-gradient(circle at 50% -12%, rgba(118, 219, 255, 0.82), transparent 43%),
-    linear-gradient(180deg, #168fe0 0%, #0874c9 50%, #064995 100%);
+    radial-gradient(circle at 50% -12%, rgba(211, 139, 216, 0.8), transparent 43%),
+    linear-gradient(180deg, #a95ab5 0%, #7f3c8d 50%, #4b2058 100%);
   box-shadow:
     inset 0 3px 0 rgba(255, 255, 255, 0.46),
-    inset 0 -6px 0 rgba(0, 32, 91, 0.52),
-    0 7px 0 rgba(0, 35, 88, 0.68),
-    0 13px 24px rgba(0, 24, 70, 0.36);
+    inset 0 -6px 0 rgba(49, 17, 58, 0.56),
+    0 7px 0 rgba(45, 15, 54, 0.7),
+    0 13px 24px rgba(34, 10, 42, 0.4);
 }
 
 .reference-game .action-tile-preset::before,
@@ -1345,11 +1345,11 @@
 .reference-game .action-tile-preset::before {
   z-index: 0;
   inset: 4px;
-  border: 1px solid rgba(216, 247, 255, 0.56);
+  border: 1px solid rgba(250, 224, 241, 0.6);
   border-radius: calc(var(--action-tile-radius) - 0.28rem);
   box-shadow:
     inset 0 2px 3px rgba(255, 255, 255, 0.22),
-    inset 0 -3px 4px rgba(0, 33, 94, 0.36);
+    inset 0 -3px 4px rgba(49, 17, 58, 0.4);
 }
 
 .reference-game .action-tile-preset::after {
@@ -1376,13 +1376,13 @@
   min-width: 0;
   min-height: 0;
   place-items: center;
-  filter: drop-shadow(0 7px 5px rgba(0, 27, 78, 0.4));
+  filter: drop-shadow(0 7px 5px rgba(42, 15, 50, 0.44));
 }
 
 .reference-game .action-tile-preset__title {
   color: #fff;
   font-weight: 900;
-  text-shadow: 0 2px 2px rgba(0, 28, 79, 0.64);
+  text-shadow: 0 2px 2px rgba(42, 15, 50, 0.68);
 }
 
 .reference-game .action-tile-preset__meta,
@@ -1391,7 +1391,7 @@
   min-width: 0;
   align-items: center;
   justify-content: center;
-  color: #e7f7ff;
+  color: #f5deef;
 }
 
 .reference-game .action-tile-preset--poster {
@@ -1422,43 +1422,43 @@
 }
 
 .reference-game .dice-button {
-  border: 2px solid rgba(210, 244, 255, 0.72);
-  background: linear-gradient(180deg, #168ee5, #0758b1);
+  border: 2px solid rgba(255, 236, 191, 0.78);
+  background: linear-gradient(180deg, #f2b83f, #c77d19);
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.36),
-    inset 0 -4px 0 rgba(0, 35, 92, 0.42),
-    0 10px 22px rgba(0, 31, 78, 0.34);
-  color: #fff;
+    inset 0 -4px 0 rgba(101, 55, 11, 0.38),
+    0 10px 22px rgba(52, 21, 49, 0.36);
+  color: #43284b;
 }
 
 .game-info-reference-dialog {
-  border-color: rgba(169, 229, 255, 0.62);
-  background: linear-gradient(155deg, rgba(8, 110, 190, 0.92), rgba(2, 39, 96, 0.98));
-  color: #f4fbff;
+  border-color: rgba(225, 184, 230, 0.62);
+  background: linear-gradient(155deg, rgba(116, 55, 132, 0.94), rgba(43, 16, 53, 0.98));
+  color: #fff7ed;
 }
 
 .game-info-reference-dialog h2,
 .game-info-reference-dialog h3,
 .game-info-reference-dialog dd {
-  color: #f4fbff;
+  color: #fff7ed;
 }
 
 .game-info-reference-dialog .eyebrow,
 .game-info-reference-dialog dt,
 .game-info-reference-dialog .game-help-steps span {
-  color: #bce9ff;
+  color: #e0c4e1;
 }
 
 .game-info-reference-dialog .mobile-game-info-header > button {
-  border-color: rgba(181, 231, 255, 0.42);
-  background: rgba(3, 45, 104, 0.66);
+  border-color: rgba(225, 184, 230, 0.42);
+  background: rgba(48, 19, 60, 0.7);
   color: #fff;
 }
 
 .game-info-reference-dialog .side-card {
-  border-color: rgba(157, 220, 251, 0.3);
-  background: rgba(2, 42, 96, 0.55);
-  color: #f5fbff;
+  border-color: rgba(225, 184, 230, 0.32);
+  background: rgba(48, 19, 60, 0.58);
+  color: #fff7ed;
 }
 
 .game-info-settings {
@@ -1472,9 +1472,9 @@
   display: grid;
   gap: 0.18rem;
   padding: 0.7rem 0.8rem;
-  border: 1px solid rgba(165, 224, 255, 0.24);
+  border: 1px solid rgba(225, 184, 230, 0.26);
   border-radius: 0.8rem;
-  background: rgba(3, 46, 105, 0.48);
+  background: rgba(48, 19, 60, 0.52);
 }
 
 .game-info-settings dt {
@@ -1503,9 +1503,9 @@
   align-content: center;
   gap: 0.18rem;
   padding: 0.75rem 0.85rem 0.75rem 3.45rem;
-  border: 1px solid rgba(165, 224, 255, 0.28);
+  border: 1px solid rgba(225, 184, 230, 0.3);
   border-radius: 0.9rem;
-  background: rgba(3, 46, 105, 0.52);
+  background: rgba(48, 19, 60, 0.56);
   counter-increment: game-help-step;
 }
 
@@ -1517,10 +1517,10 @@
   width: 1.9rem;
   height: 1.9rem;
   place-items: center;
-  border: 1px solid rgba(202, 244, 255, 0.6);
+  border: 1px solid rgba(255, 236, 191, 0.68);
   border-radius: 50%;
-  background: linear-gradient(180deg, #17a5eb, #075cb4);
-  color: #fff;
+  background: linear-gradient(180deg, #f2b83f, #c77d19);
+  color: #43284b;
   content: counter(game-help-step);
   font-weight: 900;
   transform: translateY(-50%);
@@ -1546,7 +1546,7 @@
   padding: 2rem;
   overflow: hidden;
   background:
-    linear-gradient(rgba(2, 57, 112, 0.38), rgba(1, 28, 74, 0.62)),
+    linear-gradient(rgba(81, 31, 96, 0.44), rgba(35, 12, 43, 0.7)),
     url("/shared-assets/coastal-island-kingdom-day.png") center / cover;
 }
 
@@ -1555,8 +1555,8 @@
   z-index: 1;
   width: min(94rem, calc(100vw - 4rem));
   padding: 2rem;
-  border-color: rgba(174, 231, 255, 0.5);
-  background: linear-gradient(180deg, rgba(5, 84, 157, 0.82), rgba(2, 39, 96, 0.92));
+  border-color: rgba(225, 184, 230, 0.52);
+  background: linear-gradient(180deg, rgba(116, 55, 132, 0.86), rgba(43, 16, 53, 0.94));
 }
 
 .action-preset-preview__heading {
@@ -1571,7 +1571,7 @@
 }
 
 .action-preset-preview__heading p {
-  color: #7ce8ff;
+  color: #e0b1e3;
   font-size: 0.78rem;
   font-weight: 850;
   letter-spacing: 0.16em;
@@ -1581,11 +1581,11 @@
 .action-preset-preview__heading h1 {
   color: #fff;
   font-size: clamp(2rem, 3vw, 3.25rem);
-  text-shadow: 0 4px 0 rgba(0, 34, 87, 0.5);
+  text-shadow: 0 4px 0 rgba(42, 15, 50, 0.54);
 }
 
 .action-preset-preview__heading span {
-  color: #ccecff;
+  color: #e6cde5;
 }
 
 .action-preset-preview__row {
@@ -1635,7 +1635,7 @@
     display: block;
     padding: 0;
     overflow: hidden;
-    background: #073d7e;
+    background: #2a1234;
   }
 
   .reference-game .board-shell {
@@ -1648,18 +1648,19 @@
     border: 0;
     border-radius: 0;
     background:
-      radial-gradient(ellipse at 37% 48%, rgba(213, 255, 247, 0.2), transparent 46%),
-      linear-gradient(145deg, rgba(0, 121, 184, 0.08), rgba(0, 67, 148, 0.18)),
+      radial-gradient(ellipse at 37% 48%, rgba(246, 215, 236, 0.18), transparent 46%),
+      linear-gradient(145deg, rgba(128, 53, 147, 0.42), rgba(65, 24, 78, 0.48)),
       url("/game-assets/ui/ocean-board-canvas.webp") center / cover no-repeat,
-      #23bfe0;
-    box-shadow: inset 0 0 9rem rgba(0, 67, 132, 0.14);
+      #70407f;
+    background-blend-mode: soft-light, color, normal, normal;
+    box-shadow: inset 0 0 9rem rgba(47, 17, 57, 0.22);
   }
 
   .reference-game .board-shell::before {
     background:
-      linear-gradient(rgba(31, 153, 207, 0.04), rgba(0, 91, 172, 0.1)),
-      radial-gradient(ellipse at 38% 49%, rgba(193, 255, 245, 0.2), transparent 43%),
-      linear-gradient(90deg, transparent 64%, rgba(0, 80, 145, 0.08) 76%, rgba(0, 45, 110, 0.18));
+      linear-gradient(rgba(129, 58, 148, 0.06), rgba(72, 28, 87, 0.14)),
+      radial-gradient(ellipse at 38% 49%, rgba(246, 215, 236, 0.18), transparent 43%),
+      linear-gradient(90deg, transparent 64%, rgba(83, 32, 100, 0.1) 76%, rgba(44, 16, 54, 0.22));
   }
 
   .reference-game .board-stage {
@@ -1689,11 +1690,11 @@
   .reference-game .game-room-meta,
   .reference-game .game-header-actions {
     width: fit-content;
-    border: 1px solid rgba(141, 216, 251, 0.26);
-    background: linear-gradient(145deg, rgba(8, 83, 151, 0.52), rgba(2, 38, 89, 0.68));
+    border: 1px solid rgba(225, 184, 230, 0.3);
+    background: linear-gradient(145deg, rgba(111, 57, 126, 0.62), rgba(49, 20, 61, 0.78));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.16),
-      0 7px 19px rgba(0, 25, 70, 0.25);
+      0 7px 19px rgba(34, 10, 42, 0.3);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
   }
@@ -1739,13 +1740,13 @@
     display: inline-flex;
     align-items: center;
     padding: 0.55rem 1.65rem;
-    border: 1px solid rgba(141, 216, 251, 0.26);
+    border: 1px solid rgba(225, 184, 230, 0.3);
     border-radius: 0.95rem;
-    background: linear-gradient(145deg, rgba(8, 83, 151, 0.5), rgba(2, 38, 89, 0.66));
+    background: linear-gradient(145deg, rgba(111, 57, 126, 0.6), rgba(49, 20, 61, 0.76));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.15),
-      0 7px 19px rgba(0, 25, 70, 0.22);
-    color: #f1f9ff;
+      0 7px 19px rgba(34, 10, 42, 0.28);
+    color: #fff7ed;
     font-size: 0.78rem;
     backdrop-filter: blur(16px);
   }
@@ -1757,7 +1758,7 @@
   .reference-game .victory-target-pill svg {
     width: 1rem;
     height: 1rem;
-    color: #f0f7ff;
+    color: #f2b83f;
   }
 
   .reference-game .game-header-actions {
@@ -1863,11 +1864,11 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 0.55rem;
     padding: 0.48rem 0.62rem;
-    border-color: rgba(145, 218, 251, 0.3);
-    background: linear-gradient(145deg, rgba(7, 82, 149, 0.76), rgba(2, 39, 89, 0.88));
+    border-color: rgba(225, 184, 230, 0.32);
+    background: linear-gradient(145deg, rgba(111, 57, 126, 0.82), rgba(49, 20, 61, 0.92));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.18),
-      0 8px 22px rgba(0, 26, 68, 0.28);
+      0 8px 22px rgba(34, 10, 42, 0.34);
     backdrop-filter: blur(16px) saturate(140%);
   }
 
@@ -2051,9 +2052,9 @@
     align-items: center;
     justify-content: center;
     gap: 0.55rem;
-    border: 1px solid rgba(140, 214, 250, 0.24);
+    border: 1px solid rgba(225, 184, 230, 0.26);
     border-radius: 0.85rem;
-    background: rgba(3, 47, 103, 0.58);
+    background: rgba(48, 19, 60, 0.62);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   }
 
@@ -2189,8 +2190,8 @@
   }
 
   .reference-game .player-menu-button {
-    border-color: rgba(218, 240, 255, 0.42);
-    background: rgba(3, 43, 96, 0.58);
+    border-color: rgba(225, 184, 230, 0.42);
+    background: rgba(48, 19, 60, 0.62);
     font-family: var(--font-ui);
     font-size: 1rem;
     font-weight: 800;
@@ -2201,7 +2202,7 @@
     padding: 0.16rem 0.34rem;
     border: 1px solid color-mix(in srgb, var(--player-color), transparent 58%);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--player-color), rgba(0, 34, 80, 0.7) 78%);
+    background: color-mix(in srgb, var(--player-color), rgba(42, 15, 50, 0.74) 78%);
   }
 
   .reference-game.is-board-focused .game-sidebar,
@@ -2267,10 +2268,10 @@
 
 @media (max-width: 840px) {
   .reference-game .game-room-meta span {
-    border-color: rgba(139, 215, 250, 0.3);
-    background: linear-gradient(145deg, rgba(8, 83, 151, 0.82), rgba(2, 40, 92, 0.92));
+    border-color: rgba(225, 184, 230, 0.32);
+    background: linear-gradient(145deg, rgba(111, 57, 126, 0.86), rgba(49, 20, 61, 0.94));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
-    color: #eef9ff;
+    color: #fff7ed;
   }
 
   .reference-game .player-strip {

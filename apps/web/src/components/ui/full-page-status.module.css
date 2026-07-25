@@ -1,0 +1,280 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  place-items: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+  overflow: hidden;
+  background: #087dc5;
+}
+
+.page::before,
+.page::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+}
+
+.page::before {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(84, 202, 255, 0.08) 0 9rem, transparent 25rem),
+    linear-gradient(180deg, rgba(3, 65, 133, 0.08) 20%, rgba(1, 32, 80, 0.5) 100%);
+}
+
+.page::after {
+  box-shadow: inset 0 0 min(18vw, 10rem) rgba(0, 25, 70, 0.38);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: min(30rem, 100%);
+  flex-direction: column;
+  align-items: center;
+  margin-top: clamp(-2.5rem, -5vh, -1rem);
+  text-align: center;
+  filter: drop-shadow(0 1rem 1.8rem rgba(0, 27, 71, 0.28));
+}
+
+.brand {
+  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+  transform: scale(1.12);
+}
+
+.island {
+  position: relative;
+  width: 16rem;
+  height: 12.5rem;
+  margin-bottom: 1.25rem;
+  filter: drop-shadow(0 1rem 0.8rem rgba(0, 39, 83, 0.32));
+}
+
+.hex {
+  position: absolute;
+  width: 6.25rem;
+  height: 5.5rem;
+  overflow: hidden;
+  clip-path: polygon(25% 2%, 75% 2%, 100% 50%, 75% 98%, 25% 98%, 0 50%);
+  background-position: center;
+  background-size: cover;
+  box-shadow:
+    inset 0 0 0 0.2rem rgba(255, 224, 130, 0.88),
+    inset 0 -0.7rem 1rem rgba(47, 33, 19, 0.16);
+  opacity: 0;
+  transform: translateY(1rem) scale(0.82);
+  animation: place-tile 2.25s cubic-bezier(0.22, 0.8, 0.24, 1) infinite;
+}
+
+.hex::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.24), transparent 42%);
+  content: "";
+}
+
+.top {
+  top: 0;
+  left: 4.875rem;
+  background-image: url("/game-assets/terrain/mountains.png");
+  animation-delay: 0ms;
+}
+
+.upperLeft {
+  top: 3.1rem;
+  left: 0.6rem;
+  background-image: url("/game-assets/terrain/forest.png");
+  animation-delay: 110ms;
+}
+
+.upperRight {
+  top: 3.1rem;
+  right: 0.6rem;
+  background-image: url("/game-assets/terrain/pasture.png");
+  animation-delay: 220ms;
+}
+
+.center {
+  z-index: 1;
+  top: 3.1rem;
+  left: 4.875rem;
+  background-image: url("/game-assets/terrain/fields.png");
+  animation-delay: 330ms;
+}
+
+.lowerLeft {
+  top: 6.2rem;
+  left: 0.6rem;
+  background-image: url("/game-assets/terrain/hills.png");
+  animation-delay: 440ms;
+}
+
+.lowerRight {
+  top: 6.2rem;
+  right: 0.6rem;
+  background-image: url("/game-assets/terrain/forest.png");
+  animation-delay: 550ms;
+}
+
+.bottom {
+  top: 6.2rem;
+  left: 4.875rem;
+  background-image: url("/game-assets/terrain/pasture.png");
+  animation-delay: 660ms;
+}
+
+.settlement {
+  position: absolute;
+  z-index: 3;
+  right: 5.3rem;
+  bottom: 1.55rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: contain;
+  opacity: 0;
+  transform: translateY(0.7rem) scale(0.72);
+  animation: place-settlement 2.25s ease-out 760ms infinite;
+  filter: drop-shadow(0 0.35rem 0.25rem rgba(65, 28, 15, 0.42));
+}
+
+.copy {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  color: #f7fcff;
+  text-shadow: 0 2px 8px rgba(0, 42, 95, 0.68);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #bdeeff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.label {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.25rem, 4.4vw, 1.65rem);
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.hint {
+  margin: 0;
+  color: #d8f3ff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dots {
+  display: inline-flex;
+  gap: 0.38rem;
+  margin-top: 0.9rem;
+}
+
+.dots span {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #ffe064;
+  box-shadow: 0 2px 5px rgba(0, 40, 91, 0.42);
+  animation: dot-bob 1.2s ease-in-out infinite;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes place-tile {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.82);
+  }
+
+  22%,
+  78% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.3rem) scale(0.96);
+  }
+}
+
+@keyframes place-settlement {
+  0%,
+  25% {
+    opacity: 0;
+    transform: translateY(0.7rem) scale(0.72);
+  }
+
+  38%,
+  76% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  92%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.2rem) scale(0.94);
+  }
+}
+
+@keyframes dot-bob {
+  0%,
+  60%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-0.25rem);
+  }
+}
+
+@media (max-height: 580px) {
+  .brand {
+    margin-bottom: 0.75rem;
+    transform: scale(0.95);
+  }
+
+  .island {
+    margin-bottom: 0.4rem;
+    transform: scale(0.78);
+    transform-origin: center;
+  }
+
+  .content {
+    margin-top: -0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hex,
+  .settlement,
+  .dots span {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

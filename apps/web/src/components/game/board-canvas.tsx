@@ -79,6 +79,9 @@ type SceneRenderer<Scene> = (
 
 const MAX_CANVAS_PIXEL_RATIO = 3;
 const ROBBER_ASSET_PATH = "/game-assets/pieces/robber-piece.png";
+const ROAD_PIECE_SIZE = 132;
+const ROAD_PIECE_SCALE_Y = 0.82;
+const SETTLEMENT_PIECE_SIZE = 88;
 
 const PLAYER_COLOR_VALUES: Readonly<Record<PlayerColor, string>> = {
   blue: "#2f8ee8",
@@ -543,9 +546,10 @@ function drawRoads(
       image,
       path,
       placement,
-      134,
+      ROAD_PIECE_SIZE,
       scene.playerThemes.get(road.playerId) ?? "red",
       placement.angle,
+      ROAD_PIECE_SCALE_Y,
     );
   }
 }
@@ -568,7 +572,7 @@ function drawBuildings(
       image,
       path,
       point,
-      building.kind === "city" ? 108 : 94,
+      building.kind === "city" ? 108 : SETTLEMENT_PIECE_SIZE,
       scene.playerThemes.get(building.playerId) ?? "red",
     );
   }
@@ -605,6 +609,13 @@ function drawTargets(
 ) {
   for (const target of scene.targets) {
     const placement = { ...target.point, angle: target.angle };
+    const path = target.asset === "robber" ? ROBBER_ASSET_PATH : getPieceAssetPath(target.asset);
+    const image = images.get(path) ?? null;
+
+    if (target.highlighted && (target.asset === "city" || target.asset === "settlement") && image) {
+      drawBuildingTargetTooltip(context, target, placement, image, path);
+      continue;
+    }
 
     if (!target.highlighted) {
       drawTargetHint(context, target, placement);
@@ -613,12 +624,64 @@ function drawTargets(
 
     drawHighlightedTarget(context, target, placement);
 
-    const path = target.asset === "robber" ? ROBBER_ASSET_PATH : getPieceAssetPath(target.asset);
-    const image = images.get(path) ?? null;
     if (image) {
       drawTargetGhost(context, target, placement, image, path);
     }
   }
+}
+
+function drawBuildingTargetTooltip(
+  context: CanvasRenderingContext2D,
+  target: BoardCanvasTarget,
+  placement: PixelCoordinate & { angle: number },
+  image: HTMLImageElement,
+  path: string,
+) {
+  const cardWidth = target.highlighted ? 62 : 56;
+  const cardHeight = target.highlighted ? 58 : 52;
+  const cardBottom = -30;
+  const cardLeft = -cardWidth / 2;
+  const cardTop = cardBottom - cardHeight;
+  const previewSize = target.asset === "city" ? 40 : 36;
+  const preview = getTintedPieceCanvas(
+    image,
+    path,
+    target.theme,
+    PLAYER_COLOR_VALUES[target.theme],
+  );
+
+  context.save();
+  context.translate(placement.x, placement.y);
+  context.globalAlpha = target.disabled ? 0.22 : target.highlighted ? 1 : 0.9;
+  context.shadowBlur = target.highlighted ? 12 : 7;
+  context.shadowColor = "rgba(15, 48, 70, 0.28)";
+  context.shadowOffsetY = 3;
+
+  context.beginPath();
+  context.moveTo(-8, cardBottom - 1);
+  context.lineTo(0, -14);
+  context.lineTo(8, cardBottom - 1);
+  context.closePath();
+  context.fillStyle = "rgba(248, 253, 255, 0.97)";
+  context.fill();
+
+  createRoundedRectPath(context, cardLeft, cardTop, cardWidth, cardHeight, 9);
+  context.fill();
+  context.shadowColor = "transparent";
+  context.strokeStyle = target.highlighted
+    ? PLAYER_COLOR_VALUES[target.theme]
+    : "rgba(82, 145, 180, 0.78)";
+  context.lineWidth = target.highlighted ? 4 : 3;
+  context.stroke();
+
+  context.drawImage(
+    preview,
+    -previewSize / 2,
+    cardTop + (cardHeight - previewSize) / 2,
+    previewSize,
+    previewSize,
+  );
+  context.restore();
 }
 
 function drawTargetHint(
@@ -700,6 +763,9 @@ function drawTargetGhost(
   context.save();
   context.translate(placement.x, placement.y);
   context.rotate((placement.angle * Math.PI) / 180);
+  if (target.asset === "road") {
+    context.scale(1, ROAD_PIECE_SCALE_Y);
+  }
   context.globalAlpha = target.disabled ? 0.18 : 0.94;
   context.shadowBlur = 12;
   context.shadowColor = "rgba(255, 199, 69, 0.72)";
@@ -715,12 +781,14 @@ function drawPlayerPiece(
   size: number,
   theme: PlayerColor,
   angle = 0,
+  scaleY = 1,
 ) {
   const tintedPiece = getTintedPieceCanvas(image, path, theme, PLAYER_COLOR_VALUES[theme]);
 
   context.save();
   context.translate(point.x, point.y);
   context.rotate((angle * Math.PI) / 180);
+  context.scale(1, scaleY);
   context.shadowBlur = 4;
   context.shadowColor = "rgba(15, 38, 58, 0.34)";
   context.shadowOffsetY = 2;
@@ -748,14 +816,15 @@ function getTintedPieceCanvas(
     return canvas;
   }
 
+  // The color blend keeps the modeled light and shadow from the source asset
+  // while replacing its beige material color with the player's actual color.
   context.drawImage(image, 0, 0);
-  context.globalCompositeOperation = "source-atop";
-  context.globalAlpha = 0.68;
+  context.globalCompositeOperation = "color";
   context.fillStyle = color;
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.globalCompositeOperation = "source-over";
-  context.globalAlpha = 0.38;
+  context.globalCompositeOperation = "destination-in";
   context.drawImage(image, 0, 0);
+  context.globalCompositeOperation = "source-over";
   tintedPieceCanvases.set(key, canvas);
   return canvas;
 }
