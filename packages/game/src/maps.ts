@@ -14,7 +14,7 @@ export interface GameMapDefinition {
 const BASE_PLAYER_COUNTS = [3, 4] as const satisfies readonly PlayerCount[];
 const EXTENDED_6_PLAYER_COUNTS = [5, 6] as const satisfies readonly PlayerCount[];
 const EXTENDED_8_PLAYER_COUNTS = [7, 8] as const satisfies readonly PlayerCount[];
-const STANDARD_NUMBER_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+const BASE_SPIRAL_NUMBER_TOKENS = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11];
 const EXTENDED_6_NUMBER_TOKENS = [
   2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12,
 ];
@@ -28,7 +28,7 @@ export const GAME_MAP_DEFINITIONS: Readonly<Record<GameMapId, GameMapDefinition>
     description: "19 terrain tiles and 1 desert — the standard 3–4 player island.",
     id: "base",
     label: "3–4 player map",
-    numberTokens: Object.freeze(STANDARD_NUMBER_TOKENS),
+    numberTokens: Object.freeze(BASE_SPIRAL_NUMBER_TOKENS),
     playerCounts: BASE_PLAYER_COUNTS,
     portCount: 9,
     terrainCounts: Object.freeze({

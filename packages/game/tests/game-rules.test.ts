@@ -234,6 +234,27 @@ describe("friendly robber", () => {
       state = applyCommand(state, actorPlayerId, chooseAutomatedCommand(state, actorPlayerId));
     }
 
+    const protectingVertexKeys = [
+      "vertex:-1:-3",
+      "vertex:-5:-1",
+      "vertex:-5:1",
+      "vertex:-5:3",
+      "vertex:1:1",
+      "vertex:1:3",
+      "vertex:4:-2",
+      "vertex:5:1",
+    ];
+    state = {
+      ...state,
+      board: {
+        ...state.board,
+        buildings: state.board.buildings.map((building, index) => ({
+          ...building,
+          vertexKey: protectingVertexKeys[index] ?? building.vertexKey,
+        })),
+      },
+    };
+
     state = applyCommand(state, state.activePlayerId, { kind: "roll" });
     expect(state.lastDiceRoll?.sum).toBe(7);
     expect(state.phase.kind).toBe("move_robber");

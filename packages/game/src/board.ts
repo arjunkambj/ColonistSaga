@@ -1,6 +1,6 @@
 import { TERRAIN_RESOURCE } from "./constants";
 import { getGameMapDefinition } from "./maps";
-import { deterministicShuffle } from "./random";
+import { deterministicInteger, deterministicShuffle } from "./random";
 import {
   axialToPixel,
   createHexCoordinates,
@@ -20,6 +20,7 @@ import type {
 } from "./types";
 
 const PORT_RESOURCE_ORDER: readonly ResourceType[] = ["tree", "brick", "sheep", "wheat", "stone"];
+const HEX_SIDE_COUNT = 6;
 
 function coordinateRadius({ q, r }: AxialCoordinate): number {
   return Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
@@ -70,6 +71,82 @@ function createTerrainPool(mapId: GameMapId): TerrainType[] {
   return terrains;
 }
 
+function clockwiseAngleFromTop(coordinate: AxialCoordinate): number {
+  const point = axialToPixel(coordinate, 1);
+  return (Math.atan2(point.y, point.x) + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+}
+
+function orientRing<Value>(
+  ring: readonly Value[],
+  orientation: number,
+  direction: number,
+): Value[] {
+  const start = orientation * (ring.length / HEX_SIDE_COUNT);
+
+  return Array.from({ length: ring.length }, (_, index) => {
+    const ringIndex = (start + direction * index + ring.length) % ring.length;
+    const value = ring[ringIndex];
+
+    if (value === undefined) {
+      throw new Error("Number spiral contains a missing tile");
+    }
+
+    return value;
+  });
+}
+
+function assignBaseNumberTokens(
+  terrainTiles: readonly Omit<TileState, "numberToken">[],
+  numberTokens: readonly number[],
+  seed: string,
+): TileState[] {
+  const rings = [2, 1].map((radius) =>
+    terrainTiles
+      .filter((tile) => coordinateRadius(tile) === radius)
+      .sort((first, second) => clockwiseAngleFromTop(first) - clockwiseAngleFromTop(second)),
+  );
+  const center = terrainTiles.find((tile) => coordinateRadius(tile) === 0);
+
+  if (rings[0]?.length !== 12 || rings[1]?.length !== 6 || !center) {
+    throw new Error("The base map requires a radius-two hexagonal tile layout");
+  }
+
+  const orientationDraw = deterministicInteger(`${seed}:number-spiral`, 0, HEX_SIDE_COUNT);
+  const directionDraw = deterministicInteger(`${seed}:number-spiral`, orientationDraw.nextIndex, 2);
+  const direction = directionDraw.value === 0 ? -1 : 1;
+  const spiral = [
+    ...orientRing(rings[0], orientationDraw.value, direction),
+    ...orientRing(rings[1], orientationDraw.value, direction),
+    center,
+  ];
+  const numberTokenByTileId = new Map<string, number | null>();
+  let numberIndex = 0;
+
+  for (const tile of spiral) {
+    if (TERRAIN_RESOURCE[tile.terrain] === null) {
+      numberTokenByTileId.set(tile.id, null);
+      continue;
+    }
+
+    const numberToken = numberTokens[numberIndex];
+    if (numberToken === undefined) {
+      throw new Error("The base map number spiral ran out of tokens");
+    }
+
+    numberTokenByTileId.set(tile.id, numberToken);
+    numberIndex += 1;
+  }
+
+  if (numberIndex !== numberTokens.length) {
+    throw new Error(`The base map number spiral placed ${numberIndex} number tokens`);
+  }
+
+  return terrainTiles.map((tile) => ({
+    ...tile,
+    numberToken: numberTokenByTileId.get(tile.id) ?? null,
+  }));
+}
+
 function assignNumberTokens(
   terrainTiles: readonly Omit<TileState, "numberToken">[],
   mapId: GameMapId,
@@ -81,6 +158,10 @@ function assignNumberTokens(
 
   if (producingTiles.length !== numberTokens.length) {
     throw new Error(`The ${mapId} map needs ${producingTiles.length} number tokens`);
+  }
+
+  if (mapId === "base") {
+    return assignBaseNumberTokens(terrainTiles, numberTokens, seed);
   }
 
   const redNumbers = numberTokens.filter((number) => number === 6 || number === 8);
