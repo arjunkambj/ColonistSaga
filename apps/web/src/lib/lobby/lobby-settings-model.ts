@@ -1,4 +1,5 @@
 import {
+  chooseBotName,
   PLAYER_COLORS,
   type BaseGameSettings,
   type GameMapId,
@@ -81,10 +82,15 @@ export function createLobbySeatPreview({
     .sort((left, right) => left.seatIndex - right.seatIndex)
     .slice(0, desiredBotCount);
   const occupiedSeatIndexes = new Set([...humans, ...bots].map((member) => member.seatIndex));
+  const unavailableNames = new Set([...humans, ...bots].map((member) => member.displayName));
   const addedBots = Array.from({ length: maxPlayers }, (_, seatIndex) => seatIndex)
     .filter((seatIndex) => !occupiedSeatIndexes.has(seatIndex))
     .slice(0, desiredBotCount - bots.length)
-    .map(createDraftBot);
+    .map((seatIndex) => {
+      const bot = createDraftBot(seatIndex, [...unavailableNames]);
+      unavailableNames.add(bot.displayName);
+      return bot;
+    });
   const membersBySeat = new Map(
     [...humans, ...bots, ...addedBots].map((member) => [member.seatIndex, member]),
   );
@@ -115,16 +121,15 @@ function compareLobbyMembers(left: LobbySeatMember, right: LobbySeatMember): num
 function moveMemberToSeat(member: LobbySeatMember, seatIndex: number): LobbySeatMember {
   return {
     ...member,
-    displayName: member.controller === "bot" ? `Bot ${seatIndex + 1}` : member.displayName,
     playerColor: PLAYER_COLORS[seatIndex] ?? PLAYER_COLORS[0],
     seatIndex,
   };
 }
 
-function createDraftBot(seatIndex: number): LobbySeatMember {
+function createDraftBot(seatIndex: number, unavailableNames: readonly string[]): LobbySeatMember {
   return {
     controller: "bot",
-    displayName: `Bot ${seatIndex + 1}`,
+    displayName: chooseBotName(`draft-bot:${seatIndex}`, unavailableNames),
     id: `draft-bot-${seatIndex}`,
     playerColor: PLAYER_COLORS[seatIndex] ?? PLAYER_COLORS[0],
     ready: true,

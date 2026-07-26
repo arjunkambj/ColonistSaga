@@ -4,6 +4,7 @@ import type { GameState } from "@colonistsaga/game";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireCurrentHexclaveUser } from "./hexclave/auth";
 import { fail } from "./model/errors";
+import { createBotDisplayName } from "../lib/bot-names";
 import {
   convertGameSeatToBot,
   createRoomRecord,
@@ -199,8 +200,9 @@ export const leaveRoom = mutation({
       if (game.revision !== state.actionNumber) {
         fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
       }
+      const botDisplayName = createBotDisplayName(room._id, seat.seatIndex, seats);
       const nextState: GameState = {
-        ...transferPlayerToBot(state, seat, room.botDifficulty),
+        ...transferPlayerToBot(state, seat, room.botDifficulty, botDisplayName),
         phase: { kind: "finished" },
         status: "completed",
         tradeOffer: null,
@@ -209,7 +211,7 @@ export const leaveRoom = mutation({
       const now = Date.now();
       await ctx.db.patch("seats", seat._id, {
         authUserId: undefined,
-        displayName: `Bot ${seat.seatIndex + 1}`,
+        displayName: botDisplayName,
         kind: "bot",
       });
       await ctx.db.patch("games", game._id, {
@@ -281,9 +283,10 @@ export const replacePlayerWithBot = mutation({
     }
 
     if (room.status === "waiting") {
+      const botDisplayName = createBotDisplayName(room._id, targetSeat.seatIndex, seats);
       await ctx.db.patch("seats", targetSeat._id, {
         authUserId: undefined,
-        displayName: `Bot ${targetSeat.seatIndex + 1}`,
+        displayName: botDisplayName,
         joinedAt: Date.now(),
         kind: "bot",
       });

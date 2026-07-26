@@ -56,9 +56,9 @@ const GAME_PREVIEW_MODES = new Set<UiPreviewMode>([
 
 const PREVIEW_PLAYERS: GamePlayerInput[] = [
   { displayName: "Arjun Kamboj", id: "player-1", isBot: false },
-  { displayName: "Bot 2", id: "player-2", isBot: true },
-  { displayName: "Bot 3", id: "player-3", isBot: true },
-  { displayName: "Bot 4", id: "player-4", isBot: true },
+  { displayName: "Kara Bot", id: "player-2", isBot: true },
+  { displayName: "Clark Bot", id: "player-3", isBot: true },
+  { displayName: "Peter Bot", id: "player-4", isBot: true },
 ];
 
 export function isUiPreviewMode(value: string | null): value is UiPreviewMode {
@@ -397,11 +397,11 @@ const PREVIEW_EVENTS: RoomEventView[] = [
   ["Arjun placed a Settlement", "place_settlement"],
   ["Arjun received starting resources", "steal"],
   ["Arjun placed a Road", "place_road"],
-  ["Bot 2 placed a Settlement", "place_settlement"],
-  ["Bot 2 received starting resources", "steal"],
-  ["Bot 3 placed a Road", "place_road"],
-  ["Bot 4 placed a Settlement", "place_settlement"],
-  ["Bot 4 received starting resources", "steal"],
+  ["Kara Bot placed a Settlement", "place_settlement"],
+  ["Kara Bot received starting resources", "steal"],
+  ["Clark Bot placed a Road", "place_road"],
+  ["Peter Bot placed a Settlement", "place_settlement"],
+  ["Peter Bot received starting resources", "steal"],
 ].map(([text, kind], index) => ({
   actorPlayerId: index < 3 ? "player-1" : `player-${(index % 3) + 2}`,
   createdAt: PREVIEW_EVENT_ANCHOR - (8 - index) * 60_000,

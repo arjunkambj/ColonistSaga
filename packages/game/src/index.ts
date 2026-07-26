@@ -1,4 +1,5 @@
 export * from "./board";
+export * from "./bot-names";
 export * from "./bots";
 export * from "./constants";
 export * from "./longest-road";

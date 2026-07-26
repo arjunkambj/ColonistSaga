@@ -38,6 +38,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import { ACTION_CARD_ASSET_PATHS, DEVELOPMENT_DECK_ASSET_PATH } from "@/constants/game/card-assets";
+import { getPlayerPortraitPath } from "@/constants/game/player-assets";
 import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import { getTurnControlKind } from "@/lib/game/game-footer-model";
 import type { RoomEventView } from "@/lib/game/types";
@@ -516,7 +517,10 @@ function PlayerStrip({
       {players.map((player) => {
         const theme = getPlayerTheme(player);
         const isActive = player.id === activePlayerId;
-        const avatarSrc = player.isViewer ? viewerProfileImageUrl : null;
+        const avatarSrc =
+          player.isViewer && viewerProfileImageUrl
+            ? viewerProfileImageUrl
+            : getPlayerPortraitPath(theme);
         const identityLabel = player.isViewer ? "You" : player.isBot ? "Bot" : null;
         const turnLabel = player.isViewer ? "Your turn" : player.isBot ? "Thinking" : "Playing";
         return (
@@ -537,19 +541,17 @@ function PlayerStrip({
                   getPlayerInitials(player.displayName)
                 )}
               </span>
-              {avatarSrc ? (
-                <img
-                  alt=""
-                  className="player-avatar-image"
-                  draggable={false}
-                  height={512}
-                  onError={(event) => {
-                    event.currentTarget.hidden = true;
-                  }}
-                  src={avatarSrc}
-                  width={512}
-                />
-              ) : null}
+              <img
+                alt=""
+                className="player-avatar-image"
+                draggable={false}
+                height={256}
+                onError={(event) => {
+                  event.currentTarget.hidden = true;
+                }}
+                src={avatarSrc}
+                width={256}
+              />
             </span>
             <div className="player-name">
               <div className="player-identity-line">

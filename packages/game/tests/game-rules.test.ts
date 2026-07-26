@@ -7,6 +7,7 @@ import {
   GAME_MAP_IDS,
   GameRuleError,
   RESOURCE_TYPES,
+  SUPERHERO_BOT_NAMES,
   applyCommand,
   assertGameState,
   chooseAutomatedCommand,
@@ -24,7 +25,7 @@ import {
 
 const PLAYERS = Array.from({ length: 4 }, (_, index) => ({
   botDifficulty: "hard" as const,
-  displayName: `Bot ${index + 1}`,
+  displayName: SUPERHERO_BOT_NAMES[index]!,
   id: `player-${index + 1}`,
   isBot: true,
 }));
@@ -627,7 +628,7 @@ describe("maps and turn limits", () => {
             ...PLAYERS,
             {
               botDifficulty: "hard",
-              displayName: "Bot 5",
+              displayName: SUPERHERO_BOT_NAMES[4],
               id: "player-5",
               isBot: true,
             } as const,
@@ -667,7 +668,7 @@ describe("automated decisions", () => {
   test("easy bots use targeted trades instead of cycling or starving forever", () => {
     const players = Array.from({ length: 3 }, (_, index) => ({
       botDifficulty: "easy" as const,
-      displayName: `Easy Bot ${index + 1}`,
+      displayName: SUPERHERO_BOT_NAMES[index]!,
       id: `easy-player-${index + 1}`,
       isBot: true,
     }));

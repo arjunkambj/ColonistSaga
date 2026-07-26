@@ -12,11 +12,13 @@ import logoutIcon from "@iconify-icons/solar/logout-outline";
 import sendIcon from "@iconify-icons/solar/plain-2-outline";
 import usersIcon from "@iconify-icons/solar/users-group-two-rounded-outline";
 import { Icon } from "@iconify/react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { Brand } from "@/components/ui/brand";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { LiveMessage } from "@/components/ui/live-message";
+import { getPlayerPortraitPath } from "@/constants/game/player-assets";
 import type { PendingAction } from "@/lib/app/pending-action";
 import type { RoomView } from "@/lib/game/types";
 import {
@@ -184,7 +186,12 @@ export function LobbyScreen({
                   <>
                     <span className={styles.avatar} aria-hidden="true">
                       {member.controller === "bot" ? (
-                        <Icon icon={botIcon} />
+                        <Image
+                          alt=""
+                          height={96}
+                          src={getPlayerPortraitPath(member.playerColor)}
+                          width={96}
+                        />
                       ) : (
                         member.displayName.slice(0, 1).toUpperCase()
                       )}

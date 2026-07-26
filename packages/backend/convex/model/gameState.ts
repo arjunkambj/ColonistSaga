@@ -26,6 +26,7 @@ import {
 import { internal } from "../_generated/api";
 import type { HexclaveUser } from "../hexclave/auth";
 import { commandEventKind, serializeCommand } from "./commands";
+import { createBotDisplayName } from "../../lib/bot-names";
 import { DEFAULT_BOT_DIFFICULTY } from "./constants";
 import { fail } from "./errors";
 import {
@@ -392,7 +393,7 @@ export async function setWaitingBotCount(
   for (let index = bots.length - botsToRemove.length; index < botCount; index += 1) {
     const seatIndex = nextOpenSeatIndex(remainingSeats, maxPlayers);
     const seatId = await ctx.db.insert("seats", {
-      displayName: `Bot ${seatIndex + 1}`,
+      displayName: createBotDisplayName(room._id, seatIndex, remainingSeats),
       joinedAt: Date.now(),
       kind: "bot",
       roomId: room._id,
@@ -429,10 +430,9 @@ export async function fitWaitingSeatsToSettings(
   });
   await Promise.all(
     keptSeats.map((seat, seatIndex) => {
-      const displayName = seat.kind === "bot" ? `Bot ${seatIndex + 1}` : seat.displayName;
-      return seat.seatIndex === seatIndex && displayName === seat.displayName
+      return seat.seatIndex === seatIndex
         ? Promise.resolve()
-        : ctx.db.patch("seats", seat._id, { displayName, seatIndex });
+        : ctx.db.patch("seats", seat._id, { seatIndex });
     }),
   );
 }
@@ -542,6 +542,7 @@ export function transferPlayerToBot(
   state: GameState,
   seat: SeatDoc,
   botDifficulty: BotDifficulty,
+  displayName: string,
 ): GameState {
   const playerId = String(seat._id);
   const player = state.players.find((candidate) => candidate.id === playerId);
@@ -555,7 +556,9 @@ export function transferPlayerToBot(
   return {
     ...state,
     players: state.players.map((candidate) =>
-      candidate.id === playerId ? { ...candidate, botDifficulty, isBot: true } : candidate,
+      candidate.id === playerId
+        ? { ...candidate, botDifficulty, displayName, isBot: true }
+        : candidate,
     ),
   };
 }
@@ -583,7 +586,9 @@ export async function convertGameSeatToBot(
     fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
   }
 
-  const nextState = transferPlayerToBot(state, seat, room.botDifficulty);
+  const seats = await listSeats(ctx, room._id);
+  const displayName = createBotDisplayName(room._id, seat.seatIndex, seats);
+  const nextState = transferPlayerToBot(state, seat, room.botDifficulty, displayName);
   const now = Date.now();
   const schedule = await scheduleNextAutomatedAction(
     ctx,
@@ -597,7 +602,7 @@ export async function convertGameSeatToBot(
   );
   await ctx.db.patch("seats", seat._id, {
     authUserId: undefined,
-    displayName: `Bot ${seat.seatIndex + 1}`,
+    displayName,
     kind: "bot",
   });
   await ctx.db.patch("games", game._id, {

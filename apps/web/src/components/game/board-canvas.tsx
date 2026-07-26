@@ -18,6 +18,7 @@ import {
 
 import {
   ISLAND_SHELF_ASSET_PATH,
+  PORT_DOCK_ASSET_PATH,
   PORT_SKIFF_ASSET_PATH,
   getTerrainAssetPath,
 } from "@/constants/game/board-assets";
@@ -249,6 +250,7 @@ async function renderStaticScene(
   );
   const images = await loadImages([
     ISLAND_SHELF_ASSET_PATH,
+    PORT_DOCK_ASSET_PATH,
     PORT_SKIFF_ASSET_PATH,
     ...terrainPaths,
     ...portResourcePaths,
@@ -394,52 +396,61 @@ function drawNumberToken(
     return;
   }
 
-  const point = { x: tilePoint.x, y: tilePoint.y + tileSize * 0.11 };
+  const point = { x: tilePoint.x, y: tilePoint.y + tileSize * 0.11 + 2 };
   const radius = Math.min(43, tileSize * 0.12);
   const isHot = number === 6 || number === 8;
 
   context.save();
-  context.shadowBlur = 7;
-  context.shadowColor = "rgba(86, 68, 47, 0.28)";
-  context.shadowOffsetY = 4;
-  createHexagonPath(context, point, radius);
+  context.shadowBlur = 6;
+  context.shadowColor = "rgba(75, 45, 25, 0.26)";
+  context.shadowOffsetY = 3;
+  createRoundedHexagonPath(context, point, radius, 6);
+  context.fillStyle = isHot ? "#9d3930" : "#a66c28";
+  context.fill();
+  context.restore();
+
+  createRoundedHexagonPath(context, point, radius - 2, 5);
   const rim = context.createLinearGradient(
     point.x - radius,
     point.y - radius,
     point.x + radius,
     point.y + radius,
   );
-  rim.addColorStop(0, isHot ? "#ef966d" : "#f5d486");
-  rim.addColorStop(1, isHot ? "#a9322e" : "#c98a32");
+  rim.addColorStop(0, isHot ? "#ef9b72" : "#f2ce78");
+  rim.addColorStop(0.52, isHot ? "#db6750" : "#d79a3d");
+  rim.addColorStop(1, isHot ? "#b43e35" : "#b97728");
   context.fillStyle = rim;
   context.fill();
-  context.restore();
 
-  createHexagonPath(context, point, radius - 4);
+  createRoundedHexagonPath(context, point, radius - 6, 4);
   const face = context.createLinearGradient(
     point.x - radius,
     point.y - radius,
     point.x + radius,
     point.y + radius,
   );
-  face.addColorStop(0, isHot ? "#fff0d2" : "#fff6dd");
-  face.addColorStop(1, isHot ? "#f7d7aa" : "#f5dfb7");
+  face.addColorStop(0, "#fff8e6");
+  face.addColorStop(0.58, isHot ? "#ffedcf" : "#f9e9ca");
+  face.addColorStop(1, isHot ? "#f2cf9f" : "#efd5aa");
   context.fillStyle = face;
   context.fill();
+  context.lineWidth = 1.4;
+  context.strokeStyle = "rgba(255, 255, 255, 0.58)";
+  context.stroke();
 
-  context.fillStyle = isHot ? "#b72f27" : "#514150";
-  context.font = "850 35px ui-sans-serif, system-ui, sans-serif";
+  context.fillStyle = isHot ? "#b63b31" : "#4b3b48";
+  context.font = "900 34px ui-rounded, system-ui, sans-serif";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(String(number), point.x, point.y - 5);
+  context.fillText(String(number), point.x, point.y - 5.5);
 
   const pips = NUMBER_TOKEN_PIPS[number] ?? 0;
-  const pipGap = 8;
+  const pipGap = 7.5;
   const firstPipX = point.x - ((pips - 1) * pipGap) / 2;
-  context.fillStyle = isHot ? "#c05743" : "#9b7953";
+  context.fillStyle = isHot ? "#bf5142" : "#9a7650";
   for (let index = 0; index < pips; index += 1) {
     context.beginPath();
-    context.arc(firstPipX + index * pipGap, point.y + 16, 3.2, 0, Math.PI * 2);
+    context.arc(firstPipX + index * pipGap, point.y + 15.5, 2.8, 0, Math.PI * 2);
     context.fill();
   }
 }
@@ -455,9 +466,24 @@ function drawPorts(
   });
 
   for (const { placement } of ports) {
-    for (const dock of placement.docks) {
-      drawDock(context, dock.start, dock.end);
-    }
+    const [firstDock, secondDock] = placement.docks;
+    const terrainEdge = {
+      x: (firstDock.start.x + secondDock.start.x) / 2,
+      y: (firstDock.start.y + secondDock.start.y) / 2,
+    };
+    const portCenter = { x: placement.x, y: placement.y };
+    drawDock(
+      context,
+      {
+        x: terrainEdge.x + (portCenter.x - terrainEdge.x) * 0.52,
+        y: terrainEdge.y + (portCenter.y - terrainEdge.y) * 0.52,
+      },
+      {
+        x: terrainEdge.x + (portCenter.x - terrainEdge.x) * 0.9,
+        y: terrainEdge.y + (portCenter.y - terrainEdge.y) * 0.9,
+      },
+      images.get(PORT_DOCK_ASSET_PATH) ?? null,
+    );
   }
 
   for (const { placement, port } of ports) {
@@ -473,10 +499,29 @@ function drawPorts(
   }
 }
 
-function drawDock(context: CanvasRenderingContext2D, start: PixelCoordinate, end: PixelCoordinate) {
+function drawDock(
+  context: CanvasRenderingContext2D,
+  start: PixelCoordinate,
+  end: PixelCoordinate,
+  image: HTMLImageElement | null,
+) {
+  const length = Math.hypot(end.x - start.x, end.y - start.y);
+  const angle = Math.atan2(end.y - start.y, end.x - start.x);
+  const centerX = (start.x + end.x) / 2;
+  const centerY = (start.y + end.y) / 2;
+
+  if (image) {
+    context.save();
+    context.translate(centerX, centerY);
+    context.rotate(angle);
+    context.globalAlpha = 0.9;
+    context.drawImage(image, -length / 2, -7, length, 14);
+    context.restore();
+    return;
+  }
+
   context.save();
   context.lineCap = "round";
-
   strokeLine(context, start, end, 10, "rgba(91, 57, 28, 0.46)");
   strokeLine(context, start, end, 5, "rgba(216, 155, 61, 0.76)");
   context.restore();
@@ -698,7 +743,7 @@ function drawTargetHint(
   if (target.asset === "road") {
     createRoundedRectPath(context, -15, -4, 30, 8, 4);
   } else {
-    const radius = target.asset === "robber" ? 8 : 6;
+    const radius = target.asset === "robber" ? 8 : target.asset === "settlement" ? 12 : 6;
     context.beginPath();
     context.arc(0, 0, radius, 0, Math.PI * 2);
   }
@@ -879,6 +924,48 @@ function createHexagonPath(
       context.lineTo(x, y);
     }
   }
+  context.closePath();
+}
+
+function createRoundedHexagonPath(
+  context: CanvasRenderingContext2D,
+  center: PixelCoordinate,
+  radius: number,
+  cornerRadius: number,
+) {
+  const vertices = Array.from({ length: 6 }, (_, index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI) / 3;
+    return {
+      x: center.x + Math.cos(angle) * radius,
+      y: center.y + Math.sin(angle) * radius,
+    };
+  });
+  const edgeLength = Math.hypot(
+    vertices[1]!.x - vertices[0]!.x,
+    vertices[1]!.y - vertices[0]!.y,
+  );
+  const inset = Math.min(0.4, cornerRadius / edgeLength);
+
+  context.beginPath();
+  vertices.forEach((vertex, index) => {
+    const previous = vertices[(index + vertices.length - 1) % vertices.length]!;
+    const next = vertices[(index + 1) % vertices.length]!;
+    const start = {
+      x: vertex.x + (previous.x - vertex.x) * inset,
+      y: vertex.y + (previous.y - vertex.y) * inset,
+    };
+    const end = {
+      x: vertex.x + (next.x - vertex.x) * inset,
+      y: vertex.y + (next.y - vertex.y) * inset,
+    };
+
+    if (index === 0) {
+      context.moveTo(start.x, start.y);
+    } else {
+      context.lineTo(start.x, start.y);
+    }
+    context.quadraticCurveTo(vertex.x, vertex.y, end.x, end.y);
+  });
   context.closePath();
 }
 

@@ -19,6 +19,7 @@ import {
   getTerrainAssetPath,
   ISLAND_SHELF_ASSET_PATH,
   OCEAN_BOARD_ASSET_PATH,
+  PORT_DOCK_ASSET_PATH,
   PORT_SKIFF_ASSET_PATH,
 } from "@/constants/game/board-assets";
 import { SOUND_EFFECT_PATHS, type SoundEffect } from "@/lib/game/audio-cues";
@@ -303,9 +304,16 @@ const ASSET_CATEGORIES = [
         status: "generated",
       },
       {
+        name: "Port dock",
+        description: "Top-down timber bridge connecting each port to the island.",
+        format: "PNG · 512×128",
+        path: PORT_DOCK_ASSET_PATH,
+        status: "generated",
+      },
+      {
         name: "Island shelf",
-        description: "Soft island silhouette beneath the playable terrain cluster.",
-        format: "PNG · transparent",
+        description: "Rock-lined sandstone shelf beneath the playable terrain cluster.",
+        format: "PNG · 1024×1024 · transparent",
         path: ISLAND_SHELF_ASSET_PATH,
         status: "generated",
       },

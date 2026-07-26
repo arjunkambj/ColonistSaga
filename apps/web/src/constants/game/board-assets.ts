@@ -14,6 +14,7 @@ export function getTerrainAssetPath(terrain: string) {
 }
 
 export const OCEAN_BOARD_ASSET_PATH = "/game-assets/ui/ocean-board-canvas.webp";
+export const PORT_DOCK_ASSET_PATH = "/game-assets/ui/port-dock.png";
 export const PORT_SKIFF_ASSET_PATH = "/game-assets/ui/port-skiff.png";
 export const ISLAND_SHELF_ASSET_PATH = "/game-assets/ui/island-shelf.png";
 
