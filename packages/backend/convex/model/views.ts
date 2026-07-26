@@ -20,7 +20,7 @@ async function listGameEvents(ctx: ReadCtx, gameId: GameId): Promise<GameEventVi
   return [...events].reverse().map((event) => ({
     actorPlayerId: String(event.actorSeatId),
     createdAt: event.createdAt,
-    kind: parseCommandKind(event.commandJson),
+    kind: event.eventKind ?? parseCommandKind(event.commandJson),
     sequence: event._creationTime,
     text: event.text,
   }));

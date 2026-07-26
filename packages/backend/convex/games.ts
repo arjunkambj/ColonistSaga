@@ -155,7 +155,7 @@ export const applyCommand = mutation({
       seat,
       command,
       clientActionId,
-      commandText(command, seat.displayName, nextState),
+      commandText(command, seat.displayName, state, nextState),
     );
     return null;
   },

@@ -58,7 +58,7 @@ export const runAutomatedAction = internalMutation({
       fail("AUTOMATED_ACTION_FAILED", message);
     }
 
-    const actionText = commandText(command, actorSeat.displayName, nextState);
+    const actionText = commandText(command, actorSeat.displayName, state, nextState);
     await persistAppliedCommand(
       ctx,
       game,

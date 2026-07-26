@@ -81,9 +81,20 @@ export function parseCommandKind(commandJson: string): string {
   return "unknown";
 }
 
+export function commandEventKind(
+  command: GameCommand,
+  state: GameState,
+  nextState: GameState,
+): string {
+  return command.kind === "move_robber" && nextState.randomIndex === state.randomIndex + 1
+    ? "move_robber_and_steal"
+    : command.kind;
+}
+
 export function commandText(
   command: GameCommand,
   displayName: string,
+  state: GameState,
   nextState: GameState,
 ): string {
   switch (command.kind) {
@@ -100,7 +111,9 @@ export function commandText(
     case "discard":
       return `${displayName} discarded resources.`;
     case "move_robber":
-      return `${displayName} moved the robber.`;
+      return commandEventKind(command, state, nextState) === "move_robber_and_steal"
+        ? `${displayName} moved the robber and stole a resource.`
+        : `${displayName} moved the robber.`;
     case "steal":
       return `${displayName} stole a resource.`;
     case "build_city":

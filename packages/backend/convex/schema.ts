@@ -121,6 +121,7 @@ export default defineSchema({
     clientActionId: v.string(),
     commandJson: v.string(),
     createdAt: v.number(),
+    eventKind: v.optional(v.string()),
     gameId: v.id("games"),
     text: v.string(),
   })

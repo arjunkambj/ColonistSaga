@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { syncBackgroundMusic } from "@/lib/background-music";
+
 export function BackgroundMusic({ src, volume }: { src: string; volume: number }) {
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -11,10 +13,7 @@ export function BackgroundMusic({ src, volume }: { src: string; volume: number }
       return;
     }
 
-    audio.volume = volume / 100;
-    if (volume === 0) {
-      audio.pause();
-    }
+    syncBackgroundMusic(audio, volume);
   }, [volume]);
 
   useEffect(() => {
@@ -23,28 +22,20 @@ export function BackgroundMusic({ src, volume }: { src: string; volume: number }
       return;
     }
 
-    const removePlaybackListeners = () => {
-      document.removeEventListener("keydown", startPlayback, true);
-      document.removeEventListener("pointerdown", startPlayback, true);
-    };
-
     const startPlayback = () => {
-      if (audio.volume === 0) {
+      if (audio.volume === 0 || !audio.paused) {
         return;
       }
 
-      void audio
-        .play()
-        .then(removePlaybackListeners)
-        .catch(() => undefined);
+      void audio.play().catch(() => undefined);
     };
 
     document.addEventListener("keydown", startPlayback, true);
     document.addEventListener("pointerdown", startPlayback, true);
-    startPlayback();
 
     return () => {
-      removePlaybackListeners();
+      document.removeEventListener("keydown", startPlayback, true);
+      document.removeEventListener("pointerdown", startPlayback, true);
       audio.pause();
       audio.currentTime = 0;
     };

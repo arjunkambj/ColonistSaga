@@ -20,7 +20,7 @@ import {
 } from "../../lib/game-scheduling";
 import { internal } from "../_generated/api";
 import type { HexclaveUser } from "../hexclave/auth";
-import { serializeCommand } from "./commands";
+import { commandEventKind, serializeCommand } from "./commands";
 import { DEFAULT_BOT_DIFFICULTY } from "./constants";
 import { fail } from "./errors";
 import {
@@ -280,6 +280,7 @@ export async function persistAppliedCommand(
     clientActionId,
     commandJson: serializeCommand(command),
     createdAt: now,
+    eventKind: commandEventKind(command, state, nextState),
     gameId: game._id,
     text,
   });

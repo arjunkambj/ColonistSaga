@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
-import { getEventSound, getViewerEventSound, shouldPlayVictory } from "../src/lib/game/audio-cues";
+import { getEventSound, shouldPlayVictory } from "../src/lib/game/audio-cues";
 
 describe("game audio cues", () => {
   test("maps every audible command family to its generated effect", () => {
-    expect(getEventSound("roll")).toBe("action");
-    expect(getEventSound("place_road")).toBe("piece");
-    expect(getEventSound("place_settlement")).toBe("piece");
-    expect(getEventSound("build_city")).toBe("piece");
+    expect(getEventSound("roll", 0)).toBe("dice1");
+    expect(getEventSound("roll", 1)).toBe("dice2");
+    expect(getEventSound("roll", 2)).toBe("dice3");
+    expect(getEventSound("roll", 3)).toBe("dice1");
+    expect(getEventSound("place_road")).toBe("road");
+    expect(getEventSound("place_settlement")).toBe("settlement");
+    expect(getEventSound("build_city")).toBe("city");
     expect(getEventSound("move_robber")).toBe("robber");
+    expect(getEventSound("move_robber_and_steal")).toBe("robber");
     expect(getEventSound("discard")).toBe("resource");
     expect(getEventSound("steal")).toBe("resource");
     expect(getEventSound("trade_bank")).toBe("trade");
@@ -21,16 +25,9 @@ describe("game audio cues", () => {
     expect(getEventSound("unknown")).toBeNull();
   });
 
-  test("uses detailed cues only for the viewer's own actions", () => {
-    expect(getViewerEventSound("roll", "viewer", "viewer")).toBe("action");
-    expect(getViewerEventSound("roll", "other-player", "viewer")).toBe("action");
-    expect(getViewerEventSound("place_road", "other-player", "viewer")).toBe("action");
-    expect(getViewerEventSound("end_turn", "other-player", "viewer")).toBeNull();
-  });
-
   test("plays one placement cue for the combined setup settlement and road", () => {
-    expect(getViewerEventSound("place_settlement", "viewer", "viewer", "setup_road")).toBeNull();
-    expect(getViewerEventSound("place_road", "viewer", "viewer", "setup_settlement")).toBe("piece");
+    expect(getEventSound("place_settlement", 0, "setup_road")).toBeNull();
+    expect(getEventSound("place_road", 0, "setup_settlement")).toBe("road");
   });
 
   test("plays victory only when a live game gains a winner", () => {

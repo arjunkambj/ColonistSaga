@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import {
-  getViewerEventSound,
+  getEventSound,
   shouldPlayVictory,
   SOUND_EFFECT_PATHS,
   type SoundEffect,
 } from "@/lib/game/audio-cues";
 import type { RoomEventView } from "@/lib/game/types";
+
+const TURN_REMINDER_DELAY_MS = 25_000;
 
 export function GameAudio({
   activePlayerId,
@@ -27,7 +29,7 @@ export function GameAudio({
 }) {
   const audioElementsRef = useRef(new Map<SoundEffect, HTMLAudioElement>());
   const lastEventSequenceRef = useRef(events.at(-1)?.sequence ?? 0);
-  const previousActivePlayerIdRef = useRef(activePlayerId);
+  const previousActivePlayerIdRef = useRef<string | null>(null);
   const previousWinnerPlayerIdRef = useRef(winnerPlayerId);
   const soundEffectsVolumeRef = useRef(soundEffectsVolume);
 
@@ -64,12 +66,7 @@ export function GameAudio({
       return;
     }
 
-    const sound = getViewerEventSound(
-      newestEvent.kind,
-      newestEvent.actorPlayerId,
-      viewerPlayerId,
-      phaseKind,
-    );
+    const sound = getEventSound(newestEvent.kind, newestEvent.sequence, phaseKind);
     if (sound) {
       playSound(sound);
     }
@@ -90,6 +87,20 @@ export function GameAudio({
       playSound("turn");
     }
   }, [activePlayerId, playSound, viewerPlayerId]);
+
+  useEffect(() => {
+    if (activePlayerId !== viewerPlayerId || winnerPlayerId !== null) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      playSound("turnReminder");
+    }, TURN_REMINDER_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [activePlayerId, events, phaseKind, playSound, viewerPlayerId, winnerPlayerId]);
 
   return null;
 }

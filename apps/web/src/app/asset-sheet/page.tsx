@@ -21,6 +21,7 @@ import {
   OCEAN_BOARD_ASSET_PATH,
   PORT_SKIFF_ASSET_PATH,
 } from "@/constants/game/board-assets";
+import { SOUND_EFFECT_PATHS, type SoundEffect } from "@/lib/game/audio-cues";
 
 import { AssetCard, type AssetCardItem } from "./asset-card";
 import styles from "./asset-sheet.module.css";
@@ -58,20 +59,28 @@ const MUSIC_ASSETS = [
   },
 ] satisfies readonly AssetItem[];
 
-const SOUND_EFFECT_ASSETS = [
-  ["Action feedback", "Generic game action confirmation.", "action-feedback"],
-  ["Your turn", "Notification when your turn begins.", "your-turn"],
-  ["Resource change", "Resource gain or loss cue.", "resource-change"],
-  ["Piece placed", "Road or building placement cue.", "piece-placed"],
-  ["Robber alert", "Robber sequence warning.", "robber-alert"],
-  ["Trade resolved", "Completed trade confirmation.", "trade-resolved"],
+const SOUND_EFFECT_DEFINITIONS = [
+  ["Action feedback", "Generic game action confirmation.", "action"],
+  ["Dice roll I", "First tactile dice-roll variation.", "dice1"],
+  ["Dice roll II", "Second tactile dice-roll variation.", "dice2"],
+  ["Dice roll III", "Third tactile dice-roll variation.", "dice3"],
+  ["Your turn", "Notification when your turn begins.", "turn"],
+  ["Turn reminder", "Gentle reminder when your turn has been idle.", "turnReminder"],
+  ["Resource change", "Resource gain or loss cue.", "resource"],
+  ["Road placed", "Short wooden road placement cue.", "road"],
+  ["Settlement placed", "Warm settlement placement cue.", "settlement"],
+  ["City placed", "Weightier city upgrade cue.", "city"],
+  ["Robber alert", "Robber sequence warning.", "robber"],
+  ["Trade resolved", "Completed trade confirmation.", "trade"],
   ["Victory", "Match-winning celebration.", "victory"],
-].map(([name, description, filename]) => ({
+] satisfies readonly (readonly [name: string, description: string, sound: SoundEffect])[];
+
+const SOUND_EFFECT_ASSETS = SOUND_EFFECT_DEFINITIONS.map(([name, description, sound]) => ({
   name,
   description,
   format: "MP3 · 44.1 kHz · 192 kbps",
   kind: "audio" as const,
-  path: `/sound-effects/${filename}.mp3`,
+  path: SOUND_EFFECT_PATHS[sound],
   status: "generated" as const,
 }));
 
@@ -93,8 +102,19 @@ const SOUND_EFFECT_SUBCATEGORIES = [
     assets: selectAssets(SOUND_EFFECT_ASSETS, ["Action feedback"]),
   },
   {
-    name: "Game round",
-    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Your turn", "Resource change", "Piece placed"]),
+    name: "Turn flow",
+    assets: selectAssets(SOUND_EFFECT_ASSETS, [
+      "Dice roll I",
+      "Dice roll II",
+      "Dice roll III",
+      "Your turn",
+      "Turn reminder",
+      "Resource change",
+    ]),
+  },
+  {
+    name: "Building",
+    assets: selectAssets(SOUND_EFFECT_ASSETS, ["Road placed", "Settlement placed", "City placed"]),
   },
   {
     name: "High-priority events",
