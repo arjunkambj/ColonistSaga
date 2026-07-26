@@ -28,6 +28,7 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
           isBot: player.isBot,
           isViewer: false,
           piecesRemaining: { ...player.piecesRemaining },
+          playedKnights: player.playedKnights,
           resourceCount,
           seatIndex: player.seatIndex,
           victoryPoints: player.victoryPoints,

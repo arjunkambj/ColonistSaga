@@ -1031,7 +1031,6 @@
 .reference-game.is-board-interacting .phase-banner,
 .reference-game.is-board-interacting .resource-hand,
 .reference-game.is-board-interacting .action-dock,
-.reference-game.is-board-interacting .game-header .compact-brand,
 .reference-game.is-board-interacting .game-room-meta,
 .reference-game.is-board-interacting .game-header-actions {
   backdrop-filter: none;
@@ -1050,7 +1049,6 @@
 
 .reference-game .phase-banner h1,
 .reference-game .side-card-title h2,
-.reference-game .hand-heading h2,
 .reference-game .action-heading strong,
 .reference-game .player-identity-line > strong {
   color: #fffaf3;
@@ -1062,7 +1060,6 @@
 .reference-game .player-resource-stat,
 .reference-game .player-resource-stat small,
 .reference-game .player-piece-stats strong,
-.reference-game .hand-heading > span,
 .reference-game .piece-supply-title,
 .reference-game .action-heading span {
   color: #d6bdd8;
@@ -1145,49 +1142,21 @@
 }
 
 .reference-game .bank-grid li {
-  min-height: 4rem;
-  border-color: rgba(192, 232, 250, 0.2);
-  background: linear-gradient(180deg, rgba(132, 68, 148, 0.84), rgba(57, 23, 70, 0.92));
-}
-
-.reference-game .bank-grid li:nth-child(1) {
-  background: linear-gradient(180deg, rgba(137, 83, 35, 0.86), rgba(68, 43, 24, 0.9));
-}
-
-.reference-game .bank-grid li:nth-child(2) {
-  background: linear-gradient(180deg, rgba(190, 68, 41, 0.86), rgba(105, 40, 31, 0.92));
-}
-
-.reference-game .bank-grid li:nth-child(3) {
-  background: linear-gradient(180deg, rgba(94, 155, 54, 0.86), rgba(45, 92, 37, 0.92));
-}
-
-.reference-game .bank-grid li:nth-child(4) {
-  background: linear-gradient(180deg, rgba(225, 163, 18, 0.9), rgba(136, 91, 5, 0.94));
-}
-
-.reference-game .bank-grid li:nth-child(5) {
-  background: linear-gradient(180deg, rgba(108, 126, 143, 0.9), rgba(56, 68, 87, 0.94));
+  filter: none;
 }
 
 .reference-game .bank-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.reference-game .bank-grid li:hover {
+  filter: brightness(1.06);
 }
 
 .reference-game .bank-grid li strong {
-  background: rgba(42, 16, 52, 0.8);
-  color: #fff;
-}
-
-.reference-game .mobile-game-info-players .player-strip {
-  position: static;
-  display: grid;
-  width: 100%;
-  grid-auto-flow: row;
-  grid-template-columns: minmax(0, 1fr);
-  padding: 0;
-  overflow: visible;
-  mask-image: none;
+  border-color: rgba(255, 255, 255, 0.9);
+  background: #fff8f4;
+  color: #846386;
 }
 
 .reference-game .board-inspector {
@@ -1264,13 +1233,7 @@
   text-shadow: 0 3px 8px rgba(18, 8, 43, 0.38);
 }
 
-.reference-game .resource-card-label,
-.reference-game .resource-card-quantity strong {
-  color: #fff;
-}
-
 .reference-game .action-button,
-.reference-game .button-end-turn,
 .reference-game .trade-launch {
   border: 2px solid rgba(225, 184, 230, 0.52);
   background: linear-gradient(180deg, rgba(132, 65, 149, 0.94), rgba(76, 31, 88, 0.98));
@@ -1431,60 +1394,25 @@
   color: #43284b;
 }
 
-.game-info-reference-dialog {
+.game-help-reference-dialog {
   border-color: rgba(225, 184, 230, 0.62);
   background: linear-gradient(155deg, rgba(116, 55, 132, 0.94), rgba(43, 16, 53, 0.98));
   color: #fff7ed;
 }
 
-.game-info-reference-dialog h2,
-.game-info-reference-dialog h3,
-.game-info-reference-dialog dd {
+.game-help-reference-dialog h2 {
   color: #fff7ed;
 }
 
-.game-info-reference-dialog .eyebrow,
-.game-info-reference-dialog dt,
-.game-info-reference-dialog .game-help-steps span {
+.game-help-reference-dialog .eyebrow,
+.game-help-reference-dialog .game-help-steps span {
   color: #e0c4e1;
 }
 
-.game-info-reference-dialog .mobile-game-info-header > button {
+.game-help-reference-dialog .game-help-header > button {
   border-color: rgba(225, 184, 230, 0.42);
   background: rgba(48, 19, 60, 0.7);
   color: #fff;
-}
-
-.game-info-reference-dialog .side-card {
-  border-color: rgba(225, 184, 230, 0.32);
-  background: rgba(48, 19, 60, 0.58);
-  color: #fff7ed;
-}
-
-.game-info-settings {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin: 0;
-}
-
-.game-info-settings > div {
-  display: grid;
-  gap: 0.18rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid rgba(225, 184, 230, 0.26);
-  border-radius: 0.8rem;
-  background: rgba(48, 19, 60, 0.52);
-}
-
-.game-info-settings dt {
-  font-size: 0.7rem;
-  font-weight: 750;
-}
-
-.game-info-settings dd {
-  margin: 0;
-  font-weight: 850;
 }
 
 .game-help-steps {
@@ -1528,12 +1456,6 @@
 
 .game-help-steps strong {
   color: #fff;
-}
-
-@media (max-width: 520px) {
-  .game-info-settings {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Reusable action-card development preview */
@@ -1676,7 +1598,6 @@
     pointer-events: auto;
   }
 
-  .reference-game .game-header .compact-brand,
   .reference-game .game-room-meta,
   .reference-game .game-header-actions {
     width: fit-content;
@@ -1687,31 +1608,6 @@
       0 7px 19px rgba(34, 10, 42, 0.3);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
-  }
-
-  .reference-game .game-header .compact-brand {
-    min-height: 2.9rem;
-    gap: 0.55rem;
-    padding: 0.28rem 0.9rem 0.28rem 0.52rem;
-    border-radius: 0.9rem;
-  }
-
-  .reference-game .compact-brand .brand-mark {
-    width: 2.3rem;
-    height: 2.05rem;
-  }
-
-  .reference-game .compact-brand .brand-mark-core {
-    width: 1.28rem;
-    height: 1.14rem;
-  }
-
-  .reference-game .compact-brand strong {
-    font-size: 1.4rem;
-  }
-
-  .reference-game .compact-brand small {
-    font-size: 0.36rem;
   }
 
   .reference-game .game-room-meta {
@@ -1761,16 +1657,6 @@
     backdrop-filter: none;
   }
 
-  .reference-game .game-header-actions .icon-button {
-    width: 2.8rem;
-    height: 2.8rem;
-    border-radius: 50%;
-  }
-
-  .reference-game .mobile-game-info-button {
-    display: none;
-  }
-
   .reference-game .game-sidebar {
     position: absolute;
     z-index: 9500;
@@ -1797,14 +1683,6 @@
     border-radius: 1rem;
   }
 
-  .reference-game .side-card-title {
-    margin-bottom: 0.45rem;
-  }
-
-  .reference-game .side-card-title h2 {
-    font-size: 0.78rem;
-  }
-
   .reference-game .event-list li {
     padding: 0.3rem 0.1rem;
   }
@@ -1814,13 +1692,9 @@
     line-height: 1.35;
   }
 
-  .reference-game .bank-grid li {
-    min-height: 3.85rem;
-  }
-
   .reference-game .bank-grid .resource-icon {
-    width: 2rem;
-    height: 2rem;
+    width: 100%;
+    height: 100%;
   }
 
   .reference-game .player-strip {
@@ -1940,24 +1814,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    padding: 1.05rem 0.55rem 0.45rem;
-  }
-
-  .reference-game .hand-heading {
-    position: absolute;
-    top: 0.28rem;
-    left: 0.7rem;
-  }
-
-  .reference-game .hand-heading .eyebrow,
-  .reference-game .hand-heading > span {
-    display: none;
-  }
-
-  .reference-game .hand-heading h2 {
-    font-family: inherit;
-    font-size: 0.62rem;
-    font-weight: 750;
+    padding: 0.45rem 0.55rem;
   }
 
   .reference-game .resource-card-list {
@@ -1979,23 +1836,6 @@
   .reference-game .resource-card-art .resource-icon {
     width: min(3.25rem, 84%);
     height: min(3.25rem, 84%);
-  }
-
-  .reference-game .resource-card-label {
-    display: none;
-  }
-
-  .reference-game .resource-card-quantity {
-    width: 100%;
-    grid-auto-flow: column;
-    align-items: end;
-    justify-content: space-between;
-  }
-
-  .reference-game .resource-card-quantity small {
-    display: block;
-    color: #c8e4f5;
-    font-size: 0.42rem;
   }
 
   .reference-game .piece-supply {
@@ -2064,16 +1904,6 @@
     height: 1.55rem;
   }
 
-  .reference-game .action-dock-roll-layout .button-end-turn {
-    width: 12.7rem;
-    min-width: 12.7rem;
-    height: 5.3rem;
-    min-height: 5.3rem;
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    grid-template-rows: 1fr auto;
-    opacity: 0.72;
-  }
-
   .reference-game .action-dock-roll-layout .action-tile-preset__art {
     grid-row: 1 / 3;
   }
@@ -2116,17 +1946,6 @@
     display: grid;
   }
 
-  .reference-game .button-end-turn {
-    width: 7.15rem;
-    min-width: 7.15rem;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .reference-game .button-end-turn > svg {
-    display: none;
-  }
-
   .reference-game .action-piece,
   .reference-game .action-art {
     width: 3.65rem;
@@ -2156,8 +1975,7 @@
   }
 
   .reference-game .build-actions .action-button > strong,
-  .reference-game .trade-launch > strong,
-  .reference-game .button-end-turn > strong {
+  .reference-game .trade-launch > strong {
     max-width: 100%;
     overflow: hidden;
     font-size: 0.7rem;
@@ -2175,18 +1993,6 @@
     white-space: nowrap;
   }
 
-  .reference-game .board-focus-button {
-    display: grid;
-  }
-
-  .reference-game .player-menu-button {
-    border-color: rgba(225, 184, 230, 0.42);
-    background: rgba(48, 19, 60, 0.62);
-    font-family: var(--font-ui);
-    font-size: 1rem;
-    font-weight: 800;
-  }
-
   .reference-game .player-turn-status {
     width: fit-content;
     padding: 0.16rem 0.34rem;
@@ -2195,22 +2001,6 @@
     background: color-mix(in srgb, var(--player-color), rgba(42, 15, 50, 0.74) 78%);
   }
 
-  .reference-game.is-board-focused .game-sidebar,
-  .reference-game.is-board-focused .game-footer {
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-  }
-
-  .reference-game.is-board-focused .board-shell {
-    padding-right: 0;
-  }
-
-  .reference-game.is-board-focused .board-stage {
-    top: 0;
-    width: min(82vw, 82vh);
-    margin-left: 0;
-  }
 }
 
 @media (min-width: 1101px) and (max-width: 1240px) and (min-height: 561px) {
@@ -2265,11 +2055,21 @@
   }
 
   .reference-game .player-strip {
+    grid-auto-columns: minmax(15.5rem, 1fr);
     scrollbar-width: none;
   }
 
   .reference-game .player-strip::-webkit-scrollbar {
     display: none;
+  }
+
+  .reference-game .player-table-supply,
+  .reference-game .player-piece-stats {
+    display: flex;
+  }
+
+  .reference-game .player-piece-stats {
+    gap: 0.3rem;
   }
 }
 
@@ -2343,38 +2143,11 @@
     display: none;
   }
 
-  .reference-game .button-end-turn {
-    width: 5.8rem;
-    min-width: 5.8rem;
-    margin-left: 0;
-  }
 }
 
 @media (max-width: 620px) and (max-height: 560px) and (orientation: landscape) {
   .reference-game .board-stage {
     width: min(58cqw, 34rem);
-  }
-
-  .reference-game.is-board-focused .board-stage {
-    width: min(72cqw, 40rem);
-  }
-}
-
-@media (min-width: 841px) and (max-width: 1100px) and (min-height: 561px) {
-  .reference-game.is-board-focused .game-sidebar,
-  .reference-game.is-board-focused .game-footer {
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-  }
-
-  .reference-game.is-board-focused .board-shell {
-    padding-right: 0.45rem;
-    padding-bottom: 0.45rem;
-  }
-
-  .reference-game.is-board-focused .board-stage {
-    width: min(92cqw, calc(100cqh * 0.9091));
   }
 }
 

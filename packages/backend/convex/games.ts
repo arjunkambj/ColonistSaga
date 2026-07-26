@@ -10,6 +10,7 @@ import {
   createRoomRecord,
   parseGameState,
   persistAppliedCommand,
+  resumeAutomatedActionSchedule,
   setWaitingBotCount,
   startRoomGame,
 } from "./model/gameState";
@@ -74,6 +75,107 @@ export const createQuickGame = mutation({
   },
 });
 
+export const pauseGame = mutation({
+  args: {
+    code: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
+    const room = await requireRoom(ctx, args.code);
+    const seat = await requireHumanSeat(ctx, room._id, user.id);
+    if (seat._id !== room.hostSeatId) fail("NOT_HOST", "Only the room host can pause the game.");
+    if (!room.gameId) fail("GAME_NOT_STARTED", "Game has not started.");
+
+    const game = await ctx.db.get("games", room.gameId);
+    if (!game) fail("GAME_NOT_STARTED", "Game has not started.");
+    if (game.status === "paused") return null;
+    if (game.status === "finished") fail("GAME_ALREADY_FINISHED", "Game has already finished.");
+
+    const state = parseGameState(game.stateJson);
+    if (game.revision !== state.actionNumber) {
+      fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch("games", game._id, {
+      nextActionAt: undefined,
+      pausedNextActionRemainingMs:
+        game.nextActionAt === undefined ? undefined : Math.max(0, game.nextActionAt - now),
+      pausedTurnDeadlineRemainingMs:
+        game.turnDeadlineAt === undefined ? undefined : Math.max(0, game.turnDeadlineAt - now),
+      status: "paused",
+      turnDeadlineAt: undefined,
+      updatedAt: now,
+    });
+    await ctx.db.insert("gameActions", {
+      actorSeatId: seat._id,
+      afterRevision: game.revision,
+      beforeRevision: game.revision,
+      clientActionId: `system:game-paused:${game.revision}:${now}`,
+      commandJson: JSON.stringify({ kind: "pause_game" }),
+      createdAt: now,
+      eventKind: "game_paused",
+      gameId: game._id,
+      text: `${seat.displayName} paused the game.`,
+    });
+    return null;
+  },
+});
+
+export const resumeGame = mutation({
+  args: {
+    code: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await requireCurrentHexclaveUser(ctx);
+    const room = await requireRoom(ctx, args.code);
+    const seat = await requireHumanSeat(ctx, room._id, user.id);
+    if (seat._id !== room.hostSeatId) fail("NOT_HOST", "Only the room host can resume the game.");
+    if (!room.gameId) fail("GAME_NOT_STARTED", "Game has not started.");
+
+    const game = await ctx.db.get("games", room.gameId);
+    if (!game) fail("GAME_NOT_STARTED", "Game has not started.");
+    if (game.status === "active") return null;
+    if (game.status === "finished") fail("GAME_ALREADY_FINISHED", "Game has already finished.");
+
+    const state = parseGameState(game.stateJson);
+    if (game.revision !== state.actionNumber) {
+      fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
+    }
+
+    const now = Date.now();
+    const schedule = await resumeAutomatedActionSchedule(
+      ctx,
+      game._id,
+      state,
+      now,
+      game.pausedNextActionRemainingMs,
+      game.pausedTurnDeadlineRemainingMs,
+    );
+    await ctx.db.patch("games", game._id, {
+      ...schedule,
+      pausedNextActionRemainingMs: undefined,
+      pausedTurnDeadlineRemainingMs: undefined,
+      status: "active",
+      updatedAt: now,
+    });
+    await ctx.db.insert("gameActions", {
+      actorSeatId: seat._id,
+      afterRevision: game.revision,
+      beforeRevision: game.revision,
+      clientActionId: `system:game-resumed:${game.revision}:${now}`,
+      commandJson: JSON.stringify({ kind: "resume_game" }),
+      createdAt: now,
+      eventKind: "game_resumed",
+      gameId: game._id,
+      text: `${seat.displayName} resumed the game.`,
+    });
+    return null;
+  },
+});
+
 export const applyCommand = mutation({
   args: {
     clientActionId: v.string(),
@@ -90,6 +192,7 @@ export const applyCommand = mutation({
 
     const game = await ctx.db.get("games", room.gameId);
     if (!game) fail("GAME_NOT_STARTED", "Game has not started.");
+    if (game.status === "paused") fail("GAME_PAUSED", "The game is paused.");
     validateGameSettings(game.settings);
     const clientActionId = validateClientActionId(args.clientActionId);
     const command = args.command as GameCommand;

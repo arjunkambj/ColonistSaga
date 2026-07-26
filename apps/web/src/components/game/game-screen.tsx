@@ -4,6 +4,7 @@ import { api } from "@colonistsaga/backend/convex/_generated/api";
 import {
   BUILD_COSTS,
   DEVELOPMENT_CARD_COST,
+  getLongestRoadLength,
   RESOURCE_ORDER,
   type GameCommand,
   type PlayerGameView,
@@ -16,28 +17,24 @@ import crownIcon from "@iconify-icons/game-icons/crown";
 import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
 import flagIcon from "@iconify-icons/game-icons/flag-objective";
 import hammerIcon from "@iconify-icons/game-icons/hammer-nails";
+import knightIcon from "@iconify-icons/game-icons/knight-banner";
 import moveIcon from "@iconify-icons/game-icons/move";
 import playerIcon from "@iconify-icons/game-icons/player-base";
 import scrollIcon from "@iconify-icons/game-icons/scroll-unfurled";
-import shieldIcon from "@iconify-icons/game-icons/shield";
 import trophyIcon from "@iconify-icons/game-icons/trophy-cup";
-import helpIcon from "@iconify-icons/solar/question-circle-outline";
-import infoIcon from "@iconify-icons/solar/info-circle-outline";
 import layersIcon from "@iconify-icons/solar/layers-outline";
-import maximizeIcon from "@iconify-icons/solar/maximize-square-outline";
-import minimizeIcon from "@iconify-icons/solar/minimize-square-outline";
-import settingsIcon from "@iconify-icons/solar/settings-minimalistic-outline";
 import { Icon } from "@iconify/react";
 import { useMutation } from "convex/react";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AudioSettingsControls } from "@/components/audio/audio-settings-controls";
 import { GameAudio } from "@/components/audio/game-audio";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
-import { ACTION_CARD_ASSET_PATHS, DEVELOPMENT_DECK_ASSET_PATH } from "@/constants/game/card-assets";
+import {
+  ACTION_CARD_ASSET_PATHS,
+  DEVELOPMENT_CARD_BACK_ASSET_PATH,
+} from "@/constants/game/card-assets";
 import { getPlayerPortraitPath } from "@/constants/game/player-assets";
 import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import { getTurnControlKind } from "@/lib/game/game-footer-model";
@@ -57,8 +54,6 @@ import { ActiveTradeOffer, TradeCenter } from "./trade-center";
 type GameConfirmation =
   | { kind: "leave" }
   | { displayName: string; kind: "replace"; playerId: string };
-
-type GameInfoView = "help" | "overview";
 
 const DIE_PIPS: Record<number, readonly number[]> = {
   1: [4],
@@ -85,9 +80,9 @@ export function GameScreen({
   events,
   game,
   isHost,
+  isPaused,
   botThinking,
   nextActionAt,
-  onAudioSettingsChange,
   onLeave,
   viewerProfileImageUrl,
 }: {
@@ -96,26 +91,29 @@ export function GameScreen({
   events: RoomEventView[];
   game: PlayerGameView;
   isHost: boolean;
+  isPaused: boolean;
   botThinking: boolean;
   nextActionAt?: number;
-  onAudioSettingsChange(settings: AudioSettings): void;
   onLeave(): Promise<void>;
   viewerProfileImageUrl: string | null;
 }) {
   const applyCommand = useMutation(api.games.applyCommand);
+  const pauseGame = useMutation(api.games.pauseGame);
   const replacePlayerWithBot = useMutation(api.rooms.replacePlayerWithBot);
+  const resumeGame = useMutation(api.games.resumeGame);
   const [buildMode, setBuildMode] = useState<BuildMode>(null);
   const [pendingCommand, setPendingCommand] = useState<GameCommand["kind"] | null>(null);
   const [pendingReplacementId, setPendingReplacementId] = useState<string | null>(null);
+  const [pauseChangePending, setPauseChangePending] = useState(false);
   const [confirmation, setConfirmation] = useState<GameConfirmation | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [gameInfoView, setGameInfoView] = useState<GameInfoView | null>(null);
-  const [isBoardFocused, setIsBoardFocused] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
   const commandInFlightRef = useRef(false);
   const confirmationInFlightRef = useRef(false);
   const phaseHeadingRef = useRef<HTMLHeadingElement>(null);
+  const pauseChangeInFlightRef = useRef(false);
   const replacementInFlightRef = useRef(false);
 
   const restorePlacementFocus = useCallback((mode: BoardTargetMode) => {
@@ -134,17 +132,9 @@ export function GameScreen({
   const me = game.players.find((player): player is PrivatePlayerState => player.isViewer);
   const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
   const winner = game.players.find((player) => player.id === game.winnerPlayerId);
-  const tradeOfferActionNumber = game.tradeOffer?.offerActionNumber;
-
   useEffect(() => {
     setBuildMode(null);
   }, [game.actionNumber, game.phase.kind]);
-
-  useEffect(() => {
-    if (tradeOfferActionNumber !== undefined) {
-      setIsBoardFocused(false);
-    }
-  }, [tradeOfferActionNumber]);
 
   if (!me || !activePlayer) {
     return <UnavailablePlayerView onLeave={onLeave} />;
@@ -204,6 +194,27 @@ export function GameScreen({
     });
   };
 
+  const changePauseState = async (shouldPause: boolean) => {
+    if (!acquireSingleFlight(pauseChangeInFlightRef)) {
+      return;
+    }
+    setPauseChangePending(true);
+    setError("");
+    try {
+      if (shouldPause) {
+        await pauseGame({ code });
+      } else {
+        await resumeGame({ code });
+      }
+      setAnnouncement(shouldPause ? "Game paused." : "Game resumed.");
+    } catch (cause) {
+      setError(toGameError(cause));
+    } finally {
+      pauseChangeInFlightRef.current = false;
+      setPauseChangePending(false);
+    }
+  };
+
   const phaseCopy = getPhaseCopy(game.phase, activePlayer.id === me.id, activePlayer.displayName);
   const latestEvent = events.at(-1)?.text;
   const phaseLiveMessage = `${phaseCopy.title}. ${phaseCopy.detail}${latestEvent ? ` Latest table event: ${latestEvent}.` : ""}`;
@@ -225,10 +236,20 @@ export function GameScreen({
       setConfirming(false);
     }
   };
+  const gameMetaPillClassName = liquidGlassClassName({
+    className: "game-meta-pill game-purple-glass",
+    kind: "card",
+    radius: "sm",
+  });
+  const gameHeaderActionClassName = liquidGlassClassName({
+    className: "icon-button game-purple-glass",
+    kind: "control",
+    radius: "pill",
+  });
 
   return (
     <main
-      className={`game-page reference-game${isBoardFocused ? " is-board-focused" : ""}`}
+      className="game-page reference-game"
       id="main-content"
     >
       <GameAudio
@@ -240,92 +261,77 @@ export function GameScreen({
         winnerPlayerId={game.winnerPlayerId}
       />
       <header className="game-header">
-        <Brand className="compact-brand" />
         <div className="game-room-meta">
-          <span translate="no">Room {code}</span>
-          <span>Turn {game.turnNumber}</span>
-          <span className="victory-target-pill">
+          <span className={gameMetaPillClassName}>Turn {game.turnNumber}</span>
+          <span className={`${gameMetaPillClassName} victory-target-pill`}>
             <Icon aria-hidden="true" icon={trophyIcon} /> First to {game.settings.victoryPoints} VP
           </span>
         </div>
         <div className="game-header-actions">
+          {isHost && game.status !== "completed" ? (
+            <Button
+              aria-label={isPaused ? "Resume game" : "Pause game"}
+              aria-pressed={isPaused}
+              className={`${gameHeaderActionClassName} game-pause-button`}
+              isDisabled={pauseChangePending}
+              isIconOnly
+              isPending={pauseChangePending}
+              onPress={() => void changePauseState(!isPaused)}
+              size="md"
+              variant="ghost"
+            >
+              <Icon aria-hidden="true" icon={isPaused ? "hugeicons:play" : "hugeicons:pause"} />
+            </Button>
+          ) : null}
           <Button
-            aria-controls="game-info-dialog"
-            aria-expanded={gameInfoView === "overview"}
-            aria-haspopup="dialog"
-            aria-label="Open game information"
-            className="icon-button game-settings-button"
-            isIconOnly
-            onPress={() => setGameInfoView("overview")}
-            variant="ghost"
-          >
-            <Icon aria-hidden="true" icon={settingsIcon} />
-          </Button>
-          <Button
-            aria-controls="game-info-dialog"
-            aria-expanded={gameInfoView === "help"}
+            aria-controls="game-help-dialog"
+            aria-expanded={isHelpOpen}
             aria-haspopup="dialog"
             aria-label="Open game help"
-            className="icon-button game-help-button"
+            className={`${gameHeaderActionClassName} game-help-button`}
             isIconOnly
-            onPress={() => setGameInfoView("help")}
+            onPress={() => setIsHelpOpen(true)}
+            size="md"
             variant="ghost"
           >
-            <Icon aria-hidden="true" icon={helpIcon} />
-          </Button>
-          <Button
-            aria-controls="game-sidebar-panels"
-            aria-label={isBoardFocused ? "Restore table panels" : "Focus on the game board"}
-            aria-pressed={isBoardFocused}
-            className="icon-button board-focus-button"
-            isIconOnly
-            onPress={() => {
-              setIsBoardFocused((current) => !current);
-              setGameInfoView(null);
-            }}
-            variant="ghost"
-          >
-            <Icon aria-hidden="true" icon={isBoardFocused ? minimizeIcon : maximizeIcon} />
-          </Button>
-          <Button
-            aria-controls="game-info-dialog"
-            aria-expanded={gameInfoView === "overview"}
-            aria-haspopup="dialog"
-            aria-label="Open island supply and game log"
-            className="icon-button mobile-game-info-button"
-            isIconOnly
-            onPress={() => setGameInfoView("overview")}
-            variant="ghost"
-          >
-            <Icon aria-hidden="true" icon={infoIcon} />
+            <Icon aria-hidden="true" icon="hugeicons:help-circle" />
           </Button>
           <Button
             aria-label="Leave game"
-            className="icon-button player-menu-button"
+            className={`${gameHeaderActionClassName} player-menu-button`}
             isIconOnly
             onPress={() => setConfirmation({ kind: "leave" })}
+            size="md"
             variant="ghost"
           >
-            <span aria-hidden="true">{getPlayerInitials(me.displayName).slice(0, 1)}</span>
+            <Icon aria-hidden="true" icon="hugeicons:logout-01" />
           </Button>
         </div>
       </header>
 
-      <HandDockProvider>
-        <aside
-          aria-hidden={isBoardFocused || undefined}
-          aria-label="Table status and game information"
-          className="game-sidebar"
-          inert={isBoardFocused || undefined}
+      {isPaused ? (
+        <div
+          aria-live="polite"
+          className={liquidGlassClassName({
+            className: "game-purple-glass pause-status-banner",
+            kind: "control",
+            radius: "pill",
+          })}
+          role="status"
         >
-          <div
-            aria-hidden={isBoardFocused || undefined}
-            className="game-sidebar-panels"
-            id="game-sidebar-panels"
-            inert={isBoardFocused || undefined}
-          >
+          <Icon aria-hidden="true" icon="hugeicons:pause" />
+          <span>
+            <strong>Game paused</strong>
+            <small>{isHost ? "Use the play button to resume" : "Waiting for the host"}</small>
+          </span>
+        </div>
+      ) : null}
+
+      <HandDockProvider>
+        <aside aria-label="Table status" className="game-sidebar">
+          <div className="game-sidebar-panels">
             <EventLog events={events} />
-            <BankPanel bank={game.bank} />
+            <BankPanel bank={game.bank} developmentCardSupply={game.developmentCardSupply} />
           </div>
 
           {game.tradeOffer ? (
@@ -340,6 +346,7 @@ export function GameScreen({
           <PlayerStrip
             activePlayerId={game.activePlayerId}
             activePhaseLabel={getPhaseStatusLabel(game.phase)}
+            board={game.board}
             isHost={isHost}
             onReplacePlayer={requestBotReplacement}
             pendingReplacementId={pendingReplacementId}
@@ -375,11 +382,7 @@ export function GameScreen({
           pending={pendingCommand !== null}
         />
 
-        <footer
-          aria-hidden={isBoardFocused || undefined}
-          className="game-footer game-footer--three-sections"
-          inert={isBoardFocused || undefined}
-        >
+        <footer className="game-footer game-footer--three-sections">
           <ResourceHand actionNumber={game.actionNumber} me={me} />
 
           <ActionDock
@@ -407,20 +410,8 @@ export function GameScreen({
         )}
       </HandDockProvider>
 
-      {gameInfoView ? (
-        <MobileGameInfo
-          audioSettings={audioSettings}
-          code={code}
-          events={events}
-          game={game}
-          isHost={isHost}
-          onClose={() => setGameInfoView(null)}
-          onAudioSettingsChange={onAudioSettingsChange}
-          onReplacePlayer={requestBotReplacement}
-          pendingReplacementId={pendingReplacementId}
-          viewerProfileImageUrl={viewerProfileImageUrl}
-          view={gameInfoView}
-        />
+      {isHelpOpen ? (
+        <GameHelpDialog onClose={() => setIsHelpOpen(false)} />
       ) : null}
 
       {confirmation ? (
@@ -465,6 +456,7 @@ export function GameScreen({
 function PlayerStrip({
   activePlayerId,
   activePhaseLabel,
+  board,
   isHost,
   onReplacePlayer,
   pendingReplacementId,
@@ -474,6 +466,7 @@ function PlayerStrip({
 }: {
   activePlayerId: string;
   activePhaseLabel: string;
+  board: PlayerGameView["board"];
   isHost: boolean;
   onReplacePlayer(playerId: string): void;
   pendingReplacementId: string | null;
@@ -482,6 +475,28 @@ function PlayerStrip({
   victoryTarget: number;
 }) {
   const stripRef = useRef<HTMLOListElement>(null);
+  const tableStats = useMemo(() => {
+    const buildingCounts = new Map(
+      players.map((player) => [player.id, { cities: 0, settlements: 0 }]),
+    );
+
+    for (const building of board.buildings) {
+      const counts = buildingCounts.get(building.playerId);
+      if (counts) {
+        counts[building.kind === "city" ? "cities" : "settlements"] += 1;
+      }
+    }
+
+    return new Map(
+      players.map((player) => [
+        player.id,
+        {
+          ...(buildingCounts.get(player.id) ?? { cities: 0, settlements: 0 }),
+          longestRoad: getLongestRoadLength(board, player.id),
+        },
+      ]),
+    );
+  }, [board, players]);
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
@@ -516,6 +531,11 @@ function PlayerStrip({
     <ol className="player-strip" aria-label="Players" ref={stripRef}>
       {players.map((player) => {
         const theme = getPlayerTheme(player);
+        const stats = tableStats.get(player.id) ?? {
+          cities: 0,
+          longestRoad: 0,
+          settlements: 0,
+        };
         const isActive = player.id === activePlayerId;
         const avatarSrc =
           player.isViewer && viewerProfileImageUrl
@@ -584,21 +604,22 @@ function PlayerStrip({
                 <Icon aria-hidden="true" icon={layersIcon} />
                 <strong>{player.resourceCount}</strong> <small>cards</small>
               </span>
-              <div className="player-piece-stats" aria-label="Pieces remaining" role="group">
-                <span aria-label={`${player.piecesRemaining.roads} roads remaining`} role="img">
-                  <PieceIcon asset="road" theme={theme} />
-                  <strong>{player.piecesRemaining.roads}</strong>
-                </span>
-                <span
-                  aria-label={`${player.piecesRemaining.settlements} settlements remaining`}
-                  role="img"
-                >
+              <div className="player-piece-stats" aria-label="Table achievements" role="group">
+                <span aria-label={`${stats.settlements} settlements built`}>
                   <PieceIcon asset="settlement" theme={theme} />
-                  <strong>{player.piecesRemaining.settlements}</strong>
+                  <strong>{stats.settlements}</strong>
                 </span>
-                <span aria-label={`${player.piecesRemaining.cities} cities remaining`} role="img">
+                <span aria-label={`${stats.cities} cities built`}>
                   <PieceIcon asset="city" theme={theme} />
-                  <strong>{player.piecesRemaining.cities}</strong>
+                  <strong>{stats.cities}</strong>
+                </span>
+                <span aria-label={`Longest road length ${stats.longestRoad}`}>
+                  <PieceIcon asset="road" theme={theme} />
+                  <strong>{stats.longestRoad}</strong>
+                </span>
+                <span aria-label={`${player.playedKnights} knights played`}>
+                  <Icon aria-hidden="true" className="player-knight-icon" icon={knightIcon} />
+                  <strong>{player.playedKnights}</strong>
                 </span>
               </div>
             </div>
@@ -660,34 +681,54 @@ function DieFace({ value }: { value: number }) {
   );
 }
 
-function BankPanel({ bank, idPrefix = "" }: { bank: ResourceInventory | null; idPrefix?: string }) {
-  const titleId = `${idPrefix}bank-title`;
+function BankPanel({
+  bank,
+  developmentCardSupply,
+}: {
+  bank: ResourceInventory | null;
+  developmentCardSupply: number;
+}) {
   return (
-    <section className="side-card" aria-labelledby={titleId}>
-      <div className="side-card-title">
-        <h2 id={titleId}>Resource Market</h2>
-        <Icon aria-hidden="true" icon={shieldIcon} />
-      </div>
+    <section
+      aria-label="Resource market"
+      className={liquidGlassClassName({
+        className: "game-purple-glass side-card market-card-strip",
+        kind: "card",
+        radius: "md",
+      })}
+    >
       <ul className="bank-grid">
         {RESOURCE_ORDER.map((resource) => (
           <li
             aria-label={`${RESOURCE_LABELS[resource]}: ${bank ? bank[resource] : "unknown"}`}
             key={resource}
           >
-            <ResourceIcon decorative resource={resource} size={30} />
+            <ResourceIcon decorative resource={resource} size={72} />
             <span>{RESOURCE_LABELS[resource]}</span>
             <strong>{bank ? bank[resource] : "?"}</strong>
           </li>
         ))}
+        <li aria-label={`Development cards: ${developmentCardSupply}`}>
+          <Image
+            alt=""
+            className="resource-icon"
+            draggable={false}
+            height={768}
+            sizes="4.5rem"
+            src={DEVELOPMENT_CARD_BACK_ASSET_PATH}
+            width={512}
+          />
+          <span>Development Card</span>
+          <strong>{developmentCardSupply}</strong>
+        </li>
       </ul>
     </section>
   );
 }
 
-function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix?: string }) {
+function EventLog({ events }: { events: RoomEventView[] }) {
   const [showLocalTime, setShowLocalTime] = useState(false);
   const visibleEvents = events.slice(-30).reverse();
-  const titleId = `${idPrefix}events-title`;
 
   useEffect(() => {
     setShowLocalTime(true);
@@ -696,9 +737,16 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
   const timeFormatter = showLocalTime ? LOCAL_EVENT_TIME_FORMATTER : UTC_EVENT_TIME_FORMATTER;
 
   return (
-    <section className="side-card event-card" aria-labelledby={titleId}>
+    <section
+      className={liquidGlassClassName({
+        className: "game-purple-glass side-card event-card",
+        kind: "card",
+        radius: "md",
+      })}
+      aria-labelledby="events-title"
+    >
       <div className="side-card-title">
-        <h2 id={titleId}>Game Log</h2>
+        <h2 id="events-title">Game Log</h2>
         <Icon aria-hidden="true" icon={scrollIcon} />
       </div>
       <ol className="event-list">
@@ -725,161 +773,72 @@ function EventLog({ events, idPrefix = "" }: { events: RoomEventView[]; idPrefix
   );
 }
 
-function MobileGameInfo({
-  audioSettings,
-  code,
-  events,
-  game,
-  isHost,
-  onAudioSettingsChange,
-  onClose,
-  onReplacePlayer,
-  pendingReplacementId,
-  viewerProfileImageUrl,
-  view,
-}: {
-  audioSettings: AudioSettings;
-  code: string;
-  events: RoomEventView[];
-  game: PlayerGameView;
-  isHost: boolean;
-  onAudioSettingsChange(settings: AudioSettings): void;
-  onClose(): void;
-  onReplacePlayer(playerId: string): void;
-  pendingReplacementId: string | null;
-  viewerProfileImageUrl: string | null;
-  view: GameInfoView;
-}) {
-  const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
-  const isHelp = view === "help";
-
+function GameHelpDialog({ onClose }: { onClose(): void }) {
   return (
     <Modal>
       <Modal.Backdrop
-        className="mobile-game-info-backdrop"
+        className="game-help-backdrop"
         isOpen
         onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
       >
         <Modal.Container>
           <Modal.Dialog
-            aria-label={isHelp ? "Game help" : "Game information"}
+            aria-label="Game help"
             className={liquidGlassClassName({
-              className: "mobile-game-info-dialog game-info-reference-dialog",
+              className: "game-help-dialog game-help-reference-dialog",
               kind: "panel",
               radius: "md",
             })}
-            id="game-info-dialog"
+            id="game-help-dialog"
           >
-            <Modal.Header className="mobile-game-info-header">
+            <Modal.Header className="game-help-header">
               <div>
-                <p className="eyebrow">{isHelp ? "Player Guide" : "Live Table"}</p>
-                <Modal.Heading>{isHelp ? "How to Play" : "Game Information"}</Modal.Heading>
+                <p className="eyebrow">Player Guide</p>
+                <Modal.Heading>How to Play</Modal.Heading>
               </div>
-              <Button
-                aria-label="Close game information"
-                isIconOnly
-                onPress={onClose}
-                variant="ghost"
-              >
+              <Button aria-label="Close game help" isIconOnly onPress={onClose} variant="ghost">
                 ×
               </Button>
             </Modal.Header>
-            <Modal.Body className="mobile-game-info-body">
-              {isHelp ? (
-                <ol className="game-help-steps">
-                  <li>
-                    <strong>Reach the victory target</strong>
-                    <span>Build settlements and cities until you reach the table’s VP goal.</span>
-                  </li>
-                  <li>
-                    <strong>Roll</strong>
-                    <span>Start your turn by rolling both dice.</span>
-                  </li>
-                  <li>
-                    <strong>Read the number pips</strong>
-                    <span>More dots mean a more frequent roll. Red 6 and 8 are the strongest.</span>
-                  </li>
-                  <li>
-                    <strong>Trade and build</strong>
-                    <span>
-                      Trade, buy development cards, or choose a piece and a glowing board target.
-                    </span>
-                  </li>
-                  <li>
-                    <strong>Keep settlements apart</strong>
-                    <span>Every new settlement needs at least two clear roads between homes.</span>
-                  </li>
-                  <li>
-                    <strong>Unlock harbors</strong>
-                    <span>Build on a harbor corner to trade at its printed 3:1 or 2:1 rate.</span>
-                  </li>
-                  <li>
-                    <strong>Resolve the robber</strong>
-                    <span>
-                      On a seven, discard if required, move the robber, and choose a neighbor.
-                    </span>
-                  </li>
-                  <li>
-                    <strong>End your turn</strong>
-                    <span>Pass play clockwise when you have finished every action.</span>
-                  </li>
-                </ol>
-              ) : (
-                <>
-                  <AudioSettingsControls
-                    onChange={onAudioSettingsChange}
-                    settings={audioSettings}
-                  />
-                  <dl className="game-info-settings">
-                    <div>
-                      <dt>Room</dt>
-                      <dd translate="no">{code}</dd>
-                    </div>
-                    <div>
-                      <dt>Current turn</dt>
-                      <dd>{activePlayer?.displayName ?? "Unknown player"}</dd>
-                    </div>
-                    <div>
-                      <dt>Victory target</dt>
-                      <dd>{game.settings.victoryPoints} VP</dd>
-                    </div>
-                    <div>
-                      <dt>Turn timer</dt>
-                      <dd>
-                        {game.settings.turnTimerSeconds === 0
-                          ? "Off"
-                          : `${game.settings.turnTimerSeconds} seconds`}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Friendly robber</dt>
-                      <dd>{game.settings.friendlyRobber ? "On" : "Off"}</dd>
-                    </div>
-                    <div>
-                      <dt>Balanced dice</dt>
-                      <dd>{game.settings.balancedDice ? "On" : "Off"}</dd>
-                    </div>
-                  </dl>
-                  <section
-                    aria-labelledby="mobile-game-info-players-title"
-                    className="mobile-game-info-players"
-                  >
-                    <h3 id="mobile-game-info-players-title">Players</h3>
-                    <PlayerStrip
-                      activePlayerId={game.activePlayerId}
-                      activePhaseLabel={getPhaseStatusLabel(game.phase)}
-                      isHost={isHost}
-                      onReplacePlayer={onReplacePlayer}
-                      pendingReplacementId={pendingReplacementId}
-                      players={game.players}
-                      viewerProfileImageUrl={viewerProfileImageUrl}
-                      victoryTarget={game.settings.victoryPoints}
-                    />
-                  </section>
-                  <BankPanel bank={game.bank} idPrefix="mobile-" />
-                  <EventLog events={events} idPrefix="mobile-" />
-                </>
-              )}
+            <Modal.Body className="game-help-body">
+              <ol className="game-help-steps">
+                <li>
+                  <strong>Reach the victory target</strong>
+                  <span>Build settlements and cities until you reach the table’s VP goal.</span>
+                </li>
+                <li>
+                  <strong>Roll</strong>
+                  <span>Start your turn by rolling both dice.</span>
+                </li>
+                <li>
+                  <strong>Read the number pips</strong>
+                  <span>More dots mean a more frequent roll. Red 6 and 8 are the strongest.</span>
+                </li>
+                <li>
+                  <strong>Trade and build</strong>
+                  <span>
+                    Trade, buy development cards, or choose a piece and a glowing board target.
+                  </span>
+                </li>
+                <li>
+                  <strong>Keep settlements apart</strong>
+                  <span>Every new settlement needs at least two clear roads between homes.</span>
+                </li>
+                <li>
+                  <strong>Unlock harbors</strong>
+                  <span>Build on a harbor corner to trade at its printed 3:1 or 2:1 rate.</span>
+                </li>
+                <li>
+                  <strong>Resolve the robber</strong>
+                  <span>
+                    On a seven, discard if required, move the robber, and choose a neighbor.
+                  </span>
+                </li>
+                <li>
+                  <strong>End your turn</strong>
+                  <span>Pass play clockwise when you have finished every action.</span>
+                </li>
+              </ol>
             </Modal.Body>
           </Modal.Dialog>
         </Modal.Container>
@@ -906,13 +865,15 @@ function ActionDock({
   const legal = game.legalActions;
   if (!legal.isRequiredActor) {
     return (
-      <section className="action-dock is-waiting" aria-label="Turn actions">
-        <span className="loading-mark small" aria-hidden="true" />
-        <div>
-          <strong>Watching the other players</strong>
-          <span>Your controls will appear when action is required.</span>
-        </div>
-      </section>
+      <BuildingActionsDock
+        buildMode={buildMode}
+        disabledReasonOverride="Wait for your turn"
+        game={game}
+        me={me}
+        onBuildMode={onBuildMode}
+        onCommand={onCommand}
+        pending={pending}
+      />
     );
   }
 
@@ -1078,7 +1039,11 @@ function BuildingActionsDock({
   return (
     <section
       aria-labelledby="building-actions-title"
-      className="action-dock action-dock-tile-layout building-actions-dock"
+      className={liquidGlassClassName({
+        className: "game-purple-glass action-dock action-dock-tile-layout building-actions-dock",
+        kind: "card",
+        radius: "md",
+      })}
     >
       <div className="action-heading">
         <strong id="building-actions-title">Build & Trade</strong>
@@ -1150,10 +1115,15 @@ function TurnControl({
     isRequiredActor: legal.isRequiredActor,
     phaseKind: game.phase.kind,
   });
+  const turnControlClassName = liquidGlassClassName({
+    className: "game-purple-glass turn-control",
+    kind: "control",
+    radius: "md",
+  });
 
   if (controlKind === "roll") {
     return (
-      <section className="turn-control" aria-label="Turn control">
+      <section className={turnControlClassName} aria-label="Turn control">
         <div aria-label="Dice ready to roll" className="roll-preview-card" role="img">
           <DieFace value={1} />
           <DieFace value={5} />
@@ -1173,34 +1143,38 @@ function TurnControl({
 
   if (controlKind === "end_turn") {
     return (
-      <section className="turn-control" aria-label="Turn control">
-        <ActionTile
-          ariaLabel="End Turn"
-          art={
-            <Image
-              alt=""
-              className="action-art action-card-art"
-              draggable={false}
-              height={256}
-              loading="eager"
-              sizes="4rem"
-              src="/game-assets/ui/end-turn-hourglass.png"
-              width={256}
-            />
-          }
-          caption={`Turn ${game.turnNumber}`}
-          className="button button-end-turn"
-          disabled={pending || !legal.canEndTurn}
-          kind="end-turn"
+      <section className={turnControlClassName} aria-label="Turn control">
+        <Button
+          aria-label="End Turn"
+          className="turn-control-action"
+          isDisabled={pending || !legal.canEndTurn}
           onPress={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
-          title="End Turn"
-        />
+          variant="ghost"
+        >
+          <Image
+            alt=""
+            className="turn-control-action-icon"
+            draggable={false}
+            height={256}
+            loading="eager"
+            sizes="5.5rem"
+            src="/game-assets/ui/end-turn-hourglass.png"
+            width={256}
+          />
+        </Button>
       </section>
     );
   }
 
   return (
-    <section aria-label="Turn control" className="turn-control is-unavailable">
+    <section
+      aria-label="Turn control"
+      className={liquidGlassClassName({
+        className: "game-purple-glass turn-control is-unavailable",
+        kind: "control",
+        radius: "md",
+      })}
+    >
       <Icon aria-hidden="true" icon={controlKind === "waiting" ? playerIcon : flagIcon} />
       <span>{controlKind === "waiting" ? "Waiting" : "Finish action"}</span>
     </section>
@@ -1282,7 +1256,7 @@ function DevelopmentCardAction({
             height={512}
             loading="eager"
             sizes="4rem"
-            src={DEVELOPMENT_DECK_ASSET_PATH}
+            src={DEVELOPMENT_CARD_BACK_ASSET_PATH}
             width={512}
           />
         }
@@ -1294,7 +1268,7 @@ function DevelopmentCardAction({
         count={supply}
         kind="development-card"
         meta={<CostSummary cost={DEVELOPMENT_CARD_COST} resources={resources} />}
-        onPress={disabledReason ? () => undefined : onPress}
+        onPress={onPress}
         title="Dev Card"
         unavailable={disabledReason !== null}
       />
@@ -1370,7 +1344,7 @@ function BuildAction({
         count={count}
         kind={asset}
         meta={<CostSummary cost={cost} resources={resources} />}
-        onPress={disabledReason ? () => undefined : onPress}
+        onPress={onPress}
         pressed={active}
         title={label}
         unavailable={disabledReason !== null}
@@ -1665,6 +1639,9 @@ function WinOverlay({
 function toGameError(cause: unknown): string {
   const rawMessage = cause instanceof Error ? cause.message : "The action could not be completed.";
   const normalizedMessage = rawMessage.toLowerCase();
+  if (normalizedMessage.includes("game is paused")) {
+    return "The game is paused. The host can resume it from the header.";
+  }
   if (normalizedMessage.includes("action number") || normalizedMessage.includes("stale")) {
     return "The game moved ahead before this action arrived. Review the refreshed board and try again.";
   }

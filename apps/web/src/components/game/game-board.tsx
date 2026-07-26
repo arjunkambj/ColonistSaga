@@ -36,7 +36,9 @@ import {
   type BoardBuildMode,
   type BoardCanvasTargetModel,
 } from "@/lib/game/board-canvas-model";
+import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import { BoardCanvas, type BoardCanvasTarget } from "./board-canvas";
+import { HandDockPortal } from "./hand-dock";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { useBoardCamera } from "./use-board-camera";
 
@@ -511,7 +513,9 @@ export function GameBoard({
           ))}
         </div>
       </div>
-      <BoardInspector inspection={inspectedItem} />
+      <HandDockPortal>
+        <BoardInspector inspection={inspectedItem} />
+      </HandDockPortal>
     </section>
   );
 }
@@ -608,7 +612,11 @@ function BoardInspector({ inspection }: { inspection: BoardInspection | null }) 
   return (
     <aside
       aria-label="Board inspector"
-      className={`board-inspector${inspection.layout === "compact" ? " is-compact" : ""}`}
+      className={liquidGlassClassName({
+        className: `game-purple-glass board-inspector${inspection.layout === "compact" ? " is-compact" : ""}`,
+        kind: "panel",
+        radius: "md",
+      })}
     >
       <span className="board-inspector-kicker">{inspection.kicker}</span>
       <span className="board-inspector-title-row">

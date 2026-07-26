@@ -2,6 +2,9 @@
   "extends": "./packages/config/tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "paths": {
+      "@/*": ["./apps/web/src/*"]
+    },
     "types": ["bun", "node"]
   },
   "include": [

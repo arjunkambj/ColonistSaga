@@ -18,8 +18,9 @@ import {
 
 import {
   ISLAND_SHELF_ASSET_PATH,
+  PORT_BOAT_ASSET_PATH,
+  PORT_BOAT_RENDER_SIZE,
   PORT_DOCK_ASSET_PATH,
-  PORT_SKIFF_ASSET_PATH,
   getTerrainAssetPath,
 } from "@/constants/game/board-assets";
 import { getResourceCardAssetPath } from "@/constants/game/card-assets";
@@ -30,6 +31,7 @@ import {
   getTilePoint,
   getVertexPoint,
   type BoardLayout,
+  type PortPlacement,
 } from "@/lib/game/board-layout";
 
 import { getPieceAssetPath } from "./piece-icon";
@@ -83,6 +85,18 @@ const ROBBER_ASSET_PATH = "/game-assets/pieces/robber-piece.png";
 const ROAD_PIECE_SIZE = 132;
 const ROAD_PIECE_SCALE_Y = 0.82;
 const SETTLEMENT_PIECE_SIZE = 88;
+const PORT_DOCK_RENDER_HEIGHT = 26;
+const PORT_RESOURCE_BADGE_HEIGHT = 38;
+const PORT_RESOURCE_BADGE_WIDTH = 42;
+const PORT_RESOURCE_MARK_SIZE = 30;
+
+const PORT_RESOURCE_ACCENTS: Readonly<Record<ResourceType, string>> = {
+  brick: "#c94f2d",
+  sheep: "#789b25",
+  stone: "#657686",
+  tree: "#287444",
+  wheat: "#b77a0b",
+};
 
 const PLAYER_COLOR_VALUES: Readonly<Record<PlayerColor, string>> = {
   blue: "#2f8ee8",
@@ -251,7 +265,7 @@ async function renderStaticScene(
   const images = await loadImages([
     ISLAND_SHELF_ASSET_PATH,
     PORT_DOCK_ASSET_PATH,
-    PORT_SKIFF_ASSET_PATH,
+    PORT_BOAT_ASSET_PATH,
     ...terrainPaths,
     ...portResourcePaths,
   ]);
@@ -466,22 +480,10 @@ function drawPorts(
   });
 
   for (const { placement } of ports) {
-    const [firstDock, secondDock] = placement.docks;
-    const terrainEdge = {
-      x: (firstDock.start.x + secondDock.start.x) / 2,
-      y: (firstDock.start.y + secondDock.start.y) / 2,
-    };
-    const portCenter = { x: placement.x, y: placement.y };
     drawDock(
       context,
-      {
-        x: terrainEdge.x + (portCenter.x - terrainEdge.x) * 0.52,
-        y: terrainEdge.y + (portCenter.y - terrainEdge.y) * 0.52,
-      },
-      {
-        x: terrainEdge.x + (portCenter.x - terrainEdge.x) * 0.9,
-        y: terrainEdge.y + (portCenter.y - terrainEdge.y) * 0.9,
-      },
+      placement.dock.start,
+      placement.dock.end,
       images.get(PORT_DOCK_ASSET_PATH) ?? null,
     );
   }
@@ -491,10 +493,8 @@ function drawPorts(
       context,
       placement,
       port.trade,
-      images.get(PORT_SKIFF_ASSET_PATH) ?? null,
-      port.trade === "any"
-        ? null
-        : (images.get(getResourceCardAssetPath(port.trade)) ?? null),
+      images.get(PORT_BOAT_ASSET_PATH) ?? null,
+      port.trade === "any" ? null : (images.get(getResourceCardAssetPath(port.trade)) ?? null),
     );
   }
 }
@@ -514,49 +514,59 @@ function drawDock(
     context.save();
     context.translate(centerX, centerY);
     context.rotate(angle);
-    context.globalAlpha = 0.9;
-    context.drawImage(image, -length / 2, -7, length, 14);
+    context.globalAlpha = 0.98;
+    context.shadowBlur = 3;
+    context.shadowColor = "rgba(62, 42, 22, 0.42)";
+    context.shadowOffsetY = 2;
+    context.drawImage(
+      image,
+      -length / 2,
+      -PORT_DOCK_RENDER_HEIGHT / 2,
+      length,
+      PORT_DOCK_RENDER_HEIGHT,
+    );
     context.restore();
     return;
   }
 
   context.save();
   context.lineCap = "round";
-  strokeLine(context, start, end, 10, "rgba(91, 57, 28, 0.46)");
-  strokeLine(context, start, end, 5, "rgba(216, 155, 61, 0.76)");
+  strokeLine(context, start, end, 20, "rgba(91, 57, 28, 0.64)");
+  strokeLine(context, start, end, 12, "rgba(216, 155, 61, 0.94)");
   context.restore();
 }
 
 function drawPort(
   context: CanvasRenderingContext2D,
-  point: PixelCoordinate,
+  placement: PortPlacement,
   trade: "any" | ResourceType,
-  skiffImage: HTMLImageElement | null,
+  boatImage: HTMLImageElement | null,
   resourceImage: HTMLImageElement | null,
 ) {
-  const width = 70;
-  const height = 94;
+  const { height, width } = PORT_BOAT_RENDER_SIZE;
 
-  if (skiffImage) {
+  if (boatImage) {
+    const outwardAngle = Math.atan2(
+      placement.dock.end.y - placement.dock.start.y,
+      placement.dock.end.x - placement.dock.start.x,
+    );
     context.save();
+    context.translate(placement.x, placement.y);
+    context.rotate(outwardAngle - Math.PI / 2);
     context.shadowBlur = 4;
     context.shadowColor = "rgba(39, 96, 122, 0.24)";
     context.shadowOffsetY = 3;
-    context.drawImage(skiffImage, point.x - width / 2, point.y - height / 2, width, height);
+    context.drawImage(boatImage, -width / 2, -height / 2, width, height);
     context.restore();
   }
 
-  if (trade === "any") {
-    drawAnyResourceMark(context, { x: point.x, y: point.y - 10 });
-  } else if (resourceImage) {
-    context.drawImage(resourceImage, point.x - 12, point.y - 23, 24, 24);
-  }
+  drawPortResourceBadge(context, { x: placement.x, y: placement.y - 16 }, trade, resourceImage);
 
   const label = trade === "any" ? "3:1" : "2:1";
   context.save();
   context.font = "850 14px ui-sans-serif, system-ui, sans-serif";
   const labelWidth = context.measureText(label).width + 11;
-  createRoundedRectPath(context, point.x - labelWidth / 2, point.y + 5, labelWidth, 20, 10);
+  createRoundedRectPath(context, placement.x - labelWidth / 2, placement.y + 5, labelWidth, 20, 10);
   context.fillStyle = "rgba(255, 250, 233, 0.96)";
   context.shadowBlur = 3;
   context.shadowColor = "rgba(55, 49, 42, 0.2)";
@@ -565,7 +575,7 @@ function drawPort(
   context.fillStyle = "#233b55";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(label, point.x, point.y + 15);
+  context.fillText(label, placement.x, placement.y + 15);
   context.restore();
 }
 
@@ -874,6 +884,77 @@ function getTintedPieceCanvas(
   return canvas;
 }
 
+function drawPortResourceBadge(
+  context: CanvasRenderingContext2D,
+  point: PixelCoordinate,
+  trade: "any" | ResourceType,
+  resourceImage: HTMLImageElement | null,
+) {
+  const left = point.x - PORT_RESOURCE_BADGE_WIDTH / 2;
+  const top = point.y - PORT_RESOURCE_BADGE_HEIGHT / 2;
+  const accent = trade === "any" ? "#8b6a35" : PORT_RESOURCE_ACCENTS[trade];
+  const mark = { x: point.x, y: point.y };
+
+  context.save();
+  createRoundedRectPath(
+    context,
+    left,
+    top,
+    PORT_RESOURCE_BADGE_WIDTH,
+    PORT_RESOURCE_BADGE_HEIGHT,
+    9,
+  );
+  context.fillStyle = "rgba(255, 248, 226, 0.98)";
+  context.shadowBlur = 3;
+  context.shadowColor = "rgba(54, 38, 21, 0.34)";
+  context.shadowOffsetY = 2;
+  context.fill();
+  context.shadowColor = "transparent";
+  context.lineWidth = 2.4;
+  context.strokeStyle = accent;
+  context.stroke();
+
+  if (trade === "any") {
+    drawAnyResourceMark(context, mark);
+  } else if (resourceImage) {
+    drawCroppedResourceMark(context, mark, resourceImage, accent);
+  }
+  context.restore();
+}
+
+function drawCroppedResourceMark(
+  context: CanvasRenderingContext2D,
+  point: PixelCoordinate,
+  image: HTMLImageElement,
+  accent: string,
+) {
+  const sourceSize = Math.min(image.naturalWidth * 0.68, image.naturalHeight * 0.46);
+  const sourceX = (image.naturalWidth - sourceSize) / 2;
+  const sourceY = (image.naturalHeight - sourceSize) / 2;
+  context.save();
+  context.beginPath();
+  context.arc(point.x, point.y, PORT_RESOURCE_MARK_SIZE / 2, 0, Math.PI * 2);
+  context.clip();
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceSize,
+    sourceSize,
+    point.x - PORT_RESOURCE_MARK_SIZE / 2,
+    point.y - PORT_RESOURCE_MARK_SIZE / 2,
+    PORT_RESOURCE_MARK_SIZE,
+    PORT_RESOURCE_MARK_SIZE,
+  );
+  context.restore();
+
+  context.beginPath();
+  context.arc(point.x, point.y, PORT_RESOURCE_MARK_SIZE / 2, 0, Math.PI * 2);
+  context.lineWidth = 1.5;
+  context.strokeStyle = accent;
+  context.stroke();
+}
+
 function drawAnyResourceMark(context: CanvasRenderingContext2D, point: PixelCoordinate) {
   const colors = ["#3c9b55", "#d9643a", "#f3e2a1", "#e7ad2c", "#75889a"];
 
@@ -883,7 +964,13 @@ function drawAnyResourceMark(context: CanvasRenderingContext2D, point: PixelCoor
   colors.forEach((color, index) => {
     const angle = -Math.PI / 2 + (index * Math.PI * 2) / colors.length;
     context.beginPath();
-    context.arc(point.x + Math.cos(angle) * 8, point.y + Math.sin(angle) * 8, 4.2, 0, Math.PI * 2);
+    context.arc(
+      point.x + Math.cos(angle) * 8.5,
+      point.y + Math.sin(angle) * 8.5,
+      4.5,
+      0,
+      Math.PI * 2,
+    );
     context.fillStyle = color;
     context.fill();
     context.strokeStyle = "rgba(255, 251, 235, 0.95)";
@@ -908,25 +995,6 @@ function strokeLine(
   context.stroke();
 }
 
-function createHexagonPath(
-  context: CanvasRenderingContext2D,
-  center: PixelCoordinate,
-  radius: number,
-) {
-  context.beginPath();
-  for (let index = 0; index < 6; index += 1) {
-    const angle = -Math.PI / 2 + (index * Math.PI) / 3;
-    const x = center.x + Math.cos(angle) * radius;
-    const y = center.y + Math.sin(angle) * radius;
-    if (index === 0) {
-      context.moveTo(x, y);
-    } else {
-      context.lineTo(x, y);
-    }
-  }
-  context.closePath();
-}
-
 function createRoundedHexagonPath(
   context: CanvasRenderingContext2D,
   center: PixelCoordinate,
@@ -940,10 +1008,7 @@ function createRoundedHexagonPath(
       y: center.y + Math.sin(angle) * radius,
     };
   });
-  const edgeLength = Math.hypot(
-    vertices[1]!.x - vertices[0]!.x,
-    vertices[1]!.y - vertices[0]!.y,
-  );
+  const edgeLength = Math.hypot(vertices[1]!.x - vertices[0]!.x, vertices[1]!.y - vertices[0]!.y);
   const inset = Math.min(0.4, cornerRadius / edgeLength);
 
   context.beginPath();

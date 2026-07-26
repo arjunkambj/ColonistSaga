@@ -392,8 +392,8 @@ function AuthenticatedApp({
       events={room.events}
       game={game}
       isHost={room.isHost}
+      isPaused={room.isPaused}
       nextActionAt={room.nextActionAt}
-      onAudioSettingsChange={onAudioSettingsChange}
       onLeave={leaveRoom}
       viewerProfileImageUrl={profileImageUrl}
     />

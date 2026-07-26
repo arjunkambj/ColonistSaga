@@ -71,7 +71,11 @@ const roomStatusValidator = v.union(
 );
 
 const seatKindValidator = v.union(v.literal("human"), v.literal("bot"));
-const gameStatusValidator = v.union(v.literal("active"), v.literal("finished"));
+const gameStatusValidator = v.union(
+  v.literal("active"),
+  v.literal("paused"),
+  v.literal("finished"),
+);
 
 export default defineSchema({
   rooms: defineTable({
@@ -103,6 +107,8 @@ export default defineSchema({
     botDifficulty: botDifficultyValidator,
     createdAt: v.number(),
     nextActionAt: v.optional(v.number()),
+    pausedNextActionRemainingMs: v.optional(v.number()),
+    pausedTurnDeadlineRemainingMs: v.optional(v.number()),
     revision: v.number(),
     roomId: v.id("rooms"),
     settings: storedBaseGameSettingsValidator,

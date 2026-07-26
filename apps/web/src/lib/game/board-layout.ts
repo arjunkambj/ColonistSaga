@@ -1,7 +1,7 @@
 import { axialToPixel, getBoardTopology } from "@colonistsaga/game";
 import type { AxialCoordinate, BoardTopology, PixelCoordinate } from "@colonistsaga/game";
 
-import { BOARD_TILE } from "@/constants/game/board-assets";
+import { BOARD_TILE, PORT_BOAT_RENDER_SIZE } from "@/constants/game/board-assets";
 
 export const BOARD_CANVAS = {
   centerX: 600,
@@ -17,10 +17,7 @@ export interface EdgePlacement extends PixelCoordinate {
 }
 
 export interface PortPlacement extends EdgePlacement {
-  docks: readonly [
-    { end: PixelCoordinate; start: PixelCoordinate },
-    { end: PixelCoordinate; start: PixelCoordinate },
-  ];
+  dock: { end: PixelCoordinate; start: PixelCoordinate };
 }
 
 export interface BoardLayout {
@@ -90,40 +87,40 @@ export function getEdgePlacement(layout: BoardLayout, edgeKey: string): EdgePlac
 
 export function getPortPlacement(layout: BoardLayout, edgeKey: string): PortPlacement | null {
   const edge = getEdgePlacement(layout, edgeKey);
-  const [firstVertexKey, secondVertexKey] = layout.topology.edgeVertices[edgeKey] ?? [];
-  const firstVertex = firstVertexKey ? getVertexPoint(layout, firstVertexKey) : null;
-  const secondVertex = secondVertexKey ? getVertexPoint(layout, secondVertexKey) : null;
+  const coastalTileId = layout.topology.edgeTileIds[edgeKey]?.[0];
+  const coastalTile = coastalTileId ? layout.topology.tileById[coastalTileId] : null;
 
-  if (!edge || !firstVertex || !secondVertex) {
+  if (!edge || !coastalTile) {
     return null;
   }
 
-  const relativeX = edge.x - layout.origin.x;
-  const relativeY = edge.y - layout.origin.y;
+  const coastalTilePoint = getTilePoint(layout, coastalTile);
+  const relativeX = edge.x - coastalTilePoint.x;
+  const relativeY = edge.y - coastalTilePoint.y;
   const length = Math.hypot(relativeX, relativeY) || 1;
   const outward = { x: relativeX / length, y: relativeY / length };
-  const tangent = { x: -outward.y, y: outward.x };
-  const outwardDistance = layout.tileRadius * 0.64;
+  const outwardDistance = layout.tileRadius * 1.06;
   const point = {
     x: edge.x + outward.x * outwardDistance,
     y: edge.y + outward.y * outwardDistance,
   };
-  const dockHalfWidth = layout.tileRadius * 0.14;
-  const dockInset = layout.tileRadius * 0.08;
-  const firstSide =
-    (firstVertex.x - edge.x) * tangent.x + (firstVertex.y - edge.y) * tangent.y < 0 ? -1 : 1;
-  const getDockEnd = (side: number) => ({
-    x: point.x - outward.x * dockInset + tangent.x * dockHalfWidth * side,
-    y: point.y - outward.y * dockInset + tangent.y * dockHalfWidth * side,
-  });
+  const hullHalfHeight = PORT_BOAT_RENDER_SIZE.height * 0.47;
+  const hullOverlap = 6;
+  const dockEndInset = hullHalfHeight - hullOverlap;
 
   return {
     ...edge,
     ...point,
-    docks: [
-      { end: getDockEnd(firstSide), start: firstVertex },
-      { end: getDockEnd(-firstSide), start: secondVertex },
-    ],
+    dock: {
+      end: {
+        x: point.x - outward.x * dockEndInset,
+        y: point.y - outward.y * dockEndInset,
+      },
+      start: {
+        x: edge.x,
+        y: edge.y,
+      },
+    },
   };
 }
 

@@ -19,8 +19,8 @@ import {
   getTerrainAssetPath,
   ISLAND_SHELF_ASSET_PATH,
   OCEAN_BOARD_ASSET_PATH,
+  PORT_BOAT_ASSET_PATH,
   PORT_DOCK_ASSET_PATH,
-  PORT_SKIFF_ASSET_PATH,
 } from "@/constants/game/board-assets";
 import { SOUND_EFFECT_PATHS, type SoundEffect } from "@/lib/game/audio-cues";
 
@@ -297,16 +297,16 @@ const ASSET_CATEGORIES = [
         status: "generated",
       },
       {
-        name: "Port skiff",
-        description: "Small boat used to dress board ports.",
-        format: "PNG · 384×512",
-        path: PORT_SKIFF_ASSET_PATH,
+        name: "Port merchant",
+        description: "Top-down trading boat marking each offshore port.",
+        format: "PNG · 655×1182 · transparent",
+        path: PORT_BOAT_ASSET_PATH,
         status: "generated",
       },
       {
-        name: "Port dock",
-        description: "Top-down timber bridge connecting each port to the island.",
-        format: "PNG · 512×128",
+        name: "Port bridge",
+        description: "Single continuous timber bridge connecting each port to the island.",
+        format: "PNG · 1642×328 · transparent",
         path: PORT_DOCK_ASSET_PATH,
         status: "generated",
       },

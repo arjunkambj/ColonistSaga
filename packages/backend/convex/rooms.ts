@@ -216,6 +216,8 @@ export const leaveRoom = mutation({
       });
       await ctx.db.patch("games", game._id, {
         nextActionAt: undefined,
+        pausedNextActionRemainingMs: undefined,
+        pausedTurnDeadlineRemainingMs: undefined,
         stateJson: serializeGameState(nextState),
         status: gameStatus(nextState),
         turnDeadlineAt: undefined,

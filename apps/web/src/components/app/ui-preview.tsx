@@ -21,7 +21,10 @@ import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
-import { ACTION_CARD_ASSET_PATHS, DEVELOPMENT_DECK_ASSET_PATH } from "@/constants/game/card-assets";
+import {
+  ACTION_CARD_ASSET_PATHS,
+  DEVELOPMENT_CARD_BACK_ASSET_PATH,
+} from "@/constants/game/card-assets";
 import { DEFAULT_AUDIO_SETTINGS } from "@/lib/audio-settings";
 import type { RoomEventView } from "@/lib/game/types";
 
@@ -124,6 +127,7 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
               : createPreviewGame(mode === "game-actions")
       }
       isHost
+      isPaused={false}
       nextActionAt={previewDeadline}
       onAudioSettingsChange={() => undefined}
       onLeave={async () => undefined}
@@ -204,7 +208,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     count: 25,
     kind: "development-card",
     meta: "Sheep · wheat · stone",
-    src: DEVELOPMENT_DECK_ASSET_PATH,
+    src: DEVELOPMENT_CARD_BACK_ASSET_PATH,
     title: "Dev Card",
   },
   {

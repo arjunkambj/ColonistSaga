@@ -15,6 +15,7 @@ import {
   RESOURCE_CARD_ASSET_PATHS,
 } from "@/constants/game/card-assets";
 import { getResourceCardChanges, type ResourceCardChange } from "@/lib/game/resource-card-changes";
+import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 
 import { HAND_DOCK_ROOT_ID, useHandDock } from "./hand-dock";
 import { RESOURCE_LABELS } from "./resource-icon";
@@ -98,23 +99,11 @@ export function ResourceHand({
     const count = me.developmentCards.filter((card) => card === asset.id).length;
     return count > 0 ? [{ ...asset, count }] : [];
   });
-  const animationByResource = new Map(
-    resourceAnimations.map((animation) => [animation.resource, animation]),
-  );
   const interactionMatchesSource =
     interaction !== null &&
     RESOURCE_ORDER.every(
       (resource) => interaction.sourceResources[resource] === me.resources[resource],
     );
-  const selectedResourceCount =
-    interaction && interactionMatchesSource
-      ? RESOURCE_ORDER.reduce(
-          (total, resource) =>
-            total + Math.min(me.resources[resource], interaction.selected[resource]),
-          0,
-        )
-      : 0;
-
   useEffect(() => {
     const nextSnapshot: ResourceSnapshot = {
       actionNumber,
@@ -184,19 +173,14 @@ export function ResourceHand({
 
   return (
     <section
-      aria-labelledby="resource-hand-title"
-      className={`resource-hand ${styles.resourceHandHost}`}
+      aria-label="Your cards"
+      className={liquidGlassClassName({
+        className: `game-purple-glass resource-hand ${styles.resourceHandHost}`,
+        kind: "card",
+        radius: "md",
+      })}
     >
       <div className={styles.actionOverlayRoot} id={HAND_DOCK_ROOT_ID} />
-      <div className="hand-heading">
-        <p className="eyebrow">Private Hand</p>
-        <h2 id="resource-hand-title">Your Cards</h2>
-        <span>
-          {interaction && interactionMatchesSource
-            ? `${me.resourceCount - selectedResourceCount} available · ${selectedResourceCount} selected`
-            : `${me.resourceCount} resources · ${me.developmentCards.length} dev`}
-        </span>
-      </div>
       <div className={styles.cardViewport}>
         <ul
           aria-label={
@@ -209,7 +193,6 @@ export function ResourceHand({
           tabIndex={resourceListOverflows ? 0 : undefined}
         >
           {RESOURCE_ORDER.map((resource) => {
-            const animation = animationByResource.get(resource);
             const selected =
               interaction && interactionMatchesSource
                 ? Math.min(me.resources[resource], interaction.selected[resource])
@@ -228,7 +211,6 @@ export function ResourceHand({
                   "resource-card-face",
                   `resource-${resource}`,
                   interaction && interactionMatchesSource ? styles.selectableCard : "",
-                  selected > 0 ? styles.reservedCard : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -241,18 +223,8 @@ export function ResourceHand({
                     sizes="4.5rem"
                   />
                 </span>
-                <span className="resource-card-copy">
-                  <span className="resource-card-label">{RESOURCE_LABELS[resource]}</span>
-                  <span className="resource-card-quantity">
-                    <strong
-                      className={animation ? styles.countChanged : undefined}
-                      key={animation?.id ?? resource}
-                      style={animation ? RESOURCE_FLIGHT_STYLES[resource] : undefined}
-                    >
-                      {available}
-                    </strong>
-                    <small>{available === 1 ? "card" : "cards"}</small>
-                  </span>
+                <span aria-hidden="true" className={styles.cardCount}>
+                  {available}
                 </span>
                 {interaction && interactionMatchesSource ? (
                   <Button
@@ -270,6 +242,9 @@ export function ResourceHand({
               </li>
             );
           })}
+          {developmentCardCounts.length > 0 ? (
+            <li aria-hidden="true" className={`mx-1 ${styles.cardSectionDivider}`} />
+          ) : null}
           {developmentCardCounts.map((card) => (
             <li
               aria-label={`${card.label} development cards: ${card.count}. ${card.description}`}
@@ -288,12 +263,8 @@ export function ResourceHand({
                   width={512}
                 />
               </span>
-              <span className="resource-card-copy">
-                <span className="resource-card-label">{card.label}</span>
-                <span className="resource-card-quantity">
-                  <strong>{card.count}</strong>
-                  <small>{card.count === 1 ? "card" : "cards"}</small>
-                </span>
+              <span aria-hidden="true" className={styles.cardCount}>
+                {card.count}
               </span>
             </li>
           ))}

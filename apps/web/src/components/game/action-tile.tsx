@@ -52,7 +52,6 @@ export function ActionTile({
       aria-haspopup={ariaHasPopup}
       aria-label={ariaLabel}
       aria-pressed={pressed}
-      aria-disabled={unavailable || undefined}
       className={[
         "action-button",
         "action-tile",
@@ -65,8 +64,8 @@ export function ActionTile({
         .filter(Boolean)
         .join(" ")}
       data-action-kind={kind}
-      isDisabled={disabled}
-      onPress={unavailable ? () => undefined : onPress}
+      isDisabled={disabled || unavailable}
+      onPress={onPress}
       variant="secondary"
     >
       {count === undefined ? null : (

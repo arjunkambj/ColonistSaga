@@ -8,7 +8,10 @@ import {
 } from "@colonistsaga/game";
 import type { GameState } from "@colonistsaga/game";
 
-import { scheduleNextAutomatedAction } from "../convex/model/gameState";
+import {
+  resumeAutomatedActionSchedule,
+  scheduleNextAutomatedAction,
+} from "../convex/model/gameState";
 import {
   BOT_ACTION_DELAY_MS,
   isScheduledActionCurrentAndDue,
@@ -271,5 +274,37 @@ describe("game scheduling", () => {
 
     expect(schedule).toEqual({ nextActionAt: 50_000, turnDeadlineAt: undefined });
     expect(scheduledAt).toEqual([]);
+  });
+
+  test("resuming restores the remaining action and turn timer durations", async () => {
+    const initial = createHumanGame();
+    const state: GameState = {
+      ...initial,
+      players: initial.players.map((player) =>
+        player.id === initial.activePlayerId
+          ? { ...player, botDifficulty: "medium" as const, isBot: true }
+          : player,
+      ),
+    };
+    const scheduledAt: number[] = [];
+    const ctx = {
+      scheduler: {
+        runAt: async (timestamp: number) => {
+          scheduledAt.push(timestamp);
+        },
+      },
+    };
+
+    const schedule = await resumeAutomatedActionSchedule(
+      ctx as never,
+      "game" as never,
+      state,
+      20_000,
+      400,
+      12_000,
+    );
+
+    expect(schedule).toEqual({ nextActionAt: 20_400, turnDeadlineAt: 32_000 });
+    expect(scheduledAt).toEqual([20_400]);
   });
 });

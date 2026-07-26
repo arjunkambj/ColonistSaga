@@ -1,4 +1,4 @@
-import type { PlayerColor } from "@colonistsaga/game";
+import { PLAYER_COLORS, type PlayerColor } from "@colonistsaga/game";
 
 export const PLAYER_PORTRAIT_PATHS: Readonly<Record<PlayerColor, string>> = {
   blue: "/game-assets/players/blue-cartographer.png",
@@ -13,4 +13,8 @@ export const PLAYER_PORTRAIT_PATHS: Readonly<Record<PlayerColor, string>> = {
 
 export function getPlayerPortraitPath(playerColor: PlayerColor): string {
   return PLAYER_PORTRAIT_PATHS[playerColor];
+}
+
+export function getPlayerPortraitPathForSeat(seatIndex: number): string {
+  return getPlayerPortraitPath(PLAYER_COLORS[seatIndex % PLAYER_COLORS.length] ?? "red");
 }

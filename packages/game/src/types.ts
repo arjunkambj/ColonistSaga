@@ -81,6 +81,7 @@ export interface PlayerPieces {
 export interface PlayerState extends GamePlayerInput {
   developmentCards: DevelopmentCardType[];
   piecesRemaining: PlayerPieces;
+  playedKnights: number;
   resources: ResourceInventory;
   seatIndex: number;
   victoryPoints: number;

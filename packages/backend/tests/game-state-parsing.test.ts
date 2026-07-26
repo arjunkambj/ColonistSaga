@@ -41,13 +41,19 @@ describe("stored game-state parsing", () => {
     expect(parsed.players.map((player) => player.id)).toEqual(["one", "two", "three"]);
   });
 
-  test("adds the longest-road holder field to existing version 3 games", () => {
-    const stored = JSON.parse(serializedGame()) as Record<string, unknown>;
+  test("adds public counters to existing version 3 games", () => {
+    const stored = JSON.parse(serializedGame()) as Record<string, unknown> & {
+      players: Record<string, unknown>[];
+    };
     delete stored.longestRoadPlayerId;
+    for (const player of stored.players) {
+      delete player.playedKnights;
+    }
 
     const parsed = parseGameState(JSON.stringify(stored));
 
     expect(parsed.longestRoadPlayerId).toBeNull();
+    expect(parsed.players.every((player) => player.playedKnights === 0)).toBe(true);
   });
 
   test("preserves valid version 1 cards without changing conserved resources", () => {

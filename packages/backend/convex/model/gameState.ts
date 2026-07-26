@@ -75,10 +75,11 @@ function canonicalizeStoredGameState(value: unknown): unknown {
   }
   const stored = value as Record<string, unknown>;
   if (stored.version === 3) {
-    if ("longestRoadPlayerId" in stored) {
-      return stored;
+    const canonical = addPlayedKnightCounts(stored);
+    if ("longestRoadPlayerId" in canonical) {
+      return canonical;
     }
-    return addLongestRoadAward(stored);
+    return addLongestRoadAward(canonical);
   }
   if (stored.version !== 1 && stored.version !== 2) {
     return stored;
@@ -112,7 +113,7 @@ function canonicalizeStoredGameState(value: unknown): unknown {
       if (typeof player !== "object" || player === null || Array.isArray(player)) {
         return player;
       }
-      return { ...player, developmentCards: [] };
+      return { ...player, developmentCards: [], playedKnights: 0 };
     });
     return canonical;
   }
@@ -133,6 +134,7 @@ function canonicalizeStoredGameState(value: unknown): unknown {
           );
     heldCards.push(...cards);
     canonicalPlayer.developmentCards = cards;
+    canonicalPlayer.playedKnights = 0;
     delete canonicalPlayer.developmentCardCount;
     return canonicalPlayer;
   });
@@ -150,6 +152,24 @@ function canonicalizeStoredGameState(value: unknown): unknown {
   }
 
   return addLongestRoadAward(canonical);
+}
+
+function addPlayedKnightCounts(state: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(state.players)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    players: state.players.map((player) =>
+      typeof player === "object" &&
+      player !== null &&
+      !Array.isArray(player) &&
+      !("playedKnights" in player)
+        ? { ...player, playedKnights: 0 }
+        : player,
+    ),
+  };
 }
 
 function addLongestRoadAward(state: Record<string, unknown>): Record<string, unknown> {
@@ -304,6 +324,36 @@ export async function scheduleNextAutomatedAction(
       scheduledFor: nextActionAt,
     });
   }
+  return { nextActionAt, turnDeadlineAt };
+}
+
+export async function resumeAutomatedActionSchedule(
+  ctx: WriteCtx,
+  gameId: GameId,
+  state: GameState,
+  now: number,
+  nextActionRemainingMs?: number,
+  turnDeadlineRemainingMs?: number,
+): Promise<{ nextActionAt?: number; turnDeadlineAt?: number }> {
+  const actor = requiredAutomatedActor(state);
+  const nextActionAt =
+    actor && nextActionRemainingMs !== undefined
+      ? now + Math.max(0, nextActionRemainingMs)
+      : undefined;
+  const turnDeadlineAt =
+    turnDeadlineRemainingMs === undefined
+      ? undefined
+      : now + Math.max(0, turnDeadlineRemainingMs);
+
+  if (actor && nextActionAt !== undefined) {
+    await ctx.scheduler.runAt(nextActionAt, internal.automation.runAutomatedAction, {
+      expectedActionNumber: state.actionNumber,
+      expectedActorPlayerId: actor.playerId,
+      gameId,
+      scheduledFor: nextActionAt,
+    });
+  }
+
   return { nextActionAt, turnDeadlineAt };
 }
 
@@ -590,16 +640,19 @@ export async function convertGameSeatToBot(
   const displayName = createBotDisplayName(room._id, seat.seatIndex, seats);
   const nextState = transferPlayerToBot(state, seat, room.botDifficulty, displayName);
   const now = Date.now();
-  const schedule = await scheduleNextAutomatedAction(
-    ctx,
-    game._id,
-    nextState,
-    settings,
-    now,
-    state,
-    game.nextActionAt,
-    game.turnDeadlineAt,
-  );
+  const schedule =
+    game.status === "paused"
+      ? { nextActionAt: undefined, turnDeadlineAt: undefined }
+      : await scheduleNextAutomatedAction(
+          ctx,
+          game._id,
+          nextState,
+          settings,
+          now,
+          state,
+          game.nextActionAt,
+          game.turnDeadlineAt,
+        );
   await ctx.db.patch("seats", seat._id, {
     authUserId: undefined,
     displayName,
@@ -609,7 +662,7 @@ export async function convertGameSeatToBot(
     ...schedule,
     revision: nextState.actionNumber,
     stateJson: serializeGameState(nextState),
-    status: gameStatus(nextState),
+    status: game.status === "paused" ? "paused" : gameStatus(nextState),
     updatedAt: now,
   });
   await ctx.db.patch("rooms", room._id, {

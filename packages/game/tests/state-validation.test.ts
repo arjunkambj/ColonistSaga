@@ -60,6 +60,20 @@ describe("serialized game-state validation", () => {
     expect(view.legalActions.canBuyDevelopmentCard).toBe(false);
   });
 
+  test("exposes played knights as a public conserved count", () => {
+    const state = createGame();
+    const knightIndex = state.developmentDeck.indexOf("knight");
+    if (knightIndex < 0) throw new Error("Development deck needs a knight");
+
+    state.developmentDeck.splice(knightIndex, 1);
+    state.players[0]!.playedKnights = 1;
+
+    expect(() => assertGameState(state)).not.toThrow();
+    const view = toPlayerView(state, state.players[1]!.id);
+    expect(view.players[0]!.playedKnights).toBe(1);
+    expect(() => assertPlayerGameView(view)).not.toThrow();
+  });
+
   test("accepts every supported board size", () => {
     for (const [map, playerCount] of [
       ["base", 4],

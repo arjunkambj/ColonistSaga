@@ -41,6 +41,7 @@ export const roomViewValidator = v.object({
   events: v.array(gameEventViewValidator),
   gameJson: v.optional(v.string()),
   isHost: v.boolean(),
+  isPaused: v.boolean(),
   members: v.array(roomMemberViewValidator),
   nextActionAt: v.optional(v.number()),
   settings: baseGameSettingsValidator,

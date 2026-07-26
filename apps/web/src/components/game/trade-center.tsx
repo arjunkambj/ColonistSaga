@@ -16,13 +16,13 @@ import arrowDownIcon from "@iconify-icons/solar/arrow-down-outline";
 import arrowUpIcon from "@iconify-icons/solar/arrow-up-outline";
 import checkIcon from "@iconify-icons/solar/check-circle-outline";
 import closeIcon from "@iconify-icons/solar/close-circle-outline";
-import minusIcon from "@iconify-icons/solar/minus-circle-outline";
-import plusIcon from "@iconify-icons/solar/add-circle-outline";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import { ACTION_CARD_ASSET_PATHS, RESOURCE_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
+import { getPlayerPortraitPathForSeat } from "@/constants/game/player-assets";
 
 import { ActionTile } from "./action-tile";
 import { HandDockPortal, useHandDock } from "./hand-dock";
@@ -37,6 +37,22 @@ export interface TradeCenterProps {
 }
 
 type TradeDirection = "give" | "receive";
+
+function tradeGlassClassName(className: string, kind: "card" | "control" = "control") {
+  return liquidGlassClassName({
+    className: `game-purple-glass ${className}`,
+    kind,
+    radius: kind === "card" ? "md" : "sm",
+  });
+}
+
+function MinusGlyph() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M6 12h12" />
+    </svg>
+  );
+}
 
 export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps) {
   const tradeCenterRef = useRef<HTMLDivElement>(null);
@@ -132,15 +148,11 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
             <section
               aria-labelledby="trade-dock-title"
               autoFocus
-              className={styles.tradeDock}
+              className={tradeGlassClassName(styles.tradeDock, "card")}
               id="trade-dock"
               tabIndex={-1}
             >
-              <TradeDockHeader
-                description="Choose what you want, then tap cards in your hand. Send an offer or use a matching bank rate."
-                onClose={closeDock}
-                title="Make a trade"
-              />
+              <TradeDockHeader onClose={closeDock} title="Make a trade" />
               <TradeComposer
                 disabled={disabled}
                 game={game}
@@ -162,7 +174,7 @@ function TradeDockHeader({
   title,
   titleId = "trade-dock-title",
 }: {
-  description: string;
+  description?: string;
   onClose?: () => void;
   title: string;
   titleId?: string;
@@ -172,7 +184,7 @@ function TradeDockHeader({
       <div>
         <p className={styles.eyebrow}>Island market</p>
         <h2 id={titleId}>{title}</h2>
-        <p className={styles.tradeDescription}>{description}</p>
+        {description ? <p className={styles.tradeDescription}>{description}</p> : null}
       </div>
       {onClose ? (
         <Button
@@ -182,7 +194,9 @@ function TradeDockHeader({
           onPress={onClose}
           variant="ghost"
         >
-          <Icon aria-hidden="true" icon={closeIcon} />
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
         </Button>
       ) : null}
     </header>
@@ -307,27 +321,15 @@ function TradeComposer({
         <OfferInventoryRow
           disabled={disabled}
           direction="give"
-          emptyMessage="Tap the resource cards in your hand below to add them."
+          emptyMessage="Tap cards in your hand to add them here."
           inventory={give}
           label="You give"
           onRemove={removeFromOffer}
         />
       </div>
 
-      <p
-        aria-live="polite"
-        className={styles.affordability}
-        data-state={hasGive && !canAfford ? "error" : hasGive ? "ready" : "idle"}
-      >
-        {hasGive
-          ? canAfford
-            ? `Affordable from your hand · ${formatInventory(give)} selected`
-            : `Your hand is short ${formatInventory(missingResources)}`
-          : "Choose at least one card from your hand to offer."}
-      </p>
-
-      <fieldset className={styles.tradeRecipients}>
-        <legend>Offer to</legend>
+      <fieldset className={tradeGlassClassName(styles.tradeRecipients)}>
+        <legend className="sr-only">Offer recipients</legend>
         <div className={styles.recipientList}>
           {opponents.map((player) => (
             <Checkbox
@@ -345,11 +347,17 @@ function TradeComposer({
                   <Checkbox.Indicator />
                 </Checkbox.Control>
                 <span className={styles.recipientAvatar} aria-hidden="true">
-                  {getPlayerInitial(player.displayName)}
+                  <Image
+                    alt=""
+                    draggable={false}
+                    height={256}
+                    sizes="1.45rem"
+                    src={getPlayerPortraitPathForSeat(player.seatIndex)}
+                    width={256}
+                  />
                 </span>
                 <span className={styles.recipientCopy}>
                   <strong>{player.displayName}</strong>
-                  <small>{player.isBot ? "Bot" : "Player"}</small>
                 </span>
               </Checkbox.Content>
             </Checkbox>
@@ -362,11 +370,17 @@ function TradeComposer({
           {validationMessage}
         </p>
         <div>
-          <Button isDisabled={disabled} onPress={onCancel} variant="tertiary">
+          <Button
+            className={styles.cancelButton}
+            isDisabled={disabled}
+            onPress={onCancel}
+            variant="tertiary"
+          >
             Cancel
           </Button>
           <Button
             aria-describedby="bank-trade-match-status"
+            className={styles.bankTradeButton}
             isDisabled={disabled || !matchingBankTrade}
             onPress={() => {
               if (!matchingBankTrade) {
@@ -389,6 +403,7 @@ function TradeComposer({
           </Button>
           <Button
             aria-describedby="trade-composer-status"
+            className={styles.sendOfferButton}
             isDisabled={disabled || !canSendOffer}
             isPending={disabled}
             onPress={() =>
@@ -431,14 +446,13 @@ function RequestedResourceRow({
   };
 
   return (
-    <fieldset className={styles.draftRow} data-direction="receive">
+    <fieldset className={tradeGlassClassName(styles.draftRow)} data-direction="receive">
       <legend>
         <span className={styles.directionIcon}>
           <Icon aria-hidden="true" icon={arrowDownIcon} />
         </span>
         <span>
-          <strong>You receive</strong>
-          <small>Cards you want</small>
+          <strong>Cards you want to receive</strong>
         </span>
       </legend>
       <div className={styles.quickResourceGrid}>
@@ -467,22 +481,22 @@ function RequestedResourceRow({
                   src={RESOURCE_CARD_ASSET_PATHS[resource]}
                   width={512}
                 />
-                <span className={styles.resourceName}>{RESOURCE_LABELS[resource]}</span>
                 <span className={styles.quantityChip} aria-hidden="true">
                   {quantity}
                 </span>
-                <Icon aria-hidden="true" className={styles.addIcon} icon={plusIcon} />
               </Button>
-              <Button
-                aria-label={`Remove one ${RESOURCE_LABELS[resource]} from what you receive`}
-                className={styles.resourceRemove}
-                isDisabled={disabled || quantity === 0}
-                isIconOnly
-                onPress={() => update(resource, -1)}
-                variant="tertiary"
-              >
-                <Icon aria-hidden="true" icon={minusIcon} />
-              </Button>
+              {quantity > 0 ? (
+                <Button
+                  aria-label={`Remove one ${RESOURCE_LABELS[resource]} from what you receive`}
+                  className={styles.resourceRemove}
+                  isDisabled={disabled}
+                  isIconOnly
+                  onPress={() => update(resource, -1)}
+                  variant="tertiary"
+                >
+                  <MinusGlyph />
+                </Button>
+              ) : null}
               <span className="sr-only" id={quantityDescriptionId}>
                 {quantity} selected.
                 {conflicts
@@ -554,7 +568,10 @@ export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterP
   return (
     <section
       aria-labelledby="trade-offer-title"
-      className={`${styles.tradeDock} ${styles.sidebarOfferSurface}`}
+      className={tradeGlassClassName(
+        `${styles.tradeDock} ${styles.sidebarOfferSurface}`,
+        "card",
+      )}
       id="trade-offer-surface"
       tabIndex={-1}
     >
@@ -697,7 +714,7 @@ function OfferInventoryRow({
 
   return (
     <section
-      className={styles.offerRow}
+      className={tradeGlassClassName(styles.offerRow)}
       data-direction={direction}
       data-removable={onRemove ? "true" : undefined}
     >
@@ -722,7 +739,6 @@ function OfferInventoryRow({
                   src={RESOURCE_CARD_ASSET_PATHS[resource]}
                   width={512}
                 />
-                <span>{RESOURCE_LABELS[resource]}</span>
                 <strong aria-label={`${inventory[resource]} ${RESOURCE_LABELS[resource]}`}>
                   {inventory[resource]}
                 </strong>
@@ -736,7 +752,7 @@ function OfferInventoryRow({
                     onPress={() => onRemove(resource)}
                     variant="tertiary"
                   >
-                    <Icon aria-hidden="true" icon={minusIcon} />
+                    <MinusGlyph />
                   </Button>
                 ) : null}
               </li>

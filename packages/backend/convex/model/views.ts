@@ -47,6 +47,7 @@ export async function toRoomView(ctx: ReadCtx, room: RoomDoc, seat: SeatDoc): Pr
     code: room.code,
     events: [] as GameEventView[],
     isHost: seat._id === room.hostSeatId,
+    isPaused: false,
     members,
     settings: roomSettings,
     status: roomViewStatus(room.status),
@@ -62,9 +63,13 @@ export async function toRoomView(ctx: ReadCtx, room: RoomDoc, seat: SeatDoc): Pr
   return {
     ...base,
     botDifficulty: game.botDifficulty,
-    botThinking: automatedActor?.isBot === true && game.nextActionAt !== undefined,
+    botThinking:
+      game.status === "active" &&
+      automatedActor?.isBot === true &&
+      game.nextActionAt !== undefined,
     events,
     gameJson: playerViewJson(state, seat),
+    isPaused: game.status === "paused",
     nextActionAt: game.nextActionAt,
     settings: gameSettings,
   };

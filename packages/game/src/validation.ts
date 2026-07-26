@@ -178,6 +178,7 @@ function validatePlayerBase(
   optionalMember(player.botDifficulty, BOT_DIFFICULTIES, `${path}.botDifficulty`);
   const seatIndex = nonNegativeInteger(player.seatIndex, `${path}.seatIndex`);
   validatePieces(player.piecesRemaining, `${path}.piecesRemaining`);
+  nonNegativeInteger(player.playedKnights, `${path}.playedKnights`);
   nonNegativeInteger(player.victoryPoints, `${path}.victoryPoints`);
   return { id, player, seatIndex };
 }
@@ -295,6 +296,11 @@ function validateDevelopmentCardConservation(
     )) {
       actualCounts.set(card, (actualCounts.get(card) ?? 0) + 1);
     }
+    actualCounts.set(
+      "knight",
+      (actualCounts.get("knight") ?? 0) +
+        nonNegativeInteger(player.playedKnights, "game.players.playedKnights"),
+    );
   }
 
   for (const card of DEVELOPMENT_CARD_TYPES) {
@@ -701,7 +707,15 @@ export function assertPlayerGameView(value: unknown): asserts value is PlayerGam
     (total, count) => total + count,
     0,
   );
-  if (developmentCardSupply + heldDevelopmentCards !== DEVELOPMENT_CARD_DECK.length) {
+  const playedKnights = [...players.records.values()].reduce(
+    (total, player) =>
+      total + nonNegativeInteger(player.playedKnights, "view.players.playedKnights"),
+    0,
+  );
+  if (
+    developmentCardSupply + heldDevelopmentCards + playedKnights !==
+    DEVELOPMENT_CARD_DECK.length
+  ) {
     invalid("view.developmentCardSupply", "does not match player development card counts");
   }
   validateLegalActions(view.legalActions, shared, "view.legalActions");

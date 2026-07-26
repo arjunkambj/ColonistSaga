@@ -151,6 +151,7 @@ export function createDefaultGame(
         id: player.id,
         isBot: player.isBot,
         piecesRemaining: { ...INITIAL_PIECES },
+        playedKnights: 0,
         resources: emptyInventory(),
         seatIndex,
         victoryPoints: 0,
