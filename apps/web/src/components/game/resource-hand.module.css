@@ -35,6 +35,25 @@
   cursor: pointer;
 }
 
+.selectableCard:hover,
+.selectableCard:focus-within {
+  filter: brightness(1.08);
+  transform: translateY(-0.18rem);
+}
+
+.selectedCard::before {
+  position: absolute;
+  z-index: 4;
+  inset: -0.18rem;
+  border: 2px solid rgba(255, 221, 121, 0.96);
+  border-radius: inherit;
+  box-shadow:
+    0 0 0 2px rgba(83, 39, 91, 0.72),
+    0 0 0.75rem rgba(255, 205, 86, 0.42);
+  content: "";
+  pointer-events: none;
+}
+
 .handCardSelector {
   position: absolute;
   z-index: 4;
@@ -72,6 +91,25 @@
   font-weight: 900;
   line-height: 1;
   pointer-events: none;
+}
+
+.selectedCount {
+  position: absolute;
+  z-index: 5;
+  right: 50%;
+  bottom: -0.34rem;
+  padding: 0.2rem 0.38rem;
+  border: 1px solid rgba(255, 239, 184, 0.86);
+  border-radius: 999px;
+  background: rgba(75, 35, 84, 0.96);
+  box-shadow: 0 0.18rem 0.5rem rgba(30, 10, 36, 0.34);
+  color: #fff4ce;
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateX(50%);
+  white-space: nowrap;
 }
 
 :global(.resource-hand) li.cardSectionDivider {

@@ -5,6 +5,17 @@ export interface PhaseCopy {
   title: string;
 }
 
+export function getPlayerHudOrder<T extends { isViewer: boolean }>(players: readonly T[]): T[] {
+  const opponents: T[] = [];
+  const viewers: T[] = [];
+
+  for (const player of players) {
+    (player.isViewer ? viewers : opponents).push(player);
+  }
+
+  return [...opponents, ...viewers];
+}
+
 export function getPhaseCopy(
   phase: GamePhase,
   isViewerTurn: boolean,

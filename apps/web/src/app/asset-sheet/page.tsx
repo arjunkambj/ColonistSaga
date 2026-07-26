@@ -14,7 +14,9 @@ import {
   DEVELOPMENT_CARD_ASSETS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
   RESOURCE_CARD_ASSET_PATHS,
+  UNKNOWN_RESOURCE_CARD_ASSET_PATH,
 } from "@/constants/game/card-assets";
+import { AWARD_ASSET_PATHS } from "@/constants/game/award-assets";
 import {
   getTerrainAssetPath,
   ISLAND_SHELF_ASSET_PATH,
@@ -178,6 +180,11 @@ const ASSET_CATEGORIES = [
       ["Sheep card", "Pasture-and-sheep card artwork.", RESOURCE_CARD_ASSET_PATHS.sheep],
       ["Wheat card", "Golden-fields-and-wheat card artwork.", RESOURCE_CARD_ASSET_PATHS.wheat],
       ["Stone card", "Mountain-and-stone card artwork.", RESOURCE_CARD_ASSET_PATHS.stone],
+      [
+        "Unknown resource card",
+        "Neutral card face used when only a resource count is public.",
+        UNKNOWN_RESOURCE_CARD_ASSET_PATH,
+      ],
     ].map(([name, description, path]) => ({
       name,
       description: `${description} Labels and counts remain code-rendered.`,
@@ -326,14 +333,14 @@ const ASSET_CATEGORIES = [
         name: "Longest Road",
         description: "Award illustration for the longest connected route.",
         format: "PNG · 512×512 · transparent",
-        path: "/game-assets/awards/longest-road.png",
+        path: AWARD_ASSET_PATHS.longestRoad,
         status: "generated",
       },
       {
         name: "Largest Army",
         description: "Award illustration for the strongest knight force.",
         format: "PNG · 512×512 · transparent",
-        path: "/game-assets/awards/largest-army.png",
+        path: AWARD_ASSET_PATHS.largestArmy,
         status: "generated",
       },
       {

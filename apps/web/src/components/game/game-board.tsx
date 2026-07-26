@@ -1,13 +1,10 @@
 import {
-  NUMBER_TOKEN_PIPS,
   PLAYER_COLORS,
-  TERRAIN_RESOURCE,
   getLongestRoadLength,
   type GameCommand,
   type PlayerGameView,
   type PlayerViewState,
   type ResourceType,
-  type TerrainType,
 } from "@colonistsaga/game";
 import {
   useEffect,
@@ -25,7 +22,6 @@ import {
   getEdgePlacement,
   getPointStyle,
   getPortPlacement,
-  getTilePoint,
 } from "@/lib/game/board-layout";
 import { BOARD_VIEWPORT_SCALE } from "@/lib/game/board-viewport";
 import {
@@ -44,21 +40,10 @@ import { useBoardCamera } from "./use-board-camera";
 
 export type BuildMode = BoardBuildMode;
 
-const TERRAIN_LABELS: Readonly<Record<TerrainType, string>> = {
-  desert: "Desert",
-  fields: "Fields",
-  forest: "Forest",
-  hills: "Hills",
-  mountains: "Mountains",
-  pasture: "Pasture",
-};
 const KEYBOARD_PAN_STEP = 48;
-
-type BoardTile = PlayerGameView["board"]["tiles"][number];
 
 interface BoardInspectionDetail {
   label: string;
-  tone?: "alert";
   value: string;
 }
 
@@ -67,14 +52,12 @@ interface BoardInspection {
   details: readonly BoardInspectionDetail[];
   id: string;
   kicker: string;
-  layout?: "compact";
   resource?: ResourceType;
   title: string;
 }
 
 interface InspectableBoardItemProps {
   inspection: BoardInspection;
-  isInspected: boolean;
   isKeyboardTarget: boolean;
   onInspect(id: string | null): void;
   onKeyboardFocus(id: string): void;
@@ -126,13 +109,6 @@ export function GameBoard({
       }),
     [boardLayout, game.board.ports],
   );
-  const tileInspections = useMemo(
-    () =>
-      game.board.tiles.map((tile) =>
-        createTileInspection(tile, tile.id === game.board.robberTileId),
-      ),
-    [game.board.robberTileId, game.board.tiles],
-  );
   const portInspections = useMemo(
     () =>
       ports.map((port) =>
@@ -152,26 +128,12 @@ export function GameBoard({
       }),
     [game.board.roads, longestRoadLengthByPlayerId, playerDetailsById],
   );
-  const tilesById = useMemo(
-    () => new Map(game.board.tiles.map((tile) => [tile.id, tile])),
-    [game.board.tiles],
-  );
-  const robberTile = tilesById.get(game.board.robberTileId) ?? null;
-  const robberInspection = useMemo(
-    () => (robberTile ? createRobberInspection(robberTile) : null),
-    [robberTile],
-  );
   const inspectionById = useMemo(
     () =>
       new Map(
-        [
-          ...tileInspections,
-          ...portInspections,
-          ...roadInspections,
-          ...(robberInspection ? [robberInspection] : []),
-        ].map((inspection) => [inspection.id, inspection]),
+        [...portInspections, ...roadInspections].map((inspection) => [inspection.id, inspection]),
       ),
-    [portInspections, roadInspections, robberInspection, tileInspections],
+    [portInspections, roadInspections],
   );
   const inspectionOrder = useMemo(() => [...inspectionById.keys()], [inspectionById]);
   const firstInspectionId = inspectionOrder[0] ?? null;
@@ -412,34 +374,12 @@ export function GameBoard({
             targets={canvasTargets}
           />
 
-          {game.board.tiles.map((tile, index) => {
-            const inspection = tileInspections[index];
-            if (!inspection) {
-              return null;
-            }
-            return (
-              <BoardHitTarget
-                className="tile-hit-target"
-                inspection={inspection}
-                isInspected={inspection.id === inspectedItemId}
-                isKeyboardTarget={inspection.id === keyboardInspectionId}
-                key={tile.id}
-                kind="tile"
-                onInspect={inspectBoardItem}
-                onKeyboardFocus={focusBoardItem}
-                onKeyboardNavigate={navigateBoardItems}
-                point={getTilePoint(boardLayout, tile)}
-              />
-            );
-          })}
-
           {ports.map((port, index) => {
             const inspection = portInspections[index];
             return inspection ? (
               <BoardHitTarget
                 className="port-hit-target"
                 inspection={inspection}
-                isInspected={inspection.id === inspectedItemId}
                 isKeyboardTarget={inspection.id === keyboardInspectionId}
                 key={port.id}
                 kind="port"
@@ -459,7 +399,6 @@ export function GameBoard({
                 angle={point.angle}
                 className="piece-hit-target-road"
                 inspection={inspection}
-                isInspected={inspection.id === inspectedItemId}
                 isKeyboardTarget={inspection.id === keyboardInspectionId}
                 key={road.edgeKey}
                 kind="piece"
@@ -470,20 +409,6 @@ export function GameBoard({
               />
             ) : null;
           })}
-
-          {robberInspection && robberTile ? (
-            <BoardHitTarget
-              className="robber-hit-target"
-              inspection={robberInspection}
-              isInspected={robberInspection.id === inspectedItemId}
-              isKeyboardTarget={robberInspection.id === keyboardInspectionId}
-              kind="robber"
-              onInspect={inspectBoardItem}
-              onKeyboardFocus={focusBoardItem}
-              onKeyboardNavigate={navigateBoardItems}
-              point={getTilePoint(boardLayout, robberTile)}
-            />
-          ) : null}
 
           {boardTargets.map((target) => (
             <BuildTarget
@@ -524,7 +449,6 @@ function BoardHitTarget({
   angle = 0,
   className,
   inspection,
-  isInspected,
   isKeyboardTarget,
   kind,
   onInspect,
@@ -534,13 +458,13 @@ function BoardHitTarget({
 }: InspectableBoardItemProps & {
   angle?: number;
   className: string;
-  kind: "piece" | "port" | "robber" | "tile";
+  kind: "piece" | "port";
   point: { x: number; y: number };
 }) {
   return (
     <span
       aria-label={inspection.accessibleLabel}
-      className={getInspectableClassName(`board-hit-target ${className}`, isInspected)}
+      className={`board-hit-target board-inspectable ${className}`}
       data-board-inspection-id={inspection.id}
       data-board-inspectable={kind}
       onBlur={() => onInspect(null)}
@@ -613,7 +537,7 @@ function BoardInspector({ inspection }: { inspection: BoardInspection | null }) 
     <aside
       aria-label="Board inspector"
       className={liquidGlassClassName({
-        className: `game-purple-glass board-inspector${inspection.layout === "compact" ? " is-compact" : ""}`,
+        className: "game-purple-glass board-inspector",
         kind: "panel",
         radius: "md",
       })}
@@ -627,47 +551,14 @@ function BoardInspector({ inspection }: { inspection: BoardInspection | null }) 
       </span>
       <dl className="board-inspector-details">
         {inspection.details.map((detail) => (
-          <div
-            className={`board-inspector-detail${detail.tone === "alert" ? " is-alert" : ""}`}
-            key={detail.label}
-          >
-            <dt className="sr-only">{detail.label}</dt>
+          <div className="board-inspector-detail" key={detail.label}>
+            <dt className="board-inspector-label">{detail.label}</dt>
             <dd className="board-inspector-value">{detail.value}</dd>
           </div>
         ))}
       </dl>
     </aside>
   );
-}
-
-function createTileInspection(tile: BoardTile, isBlockedByRobber: boolean): BoardInspection {
-  const terrainLabel = TERRAIN_LABELS[tile.terrain];
-  const resource = TERRAIN_RESOURCE[tile.terrain];
-  const resourceLabel = resource ? RESOURCE_LABELS[resource] : "No resource";
-  const numberLabel = tile.numberToken === null ? "No number token" : String(tile.numberToken);
-  const probabilityLabel = getRollProbabilityLabel(tile.numberToken);
-  const robberLabel = isBlockedByRobber
-    ? resource
-      ? "Production blocked"
-      : "Robber is here"
-    : "Not blocked";
-  const productionLabel = resource
-    ? `produces ${resourceLabel}${tile.numberToken === null ? "" : ` on ${tile.numberToken}`}`
-    : "does not produce resources";
-
-  return {
-    accessibleLabel: `${terrainLabel} terrain tile; ${productionLabel}; ${probabilityLabel}; ${robberLabel.toLowerCase()}.`,
-    details: [
-      { label: "Roll chance", value: probabilityLabel },
-      ...(isBlockedByRobber
-        ? [{ label: "Robber", tone: "alert" as const, value: robberLabel }]
-        : []),
-    ],
-    id: `tile:${tile.id}`,
-    kicker: terrainLabel,
-    resource: resource ?? undefined,
-    title: resource ? `${resourceLabel} on ${numberLabel}` : "No resource production",
-  };
 }
 
 function createPortInspection(
@@ -697,17 +588,11 @@ function createPortInspection(
     ? "Available to you"
     : ownerNames.length > 0
       ? `Used by ${ownerNames.join(" and ")}`
-      : "Build on either dock corner to unlock";
+      : "Build beside it to unlock";
 
   return {
     accessibleLabel: `${title}; trade at ${rate}; accepts ${resourceLabel.toLowerCase()}; ${access.toLowerCase()}.`,
-    details: [
-      {
-        label: "Trade rule",
-        value: isAnyResource ? "Give any 3 cards, take 1" : `Give 2 ${resourceLabel}, take 1`,
-      },
-      { label: "Harbor access", value: access },
-    ],
+    details: [{ label: "Access", value: access }],
     id: `port:${id}`,
     kicker: "Harbor",
     resource: isAnyResource ? undefined : trade,
@@ -721,48 +606,12 @@ function createRoadInspection(
   longestRoadLength: number,
 ): BoardInspection {
   return {
-    accessibleLabel: `${ownerName}'s road; longest road is ${longestRoadLength} segments.`,
-    details: [
-      { label: "Owner", value: ownerName },
-      { label: "Longest road", value: `Longest: ${longestRoadLength}` },
-    ],
+    accessibleLabel: `${ownerName}'s road; longest connected route is ${longestRoadLength} segments.`,
+    details: [{ label: "Longest route", value: String(longestRoadLength) }],
     id,
-    kicker: ownerName,
-    layout: "compact",
-    title: "Road",
+    kicker: "Road",
+    title: `${ownerName}'s road`,
   };
-}
-
-function createRobberInspection(tile: BoardTile): BoardInspection {
-  const terrainLabel = TERRAIN_LABELS[tile.terrain];
-  const resource = TERRAIN_RESOURCE[tile.terrain];
-  const blockedResource = resource ? RESOURCE_LABELS[resource] : "No resource";
-  const effectLabel = resource ? `Blocks ${blockedResource}` : "No production here";
-  const accessibleEffect = resource
-    ? `blocks ${blockedResource.toLowerCase()} production`
-    : "occupies a non-producing tile";
-
-  return {
-    accessibleLabel: `Robber on the ${terrainLabel.toLowerCase()} tile; ${accessibleEffect}.`,
-    details: [{ label: "Effect", tone: "alert", value: effectLabel }],
-    id: "robber",
-    kicker: `${terrainLabel} tile`,
-    title: "Robber",
-  };
-}
-
-function getRollProbabilityLabel(numberToken: number | null): string {
-  if (numberToken === null) {
-    return "No production roll";
-  }
-
-  const combinations = NUMBER_TOKEN_PIPS[numberToken] ?? 0;
-  const percentage = ((combinations / 36) * 100).toFixed(1);
-  return `${percentage}% roll chance`;
-}
-
-function getInspectableClassName(baseClassName: string, isInspected: boolean): string {
-  return `${baseClassName} board-inspectable${isInspected ? " is-inspected" : ""}`;
 }
 
 function getInspectionNavigationDirection(key: string): "first" | "last" | -1 | 1 | null {

@@ -10,10 +10,7 @@ import { Button } from "@heroui/react";
 import Image from "next/image";
 import { type CSSProperties, type AnimationEvent, useEffect, useRef, useState } from "react";
 
-import {
-  DEVELOPMENT_CARD_ASSETS,
-  RESOURCE_CARD_ASSET_PATHS,
-} from "@/constants/game/card-assets";
+import { DEVELOPMENT_CARD_ASSETS, RESOURCE_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
 import { getResourceCardChanges, type ResourceCardChange } from "@/lib/game/resource-card-changes";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 
@@ -210,11 +207,17 @@ export function ResourceHand({
                   "resource-card",
                   "resource-card-face",
                   `resource-${resource}`,
+                  selected > 0 ? styles.selectedCard : "",
                   interaction && interactionMatchesSource ? styles.selectableCard : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
+                data-empty={available === 0 ? "true" : undefined}
+                data-selected={selected > 0 ? "true" : undefined}
                 key={resource}
+                title={`${RESOURCE_LABELS[resource]} · ${available} available${
+                  selected > 0 ? ` · ${selected} selected` : ""
+                }`}
               >
                 <span className="resource-card-art" aria-hidden="true">
                   <GameCardArtwork
@@ -226,6 +229,11 @@ export function ResourceHand({
                 <span aria-hidden="true" className={styles.cardCount}>
                   {available}
                 </span>
+                {selected > 0 ? (
+                  <span aria-hidden="true" className={styles.selectedCount}>
+                    {selected} selected
+                  </span>
+                ) : null}
                 {interaction && interactionMatchesSource ? (
                   <Button
                     aria-label={`Move one ${RESOURCE_LABELS[resource]} from your hand to ${interaction.label}`}

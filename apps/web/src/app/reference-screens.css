@@ -1057,9 +1057,6 @@
 .reference-game .phase-banner p:last-child,
 .reference-game .turn-clock,
 .reference-game .event-list p,
-.reference-game .player-resource-stat,
-.reference-game .player-resource-stat small,
-.reference-game .player-piece-stats strong,
 .reference-game .piece-supply-title,
 .reference-game .action-heading span {
   color: #d6bdd8;
@@ -1104,6 +1101,10 @@
   border-inline-start-color: var(--player-color);
 }
 
+.reference-game .player-summary:not(.is-active) {
+  opacity: 0.9;
+}
+
 .reference-game .player-summary.is-active {
   border-color: color-mix(in srgb, var(--player-color), #e7c4e8 38%);
   border-inline-start-color: var(--player-color);
@@ -1117,8 +1118,6 @@
     0 8px 20px color-mix(in srgb, var(--player-color), transparent 78%);
 }
 
-.reference-game .player-identity-line > em,
-.reference-game .player-turn-status,
 .reference-game .player-victory-stat svg {
   color: color-mix(in srgb, var(--player-color), white 18%);
 }
@@ -1127,14 +1126,15 @@
   color: #fff;
 }
 
-.reference-game .player-victory-stat small {
-  color: #d0b7d3;
+.reference-game .player-victory-score small,
+.reference-game .player-victory-stat > em,
+.reference-game .player-table-fact > small {
+  color: #d6bdd8;
 }
 
-.reference-game .player-resource-stat strong {
-  color: #fff;
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
+.reference-game .player-active-cue {
+  background: color-mix(in srgb, var(--player-color), rgba(42, 16, 52, 0.68) 62%);
+  color: #fffaf3;
 }
 
 .reference-game .player-avatar-fallback {
@@ -1387,12 +1387,11 @@
 }
 
 .reference-game .dice-button {
-  border: 2px solid rgba(255, 236, 191, 0.78);
-  background: linear-gradient(180deg, #f2b83f, #c77d19);
+  border: 1px solid rgba(126, 72, 18, 0.34);
+  background: linear-gradient(180deg, #ffc95c, #e59a24);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.36),
-    inset 0 -4px 0 rgba(101, 55, 11, 0.38),
-    0 10px 22px rgba(52, 21, 49, 0.36);
+    inset 0 1px 0 rgba(255, 228, 158, 0.24),
+    0 8px 18px rgba(52, 21, 49, 0.32);
   color: #43284b;
 }
 
@@ -1556,6 +1555,7 @@
 @media (min-width: 1101px) and (min-height: 561px) {
   .game-page.reference-game {
     --hud-rail: min(26vw, 27rem);
+    --hud-card-height: 7rem;
 
     position: relative;
     display: block;
@@ -1653,7 +1653,7 @@
     gap: 0.55rem;
     padding: 0;
     border: 0;
-    margin-left: auto;
+    margin-left: 0;
     background: transparent;
     box-shadow: none;
     backdrop-filter: none;
@@ -1662,20 +1662,20 @@
   .reference-game .game-sidebar {
     position: absolute;
     z-index: 9500;
-    top: 4.15rem;
+    top: max(1rem, env(safe-area-inset-top));
     right: max(1.25rem, env(safe-area-inset-right));
     bottom: 8.8rem;
     display: grid;
     width: var(--hud-rail);
     min-height: 0;
-    grid-template-rows: minmax(0, 1.35fr) minmax(18rem, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: 0.7rem;
   }
 
   .reference-game .game-sidebar-panels {
     display: grid;
     min-height: 0;
-    grid-template-rows: minmax(0, 1fr) 7.35rem;
+    grid-template-rows: minmax(9rem, 1fr) var(--hud-card-height);
     gap: 0.7rem;
   }
 
@@ -1702,21 +1702,105 @@
   .reference-game .player-strip {
     display: grid;
     min-height: 0;
-    grid-auto-rows: minmax(0, 1fr);
-    gap: 0.42rem;
-    overflow: hidden;
+    max-height: 29.65rem;
+    align-content: start;
+    gap: 0.55rem;
+    overflow-y: auto;
   }
 
   .reference-game .player-summary {
+    position: relative;
+    height: var(--hud-card-height);
     min-height: 0;
-    grid-template-columns: 3rem minmax(0, 1fr) auto;
-    padding: 0.42rem 0.58rem;
-    border-radius: 0.9rem;
+    grid-template-areas:
+      "avatar supply victory"
+      "name supply victory"
+      ". supply victory";
+    grid-template-columns: clamp(4.25rem, 5vw, 5rem) max-content max-content;
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-content: space-between;
+    gap: 0.15rem 0.45rem;
+    padding: 0.68rem 0.75rem;
+    border-radius: 1rem;
   }
 
   .reference-game .player-avatar {
-    width: 2.85rem;
-    height: 2.85rem;
+    width: 3.2rem;
+    height: 3.2rem;
+    align-self: end;
+    justify-self: center;
+  }
+
+  .reference-game .player-name {
+    width: 100%;
+    align-self: center;
+    text-align: center;
+  }
+
+  .reference-game .player-identity-line {
+    justify-content: center;
+  }
+
+  .reference-game .player-cues {
+    justify-content: center;
+  }
+
+  .reference-game .player-identity-line > strong {
+    font-size: 0.88rem;
+  }
+
+  .reference-game .player-victory-progress {
+    min-width: 0;
+    align-self: center;
+    justify-self: end;
+    padding-left: 0.45rem;
+    border-left: 1px solid rgba(225, 184, 230, 0.18);
+  }
+
+  .reference-game .player-victory-stat {
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    gap: 0.05rem 0.16rem;
+  }
+
+  .reference-game .player-victory-score strong {
+    font-size: 1.05rem;
+  }
+
+  .reference-game .player-victory-stat svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .reference-game .player-table-supply {
+    min-height: 3rem;
+    grid-template-columns:
+      repeat(2, clamp(2.1rem, 2.8vw, 3rem))
+      repeat(2, clamp(1.5rem, 2.2vw, 2.5rem));
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    gap: 0.12rem;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .reference-game .player-table-fact {
+    width: 100%;
+    height: min(100%, 4.8rem);
+    align-self: center;
+    justify-self: center;
+  }
+
+  .reference-game .player-award-fact {
+    width: 100%;
+    height: min(100%, 4.8rem);
+  }
+
+  .reference-game .player-award-fact > img {
+    width: min(100%, 2.8rem);
+    height: min(100%, 2.8rem);
   }
 
   .reference-game .phase-banner-overlay {
@@ -1896,11 +1980,6 @@
     min-height: 5.3rem;
   }
 
-  .reference-game .action-dock-roll-layout .dice-button > svg {
-    width: 1.55rem;
-    height: 1.55rem;
-  }
-
   .reference-game .action-dock-roll-layout .action-tile-preset__art {
     grid-row: 1 / 3;
   }
@@ -1989,15 +2068,21 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
 
-  .reference-game .player-turn-status {
-    width: fit-content;
-    padding: 0.16rem 0.34rem;
-    border: 1px solid color-mix(in srgb, var(--player-color), transparent 58%);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--player-color), rgba(42, 15, 50, 0.74) 78%);
+@media (min-width: 1101px) and (min-height: 561px) and (max-height: 760px) {
+  .reference-game .game-sidebar {
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
+  .reference-game .game-sidebar-panels {
+    grid-template-rows: var(--hud-card-height);
+    gap: 0;
+  }
+
+  .reference-game .player-strip {
+    max-height: none;
+  }
 }
 
 @media (min-width: 1101px) and (max-width: 1240px) and (min-height: 561px) {
@@ -2022,6 +2107,10 @@
   .reference-game .build-actions .action-button {
     width: 5.55rem;
     min-width: 5.55rem;
+  }
+
+  .reference-game .player-table-fact > small {
+    font-size: 0.4rem;
   }
 }
 
@@ -2060,19 +2149,29 @@
     display: none;
   }
 
-  .reference-game .player-table-supply,
-  .reference-game .player-piece-stats {
-    display: flex;
+  .reference-game .player-table-supply {
+    display: grid;
   }
 
-  .reference-game .player-piece-stats {
-    gap: 0.3rem;
+  .reference-game .player-summary {
+    min-height: 6.25rem;
   }
 }
 
 @media (max-width: 620px) {
   .reference-game .board-stage {
     width: min(100cqw, calc((100cqh - 0.5rem) * 0.9091));
+  }
+
+  .reference-game .player-summary {
+    min-height: 6rem;
+    grid-template-areas:
+      "avatar name victory"
+      "supply supply supply";
+  }
+
+  .reference-game .player-table-supply {
+    justify-content: center;
   }
 
   .reference-game .action-dock {
@@ -2139,7 +2238,6 @@
   .reference-game .build-action-status {
     display: none;
   }
-
 }
 
 @media (max-width: 620px) and (max-height: 560px) and (orientation: landscape) {

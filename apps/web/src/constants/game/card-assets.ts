@@ -11,6 +11,9 @@ export const RESOURCE_CARD_ASSET_PATHS: Readonly<Record<ResourceType, string>> =
 export const DEVELOPMENT_CARD_BACK_ASSET_PATH =
   "/game-assets/cards/development/hidden-card-back.png";
 
+export const UNKNOWN_RESOURCE_CARD_ASSET_PATH =
+  "/game-assets/cards/resources/unknown-resource-card-purple.png";
+
 export const ACTION_CARD_ASSET_PATHS = {
   city: "/game-assets/cards/actions/city.png",
   road: "/game-assets/cards/actions/road.png",
