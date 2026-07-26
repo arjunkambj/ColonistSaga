@@ -18,10 +18,15 @@ export interface BoardViewportState extends BoardViewportPoint {
 }
 
 export const DEFAULT_BOARD_VIEWPORT: BoardViewportState = {
-  scale: 1,
+  scale: 1.1,
   x: 0,
   y: 0,
 };
+
+const DEFAULT_BOARD_VIEWPORT_OFFSET = {
+  x: 0.15,
+  y: -0.05,
+} as const;
 
 export const BOARD_VIEWPORT_SCALE = {
   max: 2,
@@ -33,6 +38,17 @@ export const BOARD_VIEWPORT_PAN = {
   fittedX: 0.28,
   fittedY: 0.22,
 } as const;
+
+export function getDefaultBoardViewport(bounds: BoardViewportBounds): BoardViewportState {
+  return clampBoardViewport(
+    {
+      ...DEFAULT_BOARD_VIEWPORT,
+      x: bounds.width * DEFAULT_BOARD_VIEWPORT_OFFSET.x,
+      y: bounds.height * DEFAULT_BOARD_VIEWPORT_OFFSET.y,
+    },
+    bounds,
+  );
+}
 
 export function clampBoardViewport(
   viewport: BoardViewportState,

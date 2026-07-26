@@ -45,7 +45,7 @@ import type { AudioSettings } from "@/lib/audio-settings";
 import { ActionTile } from "./action-tile";
 import { DiscardPanel } from "./discard-panel";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
-import { HandDockProvider } from "./hand-dock";
+import { BOARD_INSPECTOR_DOCK_ROOT_ID, HandDockProvider } from "./hand-dock";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { PieceIcon } from "./piece-icon";
 import { ResourceHand } from "./resource-hand";
@@ -371,6 +371,7 @@ export function GameScreen({
             <TurnClock botThinking={botThinking} nextActionAt={nextActionAt} />
             <DiceResult game={game} />
           </div>
+          <div className="board-inspector-dock" id={BOARD_INSPECTOR_DOCK_ROOT_ID} />
         </section>
 
         <GameBoard

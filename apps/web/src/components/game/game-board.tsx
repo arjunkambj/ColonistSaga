@@ -38,7 +38,7 @@ import {
 } from "@/lib/game/board-canvas-model";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import { BoardCanvas, type BoardCanvasTarget } from "./board-canvas";
-import { HandDockPortal } from "./hand-dock";
+import { BoardInspectorDockPortal } from "./hand-dock";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { useBoardCamera } from "./use-board-camera";
 
@@ -513,9 +513,9 @@ export function GameBoard({
           ))}
         </div>
       </div>
-      <HandDockPortal>
+      <BoardInspectorDockPortal>
         <BoardInspector inspection={inspectedItem} />
-      </HandDockPortal>
+      </BoardInspectorDockPortal>
     </section>
   );
 }

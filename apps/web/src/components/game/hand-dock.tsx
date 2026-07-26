@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 
 export const HAND_DOCK_ROOT_ID = "game-hand-dock-root";
+export const BOARD_INSPECTOR_DOCK_ROOT_ID = "board-inspector-dock-root";
 
 export type HandInteractionOwner = "discard" | "trade";
 
@@ -71,12 +72,20 @@ export function useHandDock(): HandDockContextValue {
   return context;
 }
 
-export function HandDockPortal({ children }: { children: ReactNode }) {
+function DockPortal({ children, rootId }: { children: ReactNode; rootId: string }) {
   const [root, setRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    setRoot(document.getElementById(HAND_DOCK_ROOT_ID));
-  }, []);
+    setRoot(document.getElementById(rootId));
+  }, [rootId]);
 
   return root ? createPortal(children, root) : null;
+}
+
+export function HandDockPortal({ children }: { children: ReactNode }) {
+  return <DockPortal rootId={HAND_DOCK_ROOT_ID}>{children}</DockPortal>;
+}
+
+export function BoardInspectorDockPortal({ children }: { children: ReactNode }) {
+  return <DockPortal rootId={BOARD_INSPECTOR_DOCK_ROOT_ID}>{children}</DockPortal>;
 }

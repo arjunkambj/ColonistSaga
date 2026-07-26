@@ -1180,8 +1180,10 @@
   color: #cbb0ce;
 }
 
-.reference-game .board-inspector-detail {
-  background: rgba(116, 55, 132, 0.58);
+.reference-game .board-inspector-detail.is-alert {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .reference-game .resource-hand,
@@ -1782,11 +1784,6 @@
     left: max(1.25rem, env(safe-area-inset-left));
     width: min(30rem, calc(72.6vw - 2.5rem));
     transform: none;
-  }
-
-  .reference-game .board-inspector {
-    bottom: 8.4rem;
-    left: 1.25rem;
   }
 
   .reference-game .game-footer {

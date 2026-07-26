@@ -188,7 +188,7 @@
 
 .reference-game .building-actions-dock .action-count {
   z-index: 10;
-  top: -0.28rem;
+  top: -0.15rem;
   right: -0.28rem;
   display: grid;
   min-width: 1.3rem;
@@ -295,22 +295,25 @@
 
   .reference-game .game-footer.game-footer--three-sections {
     right: calc(max(1.25rem, env(safe-area-inset-right)) + var(--hud-rail) + 0.7rem);
-    height: 8.4rem;
+    height: auto;
     grid-template-columns: minmax(0, 1fr) fit-content(26rem) minmax(6.5rem, 7.25rem);
     align-items: stretch;
     gap: 0.5rem;
   }
 
   .reference-game .turn-control {
+    height: auto;
     max-width: 7.25rem;
+    align-self: stretch;
     justify-self: end;
+    padding-block: 0.15rem;
   }
 
   .reference-game .game-footer--three-sections .resource-hand {
     display: block;
     height: auto;
-    align-self: start;
-    padding: 0.75rem;
+    align-self: stretch;
+    padding: 0.2rem 0.75rem;
   }
 
   .reference-game .game-footer--three-sections .resource-card-list {
@@ -328,11 +331,12 @@
   .reference-game .game-footer--three-sections .building-actions-dock {
     width: fit-content;
     max-width: 100%;
-    height: 100%;
+    height: auto;
+    align-self: stretch;
     justify-content: flex-start;
     justify-self: end;
     gap: 0.65rem;
-    padding: 0.75rem;
+    padding: 0.2rem 0.75rem;
     margin: 0;
     overflow-x: auto;
     overflow-y: hidden;
@@ -351,6 +355,9 @@
     .action-button {
     width: 4.25rem;
     min-width: 4.25rem;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 2 / 3;
   }
 }
 

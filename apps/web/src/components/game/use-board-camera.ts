@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_BOARD_VIEWPORT,
   clampBoardViewport,
+  getDefaultBoardViewport,
   getBoardViewportFocus,
   getBoardViewportTransform,
   normalizeBoardWheelDelta,
@@ -96,6 +97,7 @@ export function useBoardCamera(): BoardCamera {
   const suppressedBuildTargetRef = useRef<Element | null>(null);
   const suppressedClickTimerRef = useRef<number | null>(null);
   const gamePageRef = useRef<Element | null>(null);
+  const hasPositionedDefaultViewportRef = useRef(false);
   const refreshStageBoundsRef = useRef<() => void>(() => undefined);
 
   const scheduleSceneWrite = useCallback(() => {
@@ -217,7 +219,7 @@ export function useBoardCamera(): BoardCamera {
   );
 
   const resetBoardViewport = useCallback(() => {
-    commitControlViewport(DEFAULT_BOARD_VIEWPORT);
+    commitControlViewport(getDefaultBoardViewport(stageBoundsRef.current));
   }, [commitControlViewport]);
 
   const handleNativeWheel = useCallback(
@@ -455,7 +457,13 @@ export function useBoardCamera(): BoardCamera {
         width: Math.max(1, rect.width),
       };
 
-      const clampedViewport = clampBoardViewport(viewportRef.current, stageBoundsRef.current);
+      const clampedViewport = clampBoardViewport(
+        hasPositionedDefaultViewportRef.current
+          ? viewportRef.current
+          : getDefaultBoardViewport(stageBoundsRef.current),
+        stageBoundsRef.current,
+      );
+      hasPositionedDefaultViewportRef.current = true;
       setTransientViewport(clampedViewport);
       commitViewport();
       rebasePointerGesture();
