@@ -21,7 +21,7 @@ import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
 import { HomeScreen } from "@/components/home/home-screen";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
-import { ACTION_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
+import { ACTION_CARD_ASSET_PATHS, DEVELOPMENT_DECK_ASSET_PATH } from "@/constants/game/card-assets";
 import { DEFAULT_AUDIO_SETTINGS } from "@/lib/audio-settings";
 import type { RoomEventView } from "@/lib/game/types";
 
@@ -30,7 +30,9 @@ export type UiPreviewMode =
   | "auth"
   | "game"
   | "game-actions"
+  | "game-discard"
   | "game-setup"
+  | "game-trade-offer"
   | "home";
 
 const PREVIEW_MODES = new Set<UiPreviewMode>([
@@ -38,11 +40,19 @@ const PREVIEW_MODES = new Set<UiPreviewMode>([
   "auth",
   "game",
   "game-actions",
+  "game-discard",
   "game-setup",
+  "game-trade-offer",
   "home",
 ]);
 
-const GAME_PREVIEW_MODES = new Set<UiPreviewMode>(["game", "game-actions", "game-setup"]);
+const GAME_PREVIEW_MODES = new Set<UiPreviewMode>([
+  "game",
+  "game-actions",
+  "game-discard",
+  "game-setup",
+  "game-trade-offer",
+]);
 
 const PREVIEW_PLAYERS: GamePlayerInput[] = [
   { displayName: "Arjun Kamboj", id: "player-1", isBot: false },
@@ -107,7 +117,11 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
       game={
         mode === "game-setup"
           ? createSetupPreviewGame()
-          : createPreviewGame(mode === "game-actions")
+          : mode === "game-trade-offer"
+            ? createTradeOfferPreviewGame()
+            : mode === "game-discard"
+              ? createDiscardPreviewGame()
+              : createPreviewGame(mode === "game-actions")
       }
       isHost
       nextActionAt={previewDeadline}
@@ -186,6 +200,14 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     title: "Trade",
   },
   {
+    caption: "Draw the top card",
+    count: 25,
+    kind: "development-card",
+    meta: "Sheep · wheat · stone",
+    src: DEVELOPMENT_DECK_ASSET_PATH,
+    title: "Dev Card",
+  },
+  {
     caption: "Place on a glowing edge",
     count: 13,
     kind: "road",
@@ -218,10 +240,20 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
   },
 ];
 
-function createPreviewGame(showActions: boolean) {
+function createPreviewState({
+  activePlayerId = "player-1",
+  balancedDice = false,
+  seed = "reference-ui-preview",
+  showActions,
+}: {
+  activePlayerId?: string;
+  balancedDice?: boolean;
+  seed?: string;
+  showActions: boolean;
+}) {
   let state = completePreviewSetup(
-    createDefaultGame(PREVIEW_PLAYERS, "reference-ui-preview", {
-      balancedDice: false,
+    createDefaultGame(PREVIEW_PLAYERS, seed, {
+      balancedDice,
       friendlyRobber: false,
       victoryPoints: 10,
     }),
@@ -231,29 +263,92 @@ function createPreviewGame(showActions: boolean) {
     brick: 1,
     sheep: 2,
     stone: 1,
-    tree: 3,
+    tree: showActions ? 4 : 3,
     wheat: 2,
   };
-  const viewer = state.players.find((player) => player.id === "player-1");
-  if (!viewer) throw new Error("Preview game requires its viewer");
+
+  state = replacePreviewPlayerResources(
+    {
+      ...state,
+      activePlayerId,
+      lastDiceRoll: showActions ? { first: 3, second: 5, sum: 8 } : null,
+      phase: showActions ? { kind: "build_and_trade" } : { kind: "roll" },
+      turnNumber: 5,
+    },
+    "player-1",
+    resources,
+  );
+
+  assertGameState(state);
+  return state;
+}
+
+function createPreviewGame(showActions: boolean) {
+  return createPreviewView(createPreviewState({ showActions }));
+}
+
+function createTradeOfferPreviewGame() {
+  const proposerResources: ResourceInventory = {
+    ...emptyInventory(),
+    sheep: 1,
+  };
+  let state = replacePreviewPlayerResources(
+    createPreviewState({ activePlayerId: "player-2", showActions: true }),
+    "player-2",
+    proposerResources,
+  );
+  assertGameState(state);
+  state = applyCommand(state, "player-2", {
+    give: proposerResources,
+    kind: "propose_trade",
+    recipientPlayerIds: ["player-1"],
+    want: {
+      ...emptyInventory(),
+      tree: 1,
+    },
+  });
+  return createPreviewView(state);
+}
+
+function createDiscardPreviewGame() {
+  const state = applyCommand(
+    createPreviewState({
+      balancedDice: true,
+      seed: "reference-discard-preview",
+      showActions: false,
+    }),
+    "player-1",
+    { kind: "roll" },
+  );
+  const view = createPreviewView(state);
+  if (view.legalActions.discardCount === null) {
+    throw new Error("Discard preview requires a viewer discard");
+  }
+  return view;
+}
+
+function replacePreviewPlayerResources(
+  state: GameState,
+  playerId: string,
+  resources: ResourceInventory,
+) {
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player) throw new Error(`Preview game requires ${playerId}`);
   const bank = { ...state.bank };
   for (const resource of RESOURCE_TYPES) {
-    bank[resource] -= resources[resource] - viewer.resources[resource];
+    bank[resource] -= resources[resource] - player.resources[resource];
   }
 
-  state = {
+  return {
     ...state,
-    activePlayerId: "player-1",
     bank,
-    lastDiceRoll: showActions ? { first: 3, second: 5, sum: 8 } : null,
-    phase: showActions ? { kind: "build_and_trade" } : { kind: "roll" },
-    players: state.players.map((player) => ({
-      ...player,
-      resources: player.id === "player-1" ? resources : player.resources,
-    })),
-    turnNumber: 5,
+    players: state.players.map((candidate) =>
+      candidate.id === playerId ? { ...candidate, resources } : candidate,
+    ),
   };
+}
 
+function createPreviewView(state: GameState) {
   assertGameState(state);
   const view = toPlayerView(state, "player-1");
   assertPlayerGameView(view);

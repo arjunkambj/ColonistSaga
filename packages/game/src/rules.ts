@@ -2,6 +2,7 @@ import {
   ANY_PORT_TRADE_RATIO,
   BANK_TRADE_RATIO,
   BUILD_COSTS,
+  DEVELOPMENT_CARD_COST,
   RESOURCE_PORT_TRADE_RATIO,
   RESOURCE_ORDER,
   TERRAIN_RESOURCE,
@@ -72,6 +73,16 @@ function buildingAt(state: Pick<GameState, "board">, vertexKey: string) {
 
 function roadAt(state: GameState, edgeKey: string) {
   return state.board.roads.find((road) => road.edgeKey === edgeKey);
+}
+
+function hasCompletedSetupPlacements(state: GameState) {
+  return state.players.every((player) => {
+    const buildingCount = state.board.buildings.filter(
+      (building) => building.playerId === player.id,
+    ).length;
+    const roadCount = state.board.roads.filter((road) => road.playerId === player.id).length;
+    return buildingCount >= 2 && roadCount >= 2;
+  });
 }
 
 function boardTopology(state: Pick<GameState, "board">) {
@@ -177,11 +188,11 @@ export function getCityVertexKeys(state: GameState, playerId: PlayerId) {
     .sort();
 }
 
-function payBuildCost(state: GameState, playerId: PlayerId, cost: Readonly<ResourceInventory>) {
+function payCost(state: GameState, playerId: PlayerId, cost: Readonly<ResourceInventory>) {
   const player = requirePlayer(state, playerId);
 
   if (!hasResources(player.resources, cost)) {
-    fail("INSUFFICIENT_RESOURCES", "Player cannot afford this build");
+    fail("INSUFFICIENT_RESOURCES", "Player cannot afford this action");
   }
 
   const withPaidPlayer = updatePlayer(state, playerId, (current) => ({
@@ -256,8 +267,11 @@ function grantSecondSettlementResources(state: GameState, playerId: PlayerId, ve
 
 function finishIfWinner(state: GameState, playerId: PlayerId) {
   const player = requirePlayer(state, playerId);
+  const hiddenVictoryPoints = player.developmentCards.filter(
+    (card) => card === "victory-point",
+  ).length;
 
-  if (player.victoryPoints < state.settings.victoryPoints) {
+  if (player.victoryPoints + hiddenVictoryPoints < state.settings.victoryPoints) {
     return state;
   }
 
@@ -312,7 +326,7 @@ function placeSettlement(state: GameState, playerId: PlayerId, vertexKey: string
   }
 
   return finishIfWinner(
-    addBuilding(payBuildCost(state, playerId, BUILD_COSTS.settlement), playerId, vertexKey),
+    addBuilding(payCost(state, playerId, BUILD_COSTS.settlement), playerId, vertexKey),
     playerId,
   );
 }
@@ -350,6 +364,12 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
       if (!firstPlayerId) {
         fail("INVALID_COMMAND", "Game has no first player");
       }
+      if (!hasCompletedSetupPlacements(withRoad)) {
+        fail(
+          "INVALID_COMMAND",
+          "Setup cannot finish before every player places two settlements and two roads",
+        );
+      }
 
       return {
         ...withRoad,
@@ -384,7 +404,7 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
     fail("ROAD_NOT_CONNECTED", "Road must connect to the player's network");
   }
 
-  return addRoad(payBuildCost(state, playerId, BUILD_COSTS.road), playerId, edgeKey);
+  return addRoad(payCost(state, playerId, BUILD_COSTS.road), playerId, edgeKey);
 }
 
 function buildCity(state: GameState, playerId: PlayerId, vertexKey: string) {
@@ -404,7 +424,7 @@ function buildCity(state: GameState, playerId: PlayerId, vertexKey: string) {
     fail("NO_PIECE_AVAILABLE", "Player has no cities remaining");
   }
 
-  const paid = payBuildCost(state, playerId, BUILD_COSTS.city);
+  const paid = payCost(state, playerId, BUILD_COSTS.city);
   const withCity: GameState = {
     ...paid,
     board: {
@@ -425,6 +445,32 @@ function buildCity(state: GameState, playerId: PlayerId, vertexKey: string) {
   }));
 
   return finishIfWinner(withPieces, playerId);
+}
+
+function buyDevelopmentCard(state: GameState, playerId: PlayerId) {
+  if (state.phase.kind !== "build_and_trade") {
+    fail("INVALID_PHASE", "Development cards cannot be bought in this phase");
+  }
+
+  const card = state.developmentDeck[0];
+  if (!card) {
+    fail("NO_DEVELOPMENT_CARD_AVAILABLE", "No development cards remain");
+  }
+
+  const paid = payCost(state, playerId, DEVELOPMENT_CARD_COST);
+  const withCard = updatePlayer(
+    {
+      ...paid,
+      developmentDeck: paid.developmentDeck.slice(1),
+    },
+    playerId,
+    (player) => ({
+      ...player,
+      developmentCards: [...player.developmentCards, card],
+    }),
+  );
+
+  return finishIfWinner(withCard, playerId);
 }
 
 export function distributeResourcesForRoll(state: GameState, rollTotal: number) {
@@ -543,6 +589,12 @@ function rollDice(state: GameState, playerId: PlayerId) {
   if (state.phase.kind !== "roll") {
     fail("INVALID_PHASE", "Dice can only be rolled at the start of a turn");
   }
+  if (!hasCompletedSetupPlacements(state)) {
+    fail(
+      "INVALID_PHASE",
+      "Dice cannot be rolled before every player places two settlements and two roads",
+    );
+  }
 
   const draw = drawDice(state);
   const { first, second, sum } = draw.roll;
@@ -651,7 +703,10 @@ function robberTileIds(state: GameState) {
   const desertTileId = state.board.tiles.find(
     (tile) => TERRAIN_RESOURCE[tile.terrain] === null,
   )?.id;
-  return friendly.length > 0 ? friendly : desertTileId ? [desertTileId] : available;
+  if (friendly.length > 0) {
+    return friendly;
+  }
+  return desertTileId && desertTileId !== state.board.robberTileId ? [desertTileId] : available;
 }
 
 function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
@@ -994,6 +1049,7 @@ export function getRequiredPlayerIds(state: GameState) {
 function emptyLegalActions(state: GameState): LegalActions {
   return {
     bankTrades: [],
+    canBuyDevelopmentCard: false,
     canCancelTrade: false,
     canEndTurn: false,
     canProposeTrade: false,
@@ -1036,7 +1092,7 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
           : [];
       return actions;
     case "roll":
-      actions.canRoll = true;
+      actions.canRoll = hasCompletedSetupPlacements(state);
       return actions;
     case "discard":
       actions.discardCount =
@@ -1059,6 +1115,8 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
       }
 
       actions.canEndTurn = true;
+      actions.canBuyDevelopmentCard =
+        state.developmentDeck.length > 0 && hasResources(player.resources, DEVELOPMENT_CARD_COST);
       actions.canCancelTrade = state.tradeOffer?.proposerPlayerId === actorPlayerId;
       actions.canProposeTrade = state.tradeOffer === null;
       actions.cityVertexKeys =
@@ -1135,6 +1193,9 @@ export function applyCommand(
       break;
     case "build_city":
       next = buildCity(state, actorPlayerId, command.vertexKey);
+      break;
+    case "buy_development_card":
+      next = buyDevelopmentCard(state, actorPlayerId);
       break;
     case "trade_bank":
       next = tradeWithBank(state, actorPlayerId, command.give, command.receive);

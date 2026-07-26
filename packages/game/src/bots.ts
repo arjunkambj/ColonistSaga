@@ -1,4 +1,10 @@
-import { BUILD_COSTS, NUMBER_TOKEN_PIPS, RESOURCE_ORDER, TERRAIN_RESOURCE } from "./constants";
+import {
+  BUILD_COSTS,
+  DEVELOPMENT_CARD_COST,
+  NUMBER_TOKEN_PIPS,
+  RESOURCE_ORDER,
+  TERRAIN_RESOURCE,
+} from "./constants";
 import {
   getCityVertexKeys,
   getLegalActions,
@@ -173,9 +179,11 @@ function chooseTargetBuildCost(state: GameState, playerId: PlayerId) {
     ? BUILD_COSTS.city
     : settlementLocations.length > 0
       ? BUILD_COSTS.settlement
-      : roadLocations.length > 0
-        ? BUILD_COSTS.road
-        : null;
+      : state.developmentDeck.length > 0
+        ? DEVELOPMENT_CARD_COST
+        : roadLocations.length > 0
+          ? BUILD_COSTS.road
+          : null;
 }
 
 function chooseBuildCommand(
@@ -195,6 +203,10 @@ function chooseBuildCommand(
 
   if (settlementVertex) {
     return { kind: "place_settlement", vertexKey: settlementVertex };
+  }
+
+  if (legal.canBuyDevelopmentCard) {
+    return { kind: "buy_development_card" };
   }
 
   const targetCost = chooseTargetBuildCost(state, playerId);
@@ -277,6 +289,7 @@ function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameComm
       if (cityVertex) return { kind: "build_city", vertexKey: cityVertex };
       const settlementVertex = legal.settlementVertexKeys[0];
       if (settlementVertex) return { kind: "place_settlement", vertexKey: settlementVertex };
+      if (legal.canBuyDevelopmentCard) return { kind: "buy_development_card" };
       const roadEdge = legal.roadEdgeKeys[0];
       if (roadEdge) return { edgeKey: roadEdge, kind: "place_road" };
       const targetCost = chooseTargetBuildCost(state, playerId);

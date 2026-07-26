@@ -9,22 +9,25 @@ import {
   type ResourceInventory,
   type ResourceType,
 } from "@colonistsaga/game";
-import { Button, Checkbox, Description, Modal, Tabs } from "@heroui/react";
+import { Button, Checkbox } from "@heroui/react";
 import handshakeIcon from "@iconify-icons/game-icons/shaking-hands";
 import storeIcon from "@iconify-icons/game-icons/shop";
+import arrowDownIcon from "@iconify-icons/solar/arrow-down-outline";
+import arrowUpIcon from "@iconify-icons/solar/arrow-up-outline";
 import checkIcon from "@iconify-icons/solar/check-circle-outline";
 import closeIcon from "@iconify-icons/solar/close-circle-outline";
 import minusIcon from "@iconify-icons/solar/minus-circle-outline";
 import plusIcon from "@iconify-icons/solar/add-circle-outline";
-import tradeIcon from "@iconify-icons/solar/transfer-horizontal-outline";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ACTION_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
+import { ACTION_CARD_ASSET_PATHS, RESOURCE_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
 
-import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { ActionTile } from "./action-tile";
+import { HandDockPortal, useHandDock } from "./hand-dock";
+import { RESOURCE_LABELS } from "./resource-icon";
+import styles from "./trade-center.module.css";
 
 export interface TradeCenterProps {
   disabled: boolean;
@@ -33,21 +36,65 @@ export interface TradeCenterProps {
   onCommand(command: GameCommand, message: string): void;
 }
 
-type TradeTab = "bank" | "players";
+type TradeDirection = "give" | "receive";
 
 export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps) {
+  const tradeCenterRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [tab, setTab] = useState<TradeTab>("players");
-  const offerNeedsViewer = game.legalActions.canCancelTrade || game.legalActions.canRespondToTrade;
-  const showDialog = isOpen || offerNeedsViewer;
+  const tradeOfferOpen = game.tradeOffer !== null;
+  const panelVisible = isOpen || tradeOfferOpen;
+  const offerActionNumber = game.tradeOffer?.offerActionNumber;
+
+  const closeDock = useCallback(() => {
+    setIsOpen(false);
+    globalThis.requestAnimationFrame(() => {
+      tradeCenterRef.current
+        ?.querySelector<HTMLButtonElement>('[data-action-kind="trade"]')
+        ?.focus();
+    });
+  }, []);
+
+  useEffect(() => {
+    if (offerActionNumber !== undefined) {
+      setIsOpen(false);
+    }
+  }, [offerActionNumber]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeDock();
+      }
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [closeDock, isOpen]);
+
+  const launchCaption = game.legalActions.canRespondToTrade
+    ? "Answer offer"
+    : game.legalActions.canCancelTrade
+      ? "Offer waiting"
+      : game.tradeOffer
+        ? "Offer open"
+        : "Bank or players";
 
   return (
-    <Modal>
+    <div className={styles.tradeCenter} ref={tradeCenterRef}>
       <ActionTile
-        ariaControls="trade-dialog"
-        ariaExpanded={showDialog}
-        ariaHasPopup="dialog"
-        ariaLabel="Trade with the bank or players"
+        ariaControls={tradeOfferOpen ? "trade-offer-surface" : "trade-dock"}
+        ariaExpanded={panelVisible}
+        ariaLabel={
+          tradeOfferOpen
+            ? "Focus the trade offer beside the game log"
+            : isOpen
+              ? "Close trade panel"
+              : "Trade with the bank or players"
+        }
         art={
           <Image
             alt=""
@@ -60,183 +107,389 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
             width={512}
           />
         }
-        caption={game.tradeOffer ? "Offer open" : "Bank or players"}
-        className="trade-launch"
+        caption={launchCaption}
+        className={`trade-launch ${styles.tradeLaunch}`}
         disabled={disabled}
         kind="trade"
-        onPress={() => setIsOpen(true)}
+        onPress={() => {
+          if (tradeOfferOpen) {
+            document.getElementById("trade-offer-surface")?.focus();
+            return;
+          }
+          if (isOpen) {
+            closeDock();
+          } else {
+            setIsOpen(true);
+          }
+        }}
+        pressed={panelVisible}
         title="Trade"
       />
 
-      <Modal.Backdrop
-        className="trade-backdrop"
-        isDismissable={!offerNeedsViewer}
-        isKeyboardDismissDisabled={offerNeedsViewer}
-        isOpen={showDialog}
-        onOpenChange={(open) => {
-          if (!open && !offerNeedsViewer) {
-            setIsOpen(open);
-          }
-        }}
-      >
-        <Modal.Container>
-          <Modal.Dialog className="trade-dialog" id="trade-dialog">
-            <Modal.Header className="trade-header">
-              <div>
-                <p className="eyebrow">Island Market</p>
-                <Modal.Heading id="trade-title">Make a Trade</Modal.Heading>
-                <p id="trade-description">
-                  Choose an exact exchange. Nothing moves until the deal is confirmed.
-                </p>
-              </div>
-              <Button
-                aria-label="Close trade window"
-                className="trade-close"
-                isDisabled={offerNeedsViewer}
-                isIconOnly
-                onPress={() => setIsOpen(false)}
-                variant="ghost"
-              >
-                <Icon aria-hidden="true" icon={closeIcon} />
-              </Button>
-            </Modal.Header>
-
-            <Modal.Body className="trade-body">
-              {game.tradeOffer ? (
-                <ActiveTradeOffer disabled={disabled} game={game} me={me} onCommand={onCommand} />
-              ) : (
-                <Tabs onSelectionChange={(key) => setTab(key as TradeTab)} selectedKey={tab}>
-                  <Tabs.ListContainer className="trade-tabs">
-                    <Tabs.List aria-label="Trade partner">
-                      <Tabs.Tab id="players">
-                        <Icon aria-hidden="true" icon={handshakeIcon} /> Players
-                        <Tabs.Indicator />
-                      </Tabs.Tab>
-                      <Tabs.Tab id="bank">
-                        <Icon aria-hidden="true" icon={storeIcon} /> Bank & Ports
-                        <Tabs.Indicator />
-                      </Tabs.Tab>
-                    </Tabs.List>
-                  </Tabs.ListContainer>
-                  <Tabs.Panel id="bank">
-                    <BankTradeForm disabled={disabled} game={game} onCommand={onCommand} />
-                  </Tabs.Panel>
-                  <Tabs.Panel id="players">
-                    <PlayerTradeForm
-                      disabled={disabled}
-                      game={game}
-                      me={me}
-                      onCommand={onCommand}
-                    />
-                  </Tabs.Panel>
-                </Tabs>
-              )}
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
-  );
-}
-
-function BankTradeForm({
-  disabled,
-  game,
-  onCommand,
-}: Pick<TradeCenterProps, "disabled" | "game" | "onCommand">) {
-  const [give, setGive] = useState<ResourceType>("tree");
-  const [receive, setReceive] = useState<ResourceType>("brick");
-  const options = game.legalActions.bankTrades;
-  const availableGiveResources = RESOURCE_ORDER.filter((resource) =>
-    options.some((option) => option.give === resource),
-  );
-  const selectedGive = availableGiveResources.includes(give)
-    ? give
-    : (availableGiveResources[0] ?? give);
-  const availableReceiveResources = RESOURCE_ORDER.filter((resource) =>
-    options.some((option) => option.give === selectedGive && option.receive === resource),
-  );
-  const selectedReceive = availableReceiveResources.includes(receive)
-    ? receive
-    : (availableReceiveResources[0] ?? receive);
-  const selectedTrade = options.find(
-    (option) => option.give === selectedGive && option.receive === selectedReceive,
-  );
-  const ratio =
-    selectedTrade?.ratio ?? options.find((option) => option.give === selectedGive)?.ratio;
-  const displayRatio = ratio ?? 4;
-
-  return (
-    <div className="trade-form">
-      <p className="trade-guidance">
-        Your best bank or harbor rate is applied automatically. Select one resource on each side.
-      </p>
-      <div className="bank-trade-columns">
-        <ResourceChoice
-          disabled={disabled}
-          label={`Give ${displayRatio}`}
-          onChange={setGive}
-          options={availableGiveResources}
-          selected={selectedGive}
-        />
-        <Icon aria-hidden="true" className="trade-exchange-icon" icon={tradeIcon} />
-        <ResourceChoice
-          disabled={disabled}
-          label="Receive 1"
-          onChange={setReceive}
-          options={availableReceiveResources}
-          selected={selectedReceive}
-        />
-      </div>
-      <Button
-        className="button button-primary trade-submit"
-        isDisabled={disabled || !selectedTrade}
-        onPress={() =>
-          onCommand(
-            { give: selectedGive, kind: "trade_bank", receive: selectedReceive },
-            "Bank trade completed.",
-          )
-        }
-      >
-        <Icon aria-hidden="true" icon={checkIcon} /> Confirm {displayRatio}:1 Trade
-      </Button>
+      {isOpen && !tradeOfferOpen ? (
+        <HandDockPortal>
+          <div className={styles.tradeDockAnchor}>
+            <section
+              aria-labelledby="trade-dock-title"
+              autoFocus
+              className={styles.tradeDock}
+              id="trade-dock"
+              tabIndex={-1}
+            >
+              <TradeDockHeader
+                description="Choose what you want, then tap cards in your hand. Send an offer or use a matching bank rate."
+                onClose={closeDock}
+                title="Make a trade"
+              />
+              <TradeComposer
+                disabled={disabled}
+                game={game}
+                me={me}
+                onCancel={closeDock}
+                onCommand={onCommand}
+              />
+            </section>
+          </div>
+        </HandDockPortal>
+      ) : null}
     </div>
   );
 }
 
-function ResourceChoice({
-  disabled,
-  label,
-  onChange,
-  options,
-  selected,
+function TradeDockHeader({
+  description,
+  onClose,
+  title,
+  titleId = "trade-dock-title",
 }: {
-  disabled: boolean;
-  label: string;
-  onChange(resource: ResourceType): void;
-  options: readonly ResourceType[];
-  selected: ResourceType;
+  description: string;
+  onClose?: () => void;
+  title: string;
+  titleId?: string;
 }) {
   return (
-    <fieldset className="resource-choice">
-      <legend>{label}</legend>
+    <header className={styles.tradeHeader}>
       <div>
-        {RESOURCE_ORDER.map((resource) => {
-          const isAvailable = options.includes(resource);
-          const isSelected = isAvailable && selected === resource;
-          return (
-            <Button
-              aria-label={`${label}: ${RESOURCE_LABELS[resource]}`}
-              aria-pressed={isSelected}
-              className={isSelected ? "is-selected" : ""}
-              isDisabled={disabled || !isAvailable}
-              key={resource}
-              onPress={() => onChange(resource)}
-              variant="ghost"
+        <p className={styles.eyebrow}>Island market</p>
+        <h2 id={titleId}>{title}</h2>
+        <p className={styles.tradeDescription}>{description}</p>
+      </div>
+      {onClose ? (
+        <Button
+          aria-label="Close trade panel"
+          className={styles.closeButton}
+          isIconOnly
+          onPress={onClose}
+          variant="ghost"
+        >
+          <Icon aria-hidden="true" icon={closeIcon} />
+        </Button>
+      ) : null}
+    </header>
+  );
+}
+
+function TradeComposer({
+  disabled,
+  game,
+  me,
+  onCancel,
+  onCommand,
+}: TradeCenterProps & { onCancel(): void }) {
+  const { clearInteraction, setInteraction } = useHandDock();
+  const [give, setGive] = useState<ResourceInventory>(() => emptyInventory());
+  const [want, setWant] = useState<ResourceInventory>(() => emptyInventory());
+  const opponents = game.players.filter((player) => player.id !== me.id);
+  const [recipientPlayerIds, setRecipientPlayerIds] = useState<string[]>(() =>
+    opponents.map((player) => player.id),
+  );
+  const hasGive = inventoryTotal(give) > 0;
+  const hasWant = inventoryTotal(want) > 0;
+  const hasNoOverlap = RESOURCE_ORDER.every(
+    (resource) => give[resource] === 0 || want[resource] === 0,
+  );
+  const missingResources = getMissingInventory(give, me.resources);
+  const canAfford = inventoryTotal(missingResources) === 0;
+  const matchingBankTrade = game.legalActions.bankTrades.find(
+    (option) =>
+      isExactResourceSelection(give, option.give, option.ratio) &&
+      isExactResourceSelection(want, option.receive, 1),
+  );
+  const canComposeTrade =
+    game.legalActions.canProposeTrade || game.legalActions.bankTrades.length > 0;
+  const canSendOffer =
+    game.legalActions.canProposeTrade &&
+    hasGive &&
+    hasWant &&
+    hasNoOverlap &&
+    recipientPlayerIds.length > 0 &&
+    canAfford;
+  const validationMessage = getTradeValidationMessage({
+    canAfford,
+    canPropose: game.legalActions.canProposeTrade,
+    give,
+    hasGive,
+    hasNoOverlap,
+    hasRecipients: recipientPlayerIds.length > 0,
+    hasWant,
+    missingResources,
+    want,
+  });
+
+  const selectFromHand = useCallback(
+    (resource: ResourceType) => {
+      if (disabled || want[resource] > 0) {
+        return;
+      }
+
+      setGive((current) => {
+        if (current[resource] >= me.resources[resource]) {
+          return current;
+        }
+        return { ...current, [resource]: current[resource] + 1 };
+      });
+    },
+    [disabled, me.resources, want],
+  );
+
+  const removeFromOffer = (resource: ResourceType) => {
+    setGive((current) =>
+      current[resource] === 0
+        ? current
+        : { ...current, [resource]: Math.max(0, current[resource] - 1) },
+    );
+  };
+
+  useEffect(() => {
+    if (!canComposeTrade) {
+      clearInteraction("trade");
+      return;
+    }
+
+    setInteraction("trade", {
+      disabled,
+      label: "your trade",
+      onSelect: selectFromHand,
+      selected: give,
+      sourceResources: me.resources,
+    });
+
+    return () => clearInteraction("trade");
+  }, [
+    canComposeTrade,
+    clearInteraction,
+    disabled,
+    give,
+    me.resources,
+    selectFromHand,
+    setInteraction,
+  ]);
+
+  const toggleRecipient = (playerId: string, selected: boolean) => {
+    setRecipientPlayerIds((current) =>
+      selected
+        ? current.includes(playerId)
+          ? current
+          : [...current, playerId]
+        : current.filter((candidate) => candidate !== playerId),
+    );
+  };
+
+  return (
+    <div className={styles.tradeComposer}>
+      <div className={styles.draftRows}>
+        <RequestedResourceRow
+          disabled={disabled || !canComposeTrade}
+          excludedResources={give}
+          inventory={want}
+          onChange={setWant}
+        />
+        <OfferInventoryRow
+          disabled={disabled}
+          direction="give"
+          emptyMessage="Tap the resource cards in your hand below to add them."
+          inventory={give}
+          label="You give"
+          onRemove={removeFromOffer}
+        />
+      </div>
+
+      <p
+        aria-live="polite"
+        className={styles.affordability}
+        data-state={hasGive && !canAfford ? "error" : hasGive ? "ready" : "idle"}
+      >
+        {hasGive
+          ? canAfford
+            ? `Affordable from your hand · ${formatInventory(give)} selected`
+            : `Your hand is short ${formatInventory(missingResources)}`
+          : "Choose at least one card from your hand to offer."}
+      </p>
+
+      <fieldset className={styles.tradeRecipients}>
+        <legend>Offer to</legend>
+        <div className={styles.recipientList}>
+          {opponents.map((player) => (
+            <Checkbox
+              className={styles.recipient}
+              isDisabled={disabled}
+              isSelected={recipientPlayerIds.includes(player.id)}
+              key={player.id}
+              name="tradeRecipient"
+              onChange={(selected) => toggleRecipient(player.id, selected)}
+              value={player.id}
+              variant="secondary"
             >
-              <ResourceIcon decorative resource={resource} size={42} />
-              <span>{RESOURCE_LABELS[resource]}</span>
-            </Button>
+              <Checkbox.Content className={styles.recipientContent}>
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+                <span className={styles.recipientAvatar} aria-hidden="true">
+                  {getPlayerInitial(player.displayName)}
+                </span>
+                <span className={styles.recipientCopy}>
+                  <strong>{player.displayName}</strong>
+                  <small>{player.isBot ? "Bot" : "Player"}</small>
+                </span>
+              </Checkbox.Content>
+            </Checkbox>
+          ))}
+        </div>
+      </fieldset>
+
+      <footer className={styles.composerFooter}>
+        <p id="trade-composer-status" role="status">
+          {validationMessage}
+        </p>
+        <div>
+          <Button isDisabled={disabled} onPress={onCancel} variant="tertiary">
+            Cancel
+          </Button>
+          <Button
+            aria-describedby="bank-trade-match-status"
+            isDisabled={disabled || !matchingBankTrade}
+            onPress={() => {
+              if (!matchingBankTrade) {
+                return;
+              }
+              onCommand(
+                {
+                  give: matchingBankTrade.give,
+                  kind: "trade_bank",
+                  receive: matchingBankTrade.receive,
+                },
+                "Bank trade completed.",
+              );
+              onCancel();
+            }}
+            variant="secondary"
+          >
+            <Icon aria-hidden="true" icon={storeIcon} />
+            Bank trade
+          </Button>
+          <Button
+            aria-describedby="trade-composer-status"
+            isDisabled={disabled || !canSendOffer}
+            isPending={disabled}
+            onPress={() =>
+              onCommand(
+                { give, kind: "propose_trade", recipientPlayerIds, want },
+                "Trade offer sent.",
+              )
+            }
+          >
+            <Icon aria-hidden="true" icon={handshakeIcon} />
+            {disabled ? "Sending…" : "Send offer"}
+          </Button>
+          <span className="sr-only" id="bank-trade-match-status">
+            {matchingBankTrade
+              ? `Bank trade available: ${matchingBankTrade.ratio} ${RESOURCE_LABELS[matchingBankTrade.give]} for 1 ${RESOURCE_LABELS[matchingBankTrade.receive]}.`
+              : "Select exactly one available bank or harbor trade ratio to enable this action."}
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function RequestedResourceRow({
+  disabled,
+  excludedResources,
+  inventory,
+  onChange,
+}: {
+  disabled: boolean;
+  excludedResources: Readonly<ResourceInventory>;
+  inventory: ResourceInventory;
+  onChange(inventory: ResourceInventory): void;
+}) {
+  const update = (resource: ResourceType, change: number) => {
+    onChange({
+      ...inventory,
+      [resource]: Math.max(0, Math.min(19, inventory[resource] + change)),
+    });
+  };
+
+  return (
+    <fieldset className={styles.draftRow} data-direction="receive">
+      <legend>
+        <span className={styles.directionIcon}>
+          <Icon aria-hidden="true" icon={arrowDownIcon} />
+        </span>
+        <span>
+          <strong>You receive</strong>
+          <small>Cards you want</small>
+        </span>
+      </legend>
+      <div className={styles.quickResourceGrid}>
+        {RESOURCE_ORDER.map((resource) => {
+          const quantity = inventory[resource];
+          const conflicts = excludedResources[resource] > 0;
+          const canAdd = !disabled && !conflicts && quantity < 19;
+          const quantityDescriptionId = `receive-${resource}-trade-quantity`;
+          return (
+            <div className={styles.resourceControl} key={resource}>
+              <Button
+                aria-describedby={quantityDescriptionId}
+                aria-label={`Add one ${RESOURCE_LABELS[resource]} to what you receive`}
+                aria-pressed={quantity > 0}
+                className={`${styles.resourceAdd}${quantity > 0 ? ` ${styles.isSelected}` : ""}`}
+                isDisabled={!canAdd}
+                onPress={() => update(resource, 1)}
+                variant="ghost"
+              >
+                <Image
+                  alt=""
+                  className={styles.resourceCardImage}
+                  draggable={false}
+                  height={768}
+                  sizes="3.5rem"
+                  src={RESOURCE_CARD_ASSET_PATHS[resource]}
+                  width={512}
+                />
+                <span className={styles.resourceName}>{RESOURCE_LABELS[resource]}</span>
+                <span className={styles.quantityChip} aria-hidden="true">
+                  {quantity}
+                </span>
+                <Icon aria-hidden="true" className={styles.addIcon} icon={plusIcon} />
+              </Button>
+              <Button
+                aria-label={`Remove one ${RESOURCE_LABELS[resource]} from what you receive`}
+                className={styles.resourceRemove}
+                isDisabled={disabled || quantity === 0}
+                isIconOnly
+                onPress={() => update(resource, -1)}
+                variant="tertiary"
+              >
+                <Icon aria-hidden="true" icon={minusIcon} />
+              </Button>
+              <span className="sr-only" id={quantityDescriptionId}>
+                {quantity} selected.
+                {conflicts
+                  ? ` Remove ${RESOURCE_LABELS[resource]} from your outgoing cards first.`
+                  : ""}
+              </span>
+            </div>
           );
         })}
       </div>
@@ -244,297 +497,334 @@ function ResourceChoice({
   );
 }
 
-function PlayerTradeForm({ disabled, game, me, onCommand }: TradeCenterProps) {
-  const [give, setGive] = useState<ResourceInventory>(() => emptyInventory());
-  const [want, setWant] = useState<ResourceInventory>(() => emptyInventory());
-  const [recipientPlayerIds, setRecipientPlayerIds] = useState<string[]>(() =>
-    game.players.filter((player) => player.id !== me.id).map((player) => player.id),
+export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
+  const { clearInteraction, setInteraction } = useHandDock();
+  const [pendingResponse, setPendingResponse] = useState<"accept" | "cancel" | "decline" | null>(
+    null,
   );
-  const hasGive = inventoryTotal(give) > 0;
-  const hasWant = inventoryTotal(want) > 0;
-  const hasNoOverlap = RESOURCE_ORDER.every(
-    (resource) => give[resource] === 0 || want[resource] === 0,
-  );
-  const canSubmit =
-    game.legalActions.canProposeTrade &&
-    hasGive &&
-    hasWant &&
-    hasNoOverlap &&
-    recipientPlayerIds.length > 0 &&
-    RESOURCE_ORDER.every((resource) => give[resource] <= me.resources[resource]);
-
-  const toggleRecipient = (playerId: string) => {
-    setRecipientPlayerIds((current) =>
-      current.includes(playerId)
-        ? current.filter((candidate) => candidate !== playerId)
-        : [...current, playerId],
-    );
-  };
-
-  return (
-    <div className="trade-form">
-      <div className="player-trade-grid">
-        <InventoryPicker
-          disabled={disabled}
-          excludedResources={want}
-          inventory={give}
-          label="You give"
-          limits={me.resources}
-          onChange={setGive}
-        />
-        <Icon aria-hidden="true" className="trade-exchange-icon" icon={tradeIcon} />
-        <InventoryPicker
-          disabled={disabled}
-          excludedResources={give}
-          inventory={want}
-          label="You receive"
-          onChange={setWant}
-        />
-      </div>
-
-      <fieldset className="trade-recipients">
-        <legend>Offer to</legend>
-        <div>
-          {game.players
-            .filter((player) => player.id !== me.id)
-            .map((player) => (
-              <Checkbox
-                isDisabled={disabled}
-                isSelected={recipientPlayerIds.includes(player.id)}
-                key={player.id}
-                name="tradeRecipient"
-                onChange={() => toggleRecipient(player.id)}
-                value={player.id}
-              >
-                <Checkbox.Content>
-                  <Checkbox.Control>
-                    <Checkbox.Indicator />
-                  </Checkbox.Control>
-                  <span>{player.displayName}</span>
-                </Checkbox.Content>
-                <Description className="trade-recipient-description">
-                  {player.isBot ? "Bot" : "Player"}
-                </Description>
-              </Checkbox>
-            ))}
-        </div>
-      </fieldset>
-
-      <Button
-        className="button button-primary trade-submit"
-        isDisabled={disabled || !canSubmit}
-        onPress={() =>
-          onCommand({ give, kind: "propose_trade", recipientPlayerIds, want }, "Trade offer sent.")
-        }
-      >
-        <Icon aria-hidden="true" icon={handshakeIcon} /> Send Offer
-      </Button>
-    </div>
-  );
-}
-
-function InventoryPicker({
-  disabled,
-  excludedResources,
-  inventory,
-  label,
-  limits,
-  onChange,
-}: {
-  disabled: boolean;
-  excludedResources?: Readonly<ResourceInventory>;
-  inventory: ResourceInventory;
-  label: string;
-  limits?: Readonly<ResourceInventory>;
-  onChange(inventory: ResourceInventory): void;
-}) {
-  const update = (resource: ResourceType, change: number) => {
-    const maximum = limits?.[resource] ?? 19;
-    onChange({
-      ...inventory,
-      [resource]: Math.max(0, Math.min(maximum, inventory[resource] + change)),
-    });
-  };
-
-  return (
-    <fieldset className="inventory-picker">
-      <legend>{label}</legend>
-      <div>
-        {RESOURCE_ORDER.map((resource) => (
-          <div key={resource}>
-            <ResourceIcon decorative resource={resource} size={38} />
-            <span>{RESOURCE_LABELS[resource]}</span>
-            <div className="trade-stepper">
-              <Button
-                aria-label={`Remove one ${RESOURCE_LABELS[resource]} from ${label.toLowerCase()}`}
-                isDisabled={disabled || inventory[resource] === 0}
-                isIconOnly
-                onPress={() => update(resource, -1)}
-                variant="ghost"
-              >
-                <Icon aria-hidden="true" icon={minusIcon} />
-              </Button>
-              <output aria-live="polite">{inventory[resource]}</output>
-              <Button
-                aria-label={`Add one ${RESOURCE_LABELS[resource]} to ${label.toLowerCase()}`}
-                isDisabled={
-                  disabled ||
-                  (excludedResources?.[resource] ?? 0) > 0 ||
-                  inventory[resource] >= (limits?.[resource] ?? 19)
-                }
-                isIconOnly
-                onPress={() => update(resource, 1)}
-                variant="ghost"
-              >
-                <Icon aria-hidden="true" icon={plusIcon} />
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
   const offer = game.tradeOffer;
+  const viewerIsProposer = offer?.proposerPlayerId === game.viewerPlayerId;
+
+  useEffect(() => {
+    if (!disabled) {
+      setPendingResponse(null);
+    }
+  }, [disabled, offer?.offerActionNumber]);
+
+  useEffect(() => {
+    if (!offer || !viewerIsProposer) {
+      clearInteraction("trade");
+      return;
+    }
+
+    setInteraction("trade", {
+      disabled: true,
+      label: "your pending trade offer",
+      onSelect: () => undefined,
+      selected: offer.give,
+      sourceResources: me.resources,
+    });
+
+    return () => clearInteraction("trade");
+  }, [clearInteraction, me.resources, offer, setInteraction, viewerIsProposer]);
+
   if (!offer) {
     return null;
   }
 
   const proposer = game.players.find((player) => player.id === offer.proposerPlayerId);
-  const viewerIsProposer = game.viewerPlayerId === offer.proposerPlayerId;
-  const viewerCanAfford = RESOURCE_ORDER.every(
-    (resource) => me.resources[resource] >= offer.want[resource],
-  );
+  const receive = viewerIsProposer ? offer.want : offer.give;
+  const give = viewerIsProposer ? offer.give : offer.want;
+  const missingResources = getMissingInventory(give, me.resources);
+  const viewerCanAfford = inventoryTotal(missingResources) === 0;
+  const proposerName = proposer?.displayName ?? "A player";
+
+  const respond = (accept: boolean) => {
+    setPendingResponse(accept ? "accept" : "decline");
+    onCommand(
+      {
+        accept,
+        kind: "respond_trade",
+        offerActionNumber: offer.offerActionNumber,
+      },
+      accept ? "Trade accepted." : "Trade declined.",
+    );
+  };
 
   return (
-    <div className="active-trade-offer">
-      <div className="offer-title">
-        <span className="offer-avatar" aria-hidden="true">
-          {proposer?.displayName.slice(0, 1).toUpperCase() ?? "?"}
-        </span>
-        <div>
-          <p className="eyebrow">Open Offer</p>
-          <h3>
-            {viewerIsProposer
-              ? "Your offer is waiting"
-              : `${proposer?.displayName ?? "A player"} proposes`}
-          </h3>
-        </div>
-      </div>
-
-      <div className="offer-exchange">
-        <OfferInventory inventory={viewerIsProposer ? offer.give : offer.want} label="You give" />
-        <Icon aria-hidden="true" icon={tradeIcon} />
-        <OfferInventory
-          inventory={viewerIsProposer ? offer.want : offer.give}
-          label="You receive"
-        />
-      </div>
-
-      {viewerIsProposer ? (
-        <ul aria-label="Trade responses" className="trade-recipient-status">
-          {offer.recipientPlayerIds.map((playerId) => {
-            const player = game.players.find((candidate) => candidate.id === playerId);
-            const rejected = offer.rejectedPlayerIds.includes(playerId);
-            return (
-              <li className={rejected ? "is-rejected" : "is-waiting"} key={playerId}>
-                <span>{player?.displayName ?? "Invited player"}</span>
-                <strong>{rejected ? "Declined" : "Waiting"}</strong>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-
-      {game.legalActions.canRespondToTrade ? (
-        <>
-          {!viewerCanAfford ? (
-            <p className="trade-affordability" id="trade-affordability">
-              You need every requested resource before you can accept this offer.
-            </p>
-          ) : null}
-          <div className="offer-actions">
-            <Button
-              className="button button-secondary"
-              isDisabled={disabled}
-              onPress={() =>
-                onCommand(
-                  {
-                    accept: false,
-                    kind: "respond_trade",
-                    offerActionNumber: offer.offerActionNumber,
-                  },
-                  "Trade declined.",
-                )
-              }
-              variant="secondary"
-            >
-              <Icon aria-hidden="true" icon={closeIcon} /> Decline
-            </Button>
-            <Button
-              aria-describedby={!viewerCanAfford ? "trade-affordability" : undefined}
-              className="button button-primary"
-              isDisabled={disabled || !viewerCanAfford}
-              onPress={() =>
-                onCommand(
-                  {
-                    accept: true,
-                    kind: "respond_trade",
-                    offerActionNumber: offer.offerActionNumber,
-                  },
-                  "Trade accepted.",
-                )
-              }
-            >
-              <Icon aria-hidden="true" icon={checkIcon} /> Accept Trade
-            </Button>
-          </div>
-        </>
-      ) : game.legalActions.canCancelTrade ? (
-        <Button
-          className="button button-secondary trade-submit"
-          isDisabled={disabled}
-          onPress={() =>
-            onCommand(
-              { kind: "cancel_trade", offerActionNumber: offer.offerActionNumber },
-              "Trade offer cancelled.",
-            )
+    <section
+      aria-labelledby="trade-offer-title"
+      className={`${styles.tradeDock} ${styles.sidebarOfferSurface}`}
+      id="trade-offer-surface"
+      tabIndex={-1}
+    >
+      <div className={styles.activeOffer}>
+        <TradeDockHeader
+          description={
+            viewerIsProposer
+              ? "The first invited player to accept completes the exchange."
+              : "Review both rows before answering."
           }
-          variant="secondary"
-        >
-          <Icon aria-hidden="true" icon={closeIcon} /> Cancel Offer
-        </Button>
-      ) : (
-        <p className="trade-waiting" role="status">
-          {offer.rejectedPlayerIds.includes(game.viewerPlayerId)
-            ? "You declined this offer. Waiting for another invited player…"
-            : "Waiting for an invited player to answer…"}
-        </p>
-      )}
-    </div>
-  );
-}
+          title={viewerIsProposer ? "Offer sent" : `Offer from ${proposerName}`}
+          titleId="trade-offer-title"
+        />
 
-function OfferInventory({ inventory, label }: { inventory: ResourceInventory; label: string }) {
-  const resources = RESOURCE_ORDER.filter((resource) => inventory[resource] > 0);
-  return (
-    <section>
-      <h4>{label}</h4>
-      <ul>
-        {resources.map((resource) => (
-          <li key={resource}>
-            <ResourceIcon decorative resource={resource} size={42} />
-            <strong>{inventory[resource]}</strong>
-            <span>{RESOURCE_LABELS[resource]}</span>
-          </li>
-        ))}
-      </ul>
+        <div className={styles.offerIdentity}>
+          <span className={styles.offerAvatar} aria-hidden="true">
+            {getPlayerInitial(proposerName)}
+          </span>
+          <span>
+            <strong>{viewerIsProposer ? "Waiting for a reply" : proposerName}</strong>
+            <small>{viewerIsProposer ? "Open player trade" : "wants to trade with you"}</small>
+          </span>
+        </div>
+
+        <p className="sr-only" role="status">
+          {viewerIsProposer ? "Your trade offer is open." : `New trade offer from ${proposerName}.`}
+          You receive {formatInventory(receive)}. You give {formatInventory(give)}.
+        </p>
+
+        <div className={styles.offerRows}>
+          <OfferInventoryRow direction="receive" inventory={receive} label="You receive" />
+          <OfferInventoryRow
+            availability={viewerIsProposer ? undefined : me.resources}
+            direction="give"
+            inventory={give}
+            label="You give"
+          />
+        </div>
+
+        {viewerIsProposer ? (
+          <ul aria-label="Trade responses" className={styles.recipientStatuses}>
+            {offer.recipientPlayerIds.map((playerId) => {
+              const player = game.players.find((candidate) => candidate.id === playerId);
+              const rejected = offer.rejectedPlayerIds.includes(playerId);
+              return (
+                <li data-state={rejected ? "rejected" : "waiting"} key={playerId}>
+                  <span className={styles.statusAvatar} aria-hidden="true">
+                    {getPlayerInitial(player?.displayName ?? "?")}
+                  </span>
+                  <span>{player?.displayName ?? "Invited player"}</span>
+                  <strong>{rejected ? "Declined" : "Waiting"}</strong>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+
+        {game.legalActions.canRespondToTrade ? (
+          <footer className={styles.offerFooter}>
+            <p
+              aria-live="polite"
+              data-state={viewerCanAfford ? "ready" : "error"}
+              id="trade-offer-affordability"
+            >
+              {viewerCanAfford
+                ? `Affordable · you have ${formatInventory(give)} ready`
+                : `Cannot accept · short ${formatInventory(missingResources)}`}
+            </p>
+            <div>
+              <Button
+                isDisabled={disabled}
+                isPending={disabled && pendingResponse === "decline"}
+                onPress={() => respond(false)}
+                variant="danger"
+              >
+                <Icon aria-hidden="true" icon={closeIcon} />
+                {pendingResponse === "decline" ? "Declining…" : "Decline"}
+              </Button>
+              <Button
+                aria-describedby="trade-offer-affordability"
+                isDisabled={disabled || !viewerCanAfford}
+                isPending={disabled && pendingResponse === "accept"}
+                onPress={() => respond(true)}
+              >
+                <Icon aria-hidden="true" icon={checkIcon} />
+                {pendingResponse === "accept" ? "Accepting…" : "Accept"}
+              </Button>
+            </div>
+          </footer>
+        ) : game.legalActions.canCancelTrade ? (
+          <footer className={styles.offerFooter}>
+            <p role="status">The offer stays open until somebody accepts or everyone declines.</p>
+            <Button
+              isDisabled={disabled}
+              isPending={disabled && pendingResponse === "cancel"}
+              onPress={() => {
+                setPendingResponse("cancel");
+                onCommand(
+                  { kind: "cancel_trade", offerActionNumber: offer.offerActionNumber },
+                  "Trade offer cancelled.",
+                );
+              }}
+              variant="danger"
+            >
+              <Icon aria-hidden="true" icon={closeIcon} />
+              {pendingResponse === "cancel" ? "Cancelling…" : "Cancel offer"}
+            </Button>
+          </footer>
+        ) : (
+          <p className={styles.observerStatus} role="status">
+            {offer.rejectedPlayerIds.includes(game.viewerPlayerId)
+              ? "You declined. Other invited players may still accept."
+              : "Waiting for an invited player to answer."}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
 
-function inventoryTotal(inventory: ResourceInventory): number {
+function OfferInventoryRow({
+  availability,
+  disabled = false,
+  direction,
+  emptyMessage,
+  inventory,
+  label,
+  onRemove,
+}: {
+  availability?: Readonly<ResourceInventory>;
+  disabled?: boolean;
+  direction: TradeDirection;
+  emptyMessage?: string;
+  inventory: Readonly<ResourceInventory>;
+  label: string;
+  onRemove?(resource: ResourceType): void;
+}) {
+  const resources = RESOURCE_ORDER.filter((resource) => inventory[resource] > 0);
+  const directionIcon = direction === "receive" ? arrowDownIcon : arrowUpIcon;
+
+  return (
+    <section
+      className={styles.offerRow}
+      data-direction={direction}
+      data-removable={onRemove ? "true" : undefined}
+    >
+      <header>
+        <span className={styles.directionIcon}>
+          <Icon aria-hidden="true" icon={directionIcon} />
+        </span>
+        <strong>{label}</strong>
+      </header>
+      {resources.length > 0 ? (
+        <ul>
+          {resources.map((resource) => {
+            const missing = Math.max(0, inventory[resource] - (availability?.[resource] ?? 19));
+            return (
+              <li data-missing={missing > 0 || undefined} key={resource}>
+                <Image
+                  alt=""
+                  className={styles.offerCardImage}
+                  draggable={false}
+                  height={768}
+                  sizes="2.8rem"
+                  src={RESOURCE_CARD_ASSET_PATHS[resource]}
+                  width={512}
+                />
+                <span>{RESOURCE_LABELS[resource]}</span>
+                <strong aria-label={`${inventory[resource]} ${RESOURCE_LABELS[resource]}`}>
+                  {inventory[resource]}
+                </strong>
+                {missing > 0 ? <small>Need {missing}</small> : null}
+                {onRemove ? (
+                  <Button
+                    aria-label={`Remove one ${RESOURCE_LABELS[resource]} from your offer`}
+                    className={styles.offerCardRemove}
+                    isDisabled={disabled}
+                    isIconOnly
+                    onPress={() => onRemove(resource)}
+                    variant="tertiary"
+                  >
+                    <Icon aria-hidden="true" icon={minusIcon} />
+                  </Button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className={styles.emptyOutgoing}>{emptyMessage ?? "No cards selected."}</p>
+      )}
+    </section>
+  );
+}
+
+function getTradeValidationMessage({
+  canAfford,
+  canPropose,
+  give,
+  hasGive,
+  hasNoOverlap,
+  hasRecipients,
+  hasWant,
+  missingResources,
+  want,
+}: {
+  canAfford: boolean;
+  canPropose: boolean;
+  give: Readonly<ResourceInventory>;
+  hasGive: boolean;
+  hasNoOverlap: boolean;
+  hasRecipients: boolean;
+  hasWant: boolean;
+  missingResources: Readonly<ResourceInventory>;
+  want: Readonly<ResourceInventory>;
+}): string {
+  if (!canPropose) {
+    return "Player trades are not available right now.";
+  }
+  if (!hasWant) {
+    return "Choose at least one card to receive.";
+  }
+  if (!hasGive) {
+    return "Choose at least one card to give.";
+  }
+  if (!hasNoOverlap) {
+    return "The same resource cannot appear on both sides.";
+  }
+  if (!canAfford) {
+    return `Remove ${formatInventory(missingResources)} from your offer.`;
+  }
+  if (!hasRecipients) {
+    return "Choose at least one player.";
+  }
+  return `Ready to offer ${formatInventory(give)} for ${formatInventory(want)}.`;
+}
+
+function getMissingInventory(
+  required: Readonly<ResourceInventory>,
+  available: Readonly<ResourceInventory>,
+): ResourceInventory {
+  return Object.fromEntries(
+    RESOURCE_ORDER.map((resource) => [
+      resource,
+      Math.max(0, required[resource] - available[resource]),
+    ]),
+  ) as ResourceInventory;
+}
+
+function formatInventory(inventory: Readonly<ResourceInventory>): string {
+  const resources = RESOURCE_ORDER.flatMap((resource) =>
+    inventory[resource] > 0 ? [`${inventory[resource]} ${RESOURCE_LABELS[resource]}`] : [],
+  );
+  return resources.length > 0 ? resources.join(", ") : "no cards";
+}
+
+function getPlayerInitial(displayName: string): string {
+  return displayName.trim().slice(0, 1).toUpperCase() || "?";
+}
+
+function isExactResourceSelection(
+  inventory: Readonly<ResourceInventory>,
+  selectedResource: ResourceType,
+  selectedQuantity: number,
+): boolean {
+  return RESOURCE_ORDER.every(
+    (resource) => inventory[resource] === (resource === selectedResource ? selectedQuantity : 0),
+  );
+}
+
+function inventoryTotal(inventory: Readonly<ResourceInventory>): number {
   return RESOURCE_ORDER.reduce((total, resource) => total + inventory[resource], 0);
 }

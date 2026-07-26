@@ -1,6 +1,12 @@
 import { createBoard } from "./board";
-import { BANK_RESOURCE_COUNT, DEFAULT_BASE_GAME_SETTINGS, INITIAL_PIECES } from "./constants";
+import {
+  BANK_RESOURCE_COUNT,
+  DEFAULT_BASE_GAME_SETTINGS,
+  DEVELOPMENT_CARD_DECK,
+  INITIAL_PIECES,
+} from "./constants";
 import { mapSupportsPlayerCount } from "./maps";
+import { deterministicShuffle } from "./random";
 import { emptyInventory, filledInventory } from "./resources";
 import { GameRuleError } from "./types";
 import type {
@@ -96,6 +102,10 @@ function botDifficultyFor(player: GamePlayerInput): BotDifficulty | undefined {
   return difficulty;
 }
 
+export function createDevelopmentDeck(seed: string) {
+  return deterministicShuffle(DEVELOPMENT_CARD_DECK, `${seed}:development-deck`);
+}
+
 export function createDefaultGame(
   players: readonly GamePlayerInput[],
   seed: string,
@@ -128,11 +138,13 @@ export function createDefaultGame(
     balancedDiceBag: [],
     bank: filledInventory(BANK_RESOURCE_COUNT),
     board: createBoard(settings.map, seed),
+    developmentDeck: createDevelopmentDeck(seed),
     lastDiceRoll: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
     players: players.map((player, seatIndex) => {
       const botDifficulty = botDifficultyFor(player);
       return {
+        developmentCards: [],
         displayName: player.displayName,
         ...(botDifficulty ? { botDifficulty } : {}),
         id: player.id,
@@ -150,7 +162,7 @@ export function createDefaultGame(
     tradeOffer: null,
     turnNumber: 0,
     turnOrder: players.map((player) => player.id),
-    version: 2,
+    version: 3,
     winnerPlayerId: null,
   };
 }

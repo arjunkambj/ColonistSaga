@@ -1,9 +1,7 @@
 export const SOUND_EFFECT_PATHS = {
   action: "/sound-effects/action-feedback.mp3",
   city: "/sound-effects/city-placed.mp3",
-  dice1: "/sound-effects/dice-roll-1.mp3",
-  dice2: "/sound-effects/dice-roll-2.mp3",
-  dice3: "/sound-effects/dice-roll-3.mp3",
+  dice: "/sound-effects/magic-dice.mp3",
   resource: "/sound-effects/resource-change.mp3",
   robber: "/sound-effects/robber-alert.mp3",
   road: "/sound-effects/road-placed.mp3",
@@ -16,11 +14,9 @@ export const SOUND_EFFECT_PATHS = {
 
 export type SoundEffect = keyof typeof SOUND_EFFECT_PATHS;
 
-const DICE_SOUNDS = ["dice1", "dice2", "dice3"] as const;
-
 export function getEventSound(
   kind: string,
-  sequence = 0,
+  _sequence = 0,
   currentPhaseKind?: string,
 ): SoundEffect | null {
   if (kind === "place_settlement" && currentPhaseKind === "setup_road") {
@@ -29,7 +25,7 @@ export function getEventSound(
 
   switch (kind) {
     case "roll":
-      return DICE_SOUNDS[Math.abs(sequence) % DICE_SOUNDS.length] ?? "dice1";
+      return "dice";
     case "place_road":
       return "road";
     case "place_settlement":
@@ -52,6 +48,21 @@ export function getEventSound(
     default:
       return null;
   }
+}
+
+export function getViewerEventSound(
+  kind: string,
+  sequence: number,
+  currentPhaseKind: string,
+  actorPlayerId: string,
+  viewerPlayerId: string,
+): SoundEffect | null {
+  const eventSound = getEventSound(kind, sequence, currentPhaseKind);
+  if (!eventSound || actorPlayerId === viewerPlayerId) {
+    return eventSound;
+  }
+
+  return "action";
 }
 
 export function shouldPlayVictory(

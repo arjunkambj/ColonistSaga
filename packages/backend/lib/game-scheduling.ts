@@ -68,28 +68,22 @@ export function nextScheduledActionAt(
     : now + settings.turnTimerSeconds * 1_000;
 }
 
-export function isActionDeadlineExpired(deadlineAt: number | undefined, now: number): boolean {
-  return deadlineAt !== undefined && now >= deadlineAt;
-}
-
-export function earliestActionDeadlineAt(
-  nextActionAt: number | undefined,
-  turnDeadlineAt: number | undefined,
-): number | undefined {
-  if (nextActionAt === undefined) {
-    return turnDeadlineAt;
+export function isScheduledActionCurrentAndDue({
+  currentActionAt,
+  currentActionNumber,
+  expectedActionNumber,
+  now,
+  scheduledFor,
+}: {
+  currentActionAt: number | undefined;
+  currentActionNumber: number;
+  expectedActionNumber: number;
+  now: number;
+  scheduledFor: number | undefined;
+}): boolean {
+  if (currentActionNumber !== expectedActionNumber) {
+    return false;
   }
-  if (turnDeadlineAt === undefined) {
-    return nextActionAt;
-  }
-  return Math.min(nextActionAt, turnDeadlineAt);
-}
-
-export function isScheduledActionDue(
-  currentActionAt: number | undefined,
-  scheduledFor: number | undefined,
-  now: number,
-): boolean {
   const expectedActionAt = scheduledFor ?? currentActionAt;
   return (
     expectedActionAt !== undefined &&

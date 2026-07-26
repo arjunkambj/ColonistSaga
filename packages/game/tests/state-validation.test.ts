@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   GameDataValidationError,
+  DEVELOPMENT_CARD_DECK,
   applyCommand,
   assertGameState,
   assertPlayerGameView,
@@ -44,16 +45,19 @@ describe("serialized game-state validation", () => {
     }
   });
 
-  test("does not serialize removed development-card or duplicate victory fields", () => {
+  test("keeps the deck private while exposing the viewer hand and public counts", () => {
     const state = createGame();
     const view = toPlayerView(state, state.players[0]!.id);
 
-    expect("developmentDeck" in state).toBe(false);
-    expect("developmentCards" in state.players[0]!).toBe(false);
+    expect(state.version).toBe(3);
+    expect(state.developmentDeck).toHaveLength(DEVELOPMENT_CARD_DECK.length);
+    expect(state.players[0]!.developmentCards).toEqual([]);
     expect("victoryPoints" in state).toBe(false);
-    expect("developmentCardSupply" in view).toBe(false);
-    expect("developmentCardCount" in view.players[0]!).toBe(false);
-    expect("canBuyDevelopmentCard" in view.legalActions).toBe(false);
+    expect("developmentDeck" in view).toBe(false);
+    expect(view.developmentCardSupply).toBe(DEVELOPMENT_CARD_DECK.length);
+    expect(view.players[0]!.isViewer && view.players[0]!.developmentCards).toEqual([]);
+    expect(!view.players[1]!.isViewer && view.players[1]!.developmentCardCount).toBe(0);
+    expect(view.legalActions.canBuyDevelopmentCard).toBe(false);
   });
 
   test("accepts every supported board size", () => {
@@ -149,10 +153,20 @@ describe("serialized game-state validation", () => {
     const wrongResourceCount = structuredClone(view);
     wrongResourceCount.players[0]!.resourceCount += 1;
 
+    const wrongDevelopmentSupply = structuredClone(view);
+    wrongDevelopmentSupply.developmentCardSupply -= 1;
+
+    const leakedDevelopmentCards = structuredClone(view) as typeof view & {
+      players: ((typeof view.players)[number] & { developmentCards?: string[] })[];
+    };
+    leakedDevelopmentCards.players[1]!.developmentCards = ["knight"];
+
     expect(isPlayerGameView(wrongViewer)).toBe(false);
     expect(isPlayerGameView(unknownRoad)).toBe(false);
     expect(isPlayerGameView(leakedResources)).toBe(false);
     expect(isPlayerGameView(wrongResourceCount)).toBe(false);
+    expect(isPlayerGameView(wrongDevelopmentSupply)).toBe(false);
+    expect(isPlayerGameView(leakedDevelopmentCards)).toBe(false);
     expect(() => assertPlayerGameView(wrongViewer)).toThrow(GameDataValidationError);
     expect(() => assertPlayerGameView(unknownRoad)).toThrow(GameDataValidationError);
   });
@@ -166,6 +180,28 @@ describe("serialized game-state validation", () => {
 
     expect(isGameState(negativeResource)).toBe(false);
     expect(isGameState(fractionalPiece)).toBe(false);
+  });
+
+  test("rejects unknown, missing, or duplicated development cards", () => {
+    const unknownCard = createGame();
+    unknownCard.developmentDeck[0] = "unknown-card" as never;
+
+    const missingCard = createGame();
+    missingCard.developmentDeck.pop();
+
+    const duplicatedCard = createGame();
+    const firstCard = duplicatedCard.developmentDeck[0];
+    const differentCardIndex = duplicatedCard.developmentDeck.findIndex(
+      (card) => card !== firstCard,
+    );
+    if (!firstCard || differentCardIndex < 0) {
+      throw new Error("Development deck needs at least two card types");
+    }
+    duplicatedCard.developmentDeck[differentCardIndex] = firstCard;
+
+    expect(isGameState(unknownCard)).toBe(false);
+    expect(isGameState(missingCard)).toBe(false);
+    expect(isGameState(duplicatedCard)).toBe(false);
   });
 
   test("rejects board pieces, scores, and resources that break conservation", () => {

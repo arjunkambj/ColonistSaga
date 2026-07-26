@@ -1,6 +1,7 @@
 import type {
   BaseGameSettings,
   BuildingKind,
+  DevelopmentCardType,
   PlayerPieces,
   PlayerCount,
   ResourceInventory,
@@ -17,7 +18,7 @@ export const DEFAULT_DISCARD_LIMIT = 7;
 export const DEFAULT_BASE_GAME_SETTINGS: Readonly<BaseGameSettings> = Object.freeze({
   balancedDice: true,
   discardLimit: DEFAULT_DISCARD_LIMIT,
-  friendlyRobber: true,
+  friendlyRobber: false,
   hideBankCards: false,
   map: "base",
   maxPlayers: 4,
@@ -30,6 +31,22 @@ export const INITIAL_PIECES: Readonly<PlayerPieces> = {
   roads: 15,
   settlements: 5,
 };
+
+export const DEVELOPMENT_CARD_COST: Readonly<ResourceInventory> = {
+  brick: 0,
+  sheep: 1,
+  stone: 1,
+  tree: 0,
+  wheat: 1,
+};
+
+export const DEVELOPMENT_CARD_DECK: readonly DevelopmentCardType[] = [
+  ...Array.from({ length: 14 }, () => "knight" as const),
+  ...Array.from({ length: 2 }, () => "monopoly" as const),
+  ...Array.from({ length: 2 }, () => "road-building" as const),
+  ...Array.from({ length: 5 }, () => "victory-point" as const),
+  ...Array.from({ length: 2 }, () => "year-of-plenty" as const),
+];
 
 export const BUILD_COSTS: Readonly<Record<BuildingKind | "road", Readonly<ResourceInventory>>> = {
   city: { brick: 0, sheep: 0, stone: 3, tree: 0, wheat: 2 },

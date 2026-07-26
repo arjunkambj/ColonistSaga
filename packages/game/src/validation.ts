@@ -1,8 +1,15 @@
 import { getGameMapDefinition, mapSupportsPlayerCount } from "./maps";
-import { BANK_RESOURCE_COUNT, INITIAL_PIECES } from "./constants";
+import { BANK_RESOURCE_COUNT, DEVELOPMENT_CARD_DECK, INITIAL_PIECES } from "./constants";
 import { getBoardTopology, getTileId } from "./topology";
-import { GAME_MAP_IDS, PLAYER_COUNTS, RESOURCE_TYPES, TERRAIN_TYPES } from "./types";
+import {
+  DEVELOPMENT_CARD_TYPES,
+  GAME_MAP_IDS,
+  PLAYER_COUNTS,
+  RESOURCE_TYPES,
+  TERRAIN_TYPES,
+} from "./types";
 import type {
+  DevelopmentCardType,
   GameMapId,
   GamePhase,
   GameState,
@@ -128,6 +135,12 @@ function validateInventory(value: unknown, path: string): ResourceInventory {
   return inventory as ResourceInventory;
 }
 
+function validateDevelopmentCards(value: unknown, path: string): DevelopmentCardType[] {
+  return array(value, path).map((card, index) =>
+    member(card, DEVELOPMENT_CARD_TYPES, `${path}[${index}]`),
+  );
+}
+
 function validatePieces(value: unknown, path: string): void {
   const pieces = record(value, path);
   nonNegativeInteger(pieces.cities, `${path}.cities`);
@@ -146,6 +159,7 @@ function validateDiceRoll(value: unknown, path: string): void {
 }
 
 interface ValidatedPlayers {
+  developmentCardCounts: Map<PlayerId, number>;
   ids: Set<PlayerId>;
   length: number;
   records: Map<PlayerId, UnknownRecord>;
@@ -178,6 +192,7 @@ function validatePlayers(
 ): ValidatedPlayers {
   const players = array(value, path);
   const ids = new Set<PlayerId>();
+  const developmentCardCounts = new Map<PlayerId, number>();
   const records = new Map<PlayerId, UnknownRecord>();
   const resources = new Map<PlayerId, ResourceInventory>();
   const seatIndexes = new Set<number>();
@@ -195,18 +210,24 @@ function validatePlayers(
     records.set(id, player);
     seatIndexes.add(seatIndex);
     const inventory = validateDetails(player, playerPath, id);
+    const developmentCardCount =
+      player.developmentCards === undefined
+        ? nonNegativeInteger(player.developmentCardCount, `${playerPath}.developmentCardCount`)
+        : validateDevelopmentCards(player.developmentCards, `${playerPath}.developmentCards`)
+            .length;
+    developmentCardCounts.set(id, developmentCardCount);
     if (inventory) {
       resources.set(id, inventory);
     }
   }
 
-  return { ids, length: players.length, records, resources };
+  return { developmentCardCounts, ids, length: players.length, records, resources };
 }
 
 function validateStatePlayers(value: unknown): ValidatedPlayers {
   return validatePlayers(value, "game.players", (player, path) => {
-    if ("developmentCards" in player) {
-      invalid(`${path}.developmentCards`, "is no longer part of game state");
+    if ("developmentCardCount" in player) {
+      invalid(`${path}.developmentCardCount`, "must be derived from the private card hand");
     }
     return validateInventory(player.resources, `${path}.resources`);
   });
@@ -215,14 +236,14 @@ function validateStatePlayers(value: unknown): ValidatedPlayers {
 function validateViewPlayers(value: unknown, viewerPlayerId: PlayerId): ValidatedPlayers {
   let viewerCount = 0;
   const players = validatePlayers(value, "view.players", (player, path, playerId) => {
-    if ("developmentCards" in player || "developmentCardCount" in player) {
-      invalid(path, "contains removed development-card fields");
-    }
     const isViewer = boolean(player.isViewer, `${path}.isViewer`);
     const resourceCount = nonNegativeInteger(player.resourceCount, `${path}.resourceCount`);
 
     if (isViewer) {
       viewerCount += 1;
+      if ("developmentCardCount" in player) {
+        invalid(`${path}.developmentCardCount`, "must not replace the viewer's private card hand");
+      }
       if (playerId !== viewerPlayerId) {
         invalid(`${path}.isViewer`, "does not match viewerPlayerId");
       }
@@ -238,6 +259,9 @@ function validateViewPlayers(value: unknown, viewerPlayerId: PlayerId): Validate
     } else if (playerId === viewerPlayerId) {
       invalid(`${path}.isViewer`, "must be true for viewerPlayerId");
     }
+    if ("developmentCards" in player) {
+      invalid(`${path}.developmentCards`, "must not expose another player's private cards");
+    }
     if ("resources" in player) {
       invalid(`${path}.resources`, "must not expose another player's private resources");
     }
@@ -248,6 +272,35 @@ function validateViewPlayers(value: unknown, viewerPlayerId: PlayerId): Validate
     invalid("view.viewerPlayerId", "must identify exactly one viewer player");
   }
   return players;
+}
+
+function validateDevelopmentCardConservation(
+  players: ValidatedPlayers,
+  deck: readonly DevelopmentCardType[],
+): void {
+  const expectedCounts = new Map<DevelopmentCardType, number>();
+  const actualCounts = new Map<DevelopmentCardType, number>();
+
+  for (const card of DEVELOPMENT_CARD_DECK) {
+    expectedCounts.set(card, (expectedCounts.get(card) ?? 0) + 1);
+  }
+  for (const card of deck) {
+    actualCounts.set(card, (actualCounts.get(card) ?? 0) + 1);
+  }
+  for (const player of players.records.values()) {
+    for (const card of validateDevelopmentCards(
+      player.developmentCards,
+      "game.players.developmentCards",
+    )) {
+      actualCounts.set(card, (actualCounts.get(card) ?? 0) + 1);
+    }
+  }
+
+  for (const card of DEVELOPMENT_CARD_TYPES) {
+    if ((actualCounts.get(card) ?? 0) !== expectedCounts.get(card)) {
+      invalid(`game.${card}`, "must match the development card supply");
+    }
+  }
 }
 
 interface ValidatedSettings {
@@ -540,7 +593,7 @@ function validateSharedGame(
   if (turnOrder.length !== players.length) {
     invalid(`${path}.turnOrder`, "must contain every player exactly once");
   }
-  if (game.version !== 2) {
+  if (game.version !== 3) {
     invalid(`${path}.version`, "contains an unsupported game-state version");
   }
   if (game.winnerPlayerId !== null) {
@@ -554,6 +607,7 @@ function validateLegalActions(value: unknown, shared: ValidatedSharedGame, path:
   const actions = record(value, path);
   for (const key of [
     "canCancelTrade",
+    "canBuyDevelopmentCard",
     "canEndTurn",
     "canProposeTrade",
     "canRespondToTrade",
@@ -592,11 +646,13 @@ function validateLegalActions(value: unknown, shared: ValidatedSharedGame, path:
 
 export function assertGameState(value: unknown): asserts value is GameState {
   const game = record(value, "game");
-  if ("developmentDeck" in game || "victoryPoints" in game) {
-    invalid("game", "contains removed top-level fields");
+  if ("developmentCardSupply" in game || "victoryPoints" in game) {
+    invalid("game", "contains derived or obsolete top-level fields");
   }
   const players = validateStatePlayers(game.players);
   validateSharedGame(game, "game", players);
+  const developmentDeck = validateDevelopmentCards(game.developmentDeck, "game.developmentDeck");
+  validateDevelopmentCardConservation(players, developmentDeck);
   for (const [index, roll] of array(game.balancedDiceBag, "game.balancedDiceBag").entries()) {
     validateDiceRoll(roll, `game.balancedDiceBag[${index}]`);
   }
@@ -608,14 +664,25 @@ export function assertGameState(value: unknown): asserts value is GameState {
 
 export function assertPlayerGameView(value: unknown): asserts value is PlayerGameView {
   const view = record(value, "view");
-  if ("developmentCardSupply" in view || "developmentDeck" in view || "victoryPoints" in view) {
-    invalid("view", "contains removed top-level fields");
+  if ("developmentDeck" in view || "victoryPoints" in view) {
+    invalid("view", "contains private or obsolete top-level fields");
   }
   const viewerPlayerId = identifier(view.viewerPlayerId, "view.viewerPlayerId");
   const players = validateViewPlayers(view.players, viewerPlayerId);
   const shared = validateSharedGame(view, "view", players);
   if (view.bank !== null) {
     validateInventory(view.bank, "view.bank");
+  }
+  const developmentCardSupply = nonNegativeInteger(
+    view.developmentCardSupply,
+    "view.developmentCardSupply",
+  );
+  const heldDevelopmentCards = [...players.developmentCardCounts.values()].reduce(
+    (total, count) => total + count,
+    0,
+  );
+  if (developmentCardSupply + heldDevelopmentCards !== DEVELOPMENT_CARD_DECK.length) {
+    invalid("view.developmentCardSupply", "does not match player development card counts");
   }
   validateLegalActions(view.legalActions, shared, "view.legalActions");
 }

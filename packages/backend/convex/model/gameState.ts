@@ -1,6 +1,8 @@
 import {
   DEFAULT_BASE_GAME_SETTINGS,
+  DEVELOPMENT_CARD_TYPES,
   assertGameState,
+  createDevelopmentDeck,
   createDefaultGame,
   getRequiredPlayerIds,
   toPlayerView,
@@ -8,6 +10,7 @@ import {
 import type {
   BaseGameSettings,
   BotDifficulty,
+  DevelopmentCardType,
   GameCommand,
   GamePlayerInput,
   GameState,
@@ -34,85 +37,107 @@ import {
 import { allocateRoomCode, listSeats, nextOpenSeatIndex } from "./roomQueries";
 import type { GameDoc, GameId, RoomDoc, SeatDoc, WriteCtx } from "./types";
 
-const LEGACY_DEVELOPMENT_CARD_COUNTS = {
-  knight: 14,
-  monopoly: 2,
-  "road-building": 2,
-  "victory-point": 5,
-  "year-of-plenty": 2,
-} as const;
-type LegacyDevelopmentCard = keyof typeof LEGACY_DEVELOPMENT_CARD_COUNTS;
-const LEGACY_DEVELOPMENT_CARD_TYPES = new Set<LegacyDevelopmentCard>(
-  Object.keys(LEGACY_DEVELOPMENT_CARD_COUNTS) as LegacyDevelopmentCard[],
-);
+const DEVELOPMENT_CARD_TYPE_SET = new Set<DevelopmentCardType>(DEVELOPMENT_CARD_TYPES);
 
-function legacyCards(value: unknown, path: string): LegacyDevelopmentCard[] {
+function developmentCards(value: unknown, path: string): DevelopmentCardType[] {
   if (!Array.isArray(value)) {
     throw new Error(`${path} must be an array`);
   }
   return value.map((card, index) => {
-    if (
-      typeof card !== "string" ||
-      !LEGACY_DEVELOPMENT_CARD_TYPES.has(card as LegacyDevelopmentCard)
-    ) {
-      throw new Error(`${path}[${index}] is not a known legacy card`);
+    if (typeof card !== "string" || !DEVELOPMENT_CARD_TYPE_SET.has(card as DevelopmentCardType)) {
+      throw new Error(`${path}[${index}] is not a known development card`);
     }
-    return card as LegacyDevelopmentCard;
+    return card as DevelopmentCardType;
   });
+}
+
+function removeHeldCardsFromDeck(
+  deck: DevelopmentCardType[],
+  heldCards: readonly DevelopmentCardType[],
+): DevelopmentCardType[] {
+  const remaining = [...deck];
+  for (const card of heldCards) {
+    const index = remaining.indexOf(card);
+    if (index < 0) {
+      throw new Error(`game.players contain too many ${card} cards`);
+    }
+    remaining.splice(index, 1);
+  }
+  return remaining;
 }
 
 function canonicalizeStoredGameState(value: unknown): unknown {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return value;
   }
-
   const stored = value as Record<string, unknown>;
-  if (stored.version !== 1) {
+  if (stored.version === 3 || (stored.version !== 1 && stored.version !== 2)) {
     return stored;
   }
 
-  const canonical: Record<string, unknown> = { ...stored, version: 2 };
-  const legacyCardCounts = Object.fromEntries(
-    [...LEGACY_DEVELOPMENT_CARD_TYPES].map((card) => [card, 0]),
-  ) as Record<LegacyDevelopmentCard, number>;
-  delete canonical.developmentDeck;
-  delete canonical.victoryPoints;
-  if (Array.isArray(canonical.players)) {
-    canonical.players = canonical.players.map((player, playerIndex) => {
+  const canonical: Record<string, unknown> = { ...stored, version: 3 };
+  if (!Array.isArray(canonical.players)) {
+    return canonical;
+  }
+
+  if (stored.version === 2) {
+    if (
+      stored.developmentDeck !== undefined ||
+      stored.developmentCardSupply !== undefined ||
+      stored.victoryPoints !== undefined ||
+      canonical.players.some(
+        (player) =>
+          typeof player === "object" &&
+          player !== null &&
+          !Array.isArray(player) &&
+          ("developmentCards" in player || "developmentCardCount" in player),
+      )
+    ) {
+      throw new Error("game version 2 contains development-card fields");
+    }
+    if (typeof stored.seed !== "string" || stored.seed.length === 0) {
+      throw new Error("game.seed must be a non-empty string");
+    }
+    canonical.developmentDeck = createDevelopmentDeck(stored.seed);
+    canonical.players = canonical.players.map((player) => {
       if (typeof player !== "object" || player === null || Array.isArray(player)) {
         return player;
       }
-      const canonicalPlayer = { ...player } as Record<string, unknown>;
-      const cards =
-        canonicalPlayer.developmentCards === undefined
-          ? []
-          : legacyCards(
-              canonicalPlayer.developmentCards,
-              `game.players[${playerIndex}].developmentCards`,
-            );
-      for (const card of cards) {
-        legacyCardCounts[card] += 1;
-      }
-      delete canonicalPlayer.developmentCards;
-      return canonicalPlayer;
+      return { ...player, developmentCards: [] };
     });
+    return canonical;
   }
 
+  delete canonical.victoryPoints;
+  const heldCards: DevelopmentCardType[] = [];
+  canonical.players = canonical.players.map((player, playerIndex) => {
+    if (typeof player !== "object" || player === null || Array.isArray(player)) {
+      return player;
+    }
+    const canonicalPlayer = { ...player } as Record<string, unknown>;
+    const cards =
+      canonicalPlayer.developmentCards === undefined
+        ? []
+        : developmentCards(
+            canonicalPlayer.developmentCards,
+            `game.players[${playerIndex}].developmentCards`,
+          );
+    heldCards.push(...cards);
+    canonicalPlayer.developmentCards = cards;
+    delete canonicalPlayer.developmentCardCount;
+    return canonicalPlayer;
+  });
+
   if (stored.developmentDeck !== undefined) {
-    for (const card of legacyCards(stored.developmentDeck, "game.developmentDeck")) {
-      legacyCardCounts[card] += 1;
-    }
-    for (const card of LEGACY_DEVELOPMENT_CARD_TYPES) {
-      if (legacyCardCounts[card] !== LEGACY_DEVELOPMENT_CARD_COUNTS[card]) {
-        throw new Error(`game.developmentDeck has an invalid ${card} count`);
-      }
-    }
+    canonical.developmentDeck = developmentCards(stored.developmentDeck, "game.developmentDeck");
   } else {
-    for (const card of LEGACY_DEVELOPMENT_CARD_TYPES) {
-      if (legacyCardCounts[card] > LEGACY_DEVELOPMENT_CARD_COUNTS[card]) {
-        throw new Error(`game.players contain too many ${card} cards`);
-      }
+    if (typeof stored.seed !== "string" || stored.seed.length === 0) {
+      throw new Error("game.seed must be a non-empty string");
     }
+    canonical.developmentDeck = removeHeldCardsFromDeck(
+      createDevelopmentDeck(stored.seed),
+      heldCards,
+    );
   }
 
   return canonical;

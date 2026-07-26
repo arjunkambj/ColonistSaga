@@ -57,6 +57,7 @@ export function serializeCommand(command: GameCommand): string {
         kind: command.kind,
         offerActionNumber: command.offerActionNumber,
       });
+    case "buy_development_card":
     case "roll":
     case "end_turn":
       return JSON.stringify({ kind: command.kind });
@@ -118,6 +119,8 @@ export function commandText(
       return `${displayName} stole a resource.`;
     case "build_city":
       return `${displayName} upgraded a settlement to a city.`;
+    case "buy_development_card":
+      return `${displayName} bought a development card.`;
     case "trade_bank":
       return `${displayName} traded ${command.give} for ${command.receive}.`;
     case "propose_trade":
@@ -170,6 +173,7 @@ export function validateCommandBounds(command: GameCommand): void {
       validateActionNumber(command.offerActionNumber);
       return;
     case "trade_bank":
+    case "buy_development_card":
     case "roll":
     case "end_turn":
       return;

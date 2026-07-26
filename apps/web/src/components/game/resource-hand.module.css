@@ -1,0 +1,251 @@
+.resourceHandHost {
+  position: relative;
+  z-index: 9601;
+  overflow: visible;
+}
+
+.actionOverlayRoot {
+  position: absolute;
+  z-index: 30;
+  bottom: calc(100% + 0.45rem);
+  left: 0;
+  width: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.actionOverlayRoot > * {
+  pointer-events: auto;
+}
+
+.cardViewport {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cardViewport :global(.resource-card-list) {
+  width: 100%;
+  height: 100%;
+}
+
+.selectableCard {
+  cursor: pointer;
+}
+
+.reservedCard {
+  box-shadow:
+    inset 0 0 0 2px rgba(242, 199, 105, 0.72),
+    0 4px 10px rgba(73, 89, 120, 0.09);
+}
+
+.handCardSelector {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.handCardSelector:hover,
+.handCardSelector[data-hovered="true"] {
+  box-shadow: inset 0 0 0 2px rgba(242, 199, 105, 0.9);
+}
+
+.handCardSelector:focus-visible,
+.handCardSelector[data-focus-visible="true"] {
+  outline: 3px solid rgba(255, 226, 132, 0.96);
+  outline-offset: -3px;
+}
+
+.flightLayer {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 0.22rem;
+  padding: 0.25rem;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.flightAnchor {
+  position: relative;
+  display: block;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  grid-row: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.resourceFlight {
+  --resource-flight-delay: 0ms;
+  --resource-flight-tilt: 0deg;
+  --resource-flight-x: 0rem;
+  --resource-flight-y: 5rem;
+
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  left: 50%;
+  width: min(72%, 2.65rem);
+  aspect-ratio: 2 / 3;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 0.42rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 0.2rem 0.45rem rgba(16, 24, 40, 0.24),
+    0 0.7rem 1.15rem rgba(16, 24, 40, 0.18);
+  opacity: 0;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.receive {
+  animation: receive-resource-card 560ms cubic-bezier(0.22, 0.74, 0.2, 1)
+    var(--resource-flight-delay) both;
+}
+
+.spend {
+  animation: spend-resource-card 540ms cubic-bezier(0.42, 0, 0.26, 1) var(--resource-flight-delay)
+    both;
+}
+
+.flightImage {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: contain;
+}
+
+.changeBadge {
+  position: absolute;
+  top: -0.38rem;
+  right: -0.48rem;
+  display: grid;
+  min-width: 1.45rem;
+  min-height: 1.45rem;
+  place-items: center;
+  padding-inline: 0.28rem;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.receive .changeBadge {
+  background: linear-gradient(145deg, #2f9e72, #177a56);
+  box-shadow: 0 0.18rem 0.45rem rgba(19, 108, 75, 0.32);
+}
+
+.spend .changeBadge {
+  background: linear-gradient(145deg, #d16b50, #a73e35);
+  box-shadow: 0 0.18rem 0.45rem rgba(135, 42, 35, 0.3);
+}
+
+.countChanged {
+  display: inline-block;
+  animation: resource-count-settle 280ms cubic-bezier(0.2, 0.82, 0.2, 1)
+    calc(var(--resource-flight-delay, 0ms) + 220ms) both;
+  transform-origin: center;
+  will-change: filter, transform;
+}
+
+@keyframes receive-resource-card {
+  0% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--resource-flight-x)),
+        calc(-50% - var(--resource-flight-y))
+      )
+      rotate(var(--resource-flight-tilt)) scale(0.56);
+  }
+
+  16% {
+    opacity: 1;
+  }
+
+  74% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 0.12rem)) rotate(-1deg) scale(0.94);
+  }
+
+  88% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1.04);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes spend-resource-card {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.96);
+  }
+
+  22% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 0.58rem)) rotate(-1deg) scale(0.92);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--resource-flight-x)),
+        calc(-50% - var(--resource-flight-y))
+      )
+      rotate(var(--resource-flight-tilt)) scale(0.54);
+  }
+}
+
+@keyframes resource-count-settle {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: translateY(0) scale(1);
+  }
+
+  48% {
+    filter: brightness(1.35);
+    transform: translateY(-0.12rem) scale(1.36);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resourceFlight {
+    display: none;
+    animation: none;
+  }
+
+  .countChanged {
+    animation: none;
+  }
+}
+
+@media (max-width: 840px) {
+  .flightLayer {
+    gap: 0.14rem;
+  }
+}

@@ -1,0 +1,338 @@
+"use client";
+
+import {
+  RESOURCE_ORDER,
+  type PrivatePlayerState,
+  type ResourceInventory,
+  type ResourceType,
+} from "@colonistsaga/game";
+import { Button } from "@heroui/react";
+import Image from "next/image";
+import { type CSSProperties, type AnimationEvent, useEffect, useRef, useState } from "react";
+
+import {
+  DEVELOPMENT_CARD_ASSETS,
+  getCardRuntimeAssetPath,
+  RESOURCE_CARD_ASSET_PATHS,
+} from "@/constants/game/card-assets";
+import { getResourceCardChanges, type ResourceCardChange } from "@/lib/game/resource-card-changes";
+
+import { HAND_DOCK_ROOT_ID, useHandDock } from "./hand-dock";
+import { RESOURCE_LABELS } from "./resource-icon";
+import styles from "./resource-hand.module.css";
+
+interface ResourceAnimation extends ResourceCardChange {
+  id: string;
+}
+
+interface ResourceSnapshot {
+  actionNumber: number;
+  playerId: string;
+  resources: ResourceInventory;
+}
+
+type ResourceFlightStyle = CSSProperties & {
+  "--resource-flight-delay": string;
+  "--resource-flight-tilt": string;
+  "--resource-flight-x": string;
+};
+
+const RESOURCE_FLIGHT_STYLES: Readonly<Record<ResourceType, ResourceFlightStyle>> =
+  Object.fromEntries(
+    RESOURCE_ORDER.map((resource, index) => [
+      resource,
+      {
+        "--resource-flight-delay": `${index * 30}ms`,
+        "--resource-flight-tilt": `${(index - 2) * 1.6}deg`,
+        "--resource-flight-x": `${(2 - index) * 0.72}rem`,
+      },
+    ]),
+  ) as Record<ResourceType, ResourceFlightStyle>;
+
+function copyInventory(resources: Readonly<ResourceInventory>): ResourceInventory {
+  return {
+    brick: resources.brick,
+    sheep: resources.sheep,
+    stone: resources.stone,
+    tree: resources.tree,
+    wheat: resources.wheat,
+  };
+}
+
+function GameCardArtwork({
+  className,
+  path,
+  sizes,
+}: {
+  className: string;
+  path: string;
+  sizes: string;
+}) {
+  return (
+    <Image
+      alt=""
+      className={className}
+      data-card-asset={path}
+      draggable={false}
+      height={768}
+      loading="eager"
+      sizes={sizes}
+      src={getCardRuntimeAssetPath(path)}
+      width={512}
+    />
+  );
+}
+
+export function ResourceHand({
+  actionNumber,
+  me,
+}: {
+  actionNumber: number;
+  me: PrivatePlayerState;
+}) {
+  const { interaction } = useHandDock();
+  const resourceListRef = useRef<HTMLUListElement>(null);
+  const previousSnapshotRef = useRef<ResourceSnapshot | null>(null);
+  const [resourceAnimations, setResourceAnimations] = useState<ResourceAnimation[]>([]);
+  const [resourceListOverflows, setResourceListOverflows] = useState(false);
+  const developmentCardCounts = DEVELOPMENT_CARD_ASSETS.flatMap((asset) => {
+    const count = me.developmentCards.filter((card) => card === asset.id).length;
+    return count > 0 ? [{ ...asset, count }] : [];
+  });
+  const animationByResource = new Map(
+    resourceAnimations.map((animation) => [animation.resource, animation]),
+  );
+  const interactionMatchesSource =
+    interaction !== null &&
+    RESOURCE_ORDER.every(
+      (resource) => interaction.sourceResources[resource] === me.resources[resource],
+    );
+  const selectedResourceCount =
+    interaction && interactionMatchesSource
+      ? RESOURCE_ORDER.reduce(
+          (total, resource) =>
+            total + Math.min(me.resources[resource], interaction.selected[resource]),
+          0,
+        )
+      : 0;
+
+  useEffect(() => {
+    const nextSnapshot: ResourceSnapshot = {
+      actionNumber,
+      playerId: me.id,
+      resources: copyInventory(me.resources),
+    };
+    const previousSnapshot = previousSnapshotRef.current;
+    previousSnapshotRef.current = nextSnapshot;
+
+    if (
+      !previousSnapshot ||
+      previousSnapshot.playerId !== me.id ||
+      actionNumber <= previousSnapshot.actionNumber
+    ) {
+      setResourceAnimations((current) => (current.length === 0 ? current : []));
+      return;
+    }
+
+    const changes = getResourceCardChanges(previousSnapshot.resources, nextSnapshot.resources);
+    if (changes.length === 0) {
+      return;
+    }
+
+    setResourceAnimations(
+      changes.map((change) => ({
+        ...change,
+        id: `${me.id}:${actionNumber}:${change.resource}`,
+      })),
+    );
+  }, [
+    actionNumber,
+    me.id,
+    me.resources.brick,
+    me.resources.sheep,
+    me.resources.stone,
+    me.resources.tree,
+    me.resources.wheat,
+  ]);
+
+  useEffect(() => {
+    const resourceList = resourceListRef.current;
+    if (!resourceList) {
+      return;
+    }
+
+    const updateOverflow = () =>
+      setResourceListOverflows(resourceList.scrollWidth > resourceList.clientWidth + 1);
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateOverflow);
+    resizeObserver?.observe(resourceList);
+    window.addEventListener("resize", updateOverflow, { passive: true });
+    updateOverflow();
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateOverflow);
+    };
+  }, []);
+
+  const finishAnimation = (animationId: string, event: AnimationEvent<HTMLSpanElement>) => {
+    if (event.currentTarget !== event.target) {
+      return;
+    }
+
+    setResourceAnimations((current) => current.filter((animation) => animation.id !== animationId));
+  };
+
+  return (
+    <section
+      aria-labelledby="resource-hand-title"
+      className={`resource-hand ${styles.resourceHandHost}`}
+    >
+      <div className={styles.actionOverlayRoot} id={HAND_DOCK_ROOT_ID} />
+      <div className="hand-heading">
+        <p className="eyebrow">Private Hand</p>
+        <h2 id="resource-hand-title">Your Cards</h2>
+        <span>
+          {interaction && interactionMatchesSource
+            ? `${me.resourceCount - selectedResourceCount} available · ${selectedResourceCount} selected`
+            : `${me.resourceCount} resources · ${me.developmentCards.length} dev`}
+        </span>
+      </div>
+      <div className={styles.cardViewport}>
+        <ul
+          aria-label={
+            resourceListOverflows
+              ? "Your private cards. Use the left and right arrow keys to scroll."
+              : undefined
+          }
+          className="resource-card-list"
+          ref={resourceListRef}
+          tabIndex={resourceListOverflows ? 0 : undefined}
+        >
+          {RESOURCE_ORDER.map((resource) => {
+            const animation = animationByResource.get(resource);
+            const selected =
+              interaction && interactionMatchesSource
+                ? Math.min(me.resources[resource], interaction.selected[resource])
+                : 0;
+            const available = me.resources[resource] - selected;
+
+            return (
+              <li
+                aria-label={
+                  interaction && interactionMatchesSource
+                    ? `${RESOURCE_LABELS[resource]}: ${available} available, ${selected} selected for ${interaction.label}`
+                    : `${RESOURCE_LABELS[resource]}: ${me.resources[resource]}`
+                }
+                className={[
+                  "resource-card",
+                  "resource-card-face",
+                  `resource-${resource}`,
+                  interaction && interactionMatchesSource ? styles.selectableCard : "",
+                  selected > 0 ? styles.reservedCard : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={resource}
+              >
+                <span className="resource-card-art" aria-hidden="true">
+                  <GameCardArtwork
+                    className="resource-card-image"
+                    path={RESOURCE_CARD_ASSET_PATHS[resource]}
+                    sizes="4.5rem"
+                  />
+                </span>
+                <span className="resource-card-copy">
+                  <span className="resource-card-label">{RESOURCE_LABELS[resource]}</span>
+                  <span className="resource-card-quantity">
+                    <strong
+                      className={animation ? styles.countChanged : undefined}
+                      key={animation?.id ?? resource}
+                      style={animation ? RESOURCE_FLIGHT_STYLES[resource] : undefined}
+                    >
+                      {available}
+                    </strong>
+                    <small>{available === 1 ? "card" : "cards"}</small>
+                  </span>
+                </span>
+                {interaction && interactionMatchesSource ? (
+                  <Button
+                    aria-label={`Move one ${RESOURCE_LABELS[resource]} from your hand to ${interaction.label}`}
+                    className={styles.handCardSelector}
+                    isDisabled={interaction.disabled || available === 0}
+                    onPress={() => interaction.onSelect(resource)}
+                    variant="ghost"
+                  >
+                    <span className="sr-only">
+                      {available} available, {selected} selected
+                    </span>
+                  </Button>
+                ) : null}
+              </li>
+            );
+          })}
+          {developmentCardCounts.map((card) => (
+            <li
+              aria-label={`${card.label} development cards: ${card.count}. ${card.description}`}
+              className="resource-card resource-card-face development-card-face"
+              key={card.id}
+            >
+              <span className="resource-card-art" aria-hidden="true">
+                <Image
+                  alt=""
+                  className="resource-card-image"
+                  draggable={false}
+                  height={768}
+                  loading="eager"
+                  sizes="4.5rem"
+                  src={card.path}
+                  width={512}
+                />
+              </span>
+              <span className="resource-card-copy">
+                <span className="resource-card-label">{card.label}</span>
+                <span className="resource-card-quantity">
+                  <strong>{card.count}</strong>
+                  <small>{card.count === 1 ? "card" : "cards"}</small>
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div aria-hidden="true" className={styles.flightLayer}>
+          {resourceAnimations.map((animation) => {
+            const column = RESOURCE_ORDER.indexOf(animation.resource) + 1;
+
+            return (
+              <span
+                className={styles.flightAnchor}
+                key={animation.id}
+                style={{
+                  ...RESOURCE_FLIGHT_STYLES[animation.resource],
+                  gridColumn: column,
+                }}
+              >
+                <span
+                  className={`${styles.resourceFlight} ${
+                    animation.direction === "receive" ? styles.receive : styles.spend
+                  }`}
+                  onAnimationEnd={(event) => finishAnimation(animation.id, event)}
+                >
+                  <GameCardArtwork
+                    className={styles.flightImage}
+                    path={RESOURCE_CARD_ASSET_PATHS[animation.resource]}
+                    sizes="2.65rem"
+                  />
+                  <span className={styles.changeBadge}>
+                    {animation.direction === "receive" ? "+" : "−"}
+                    {animation.amount}
+                  </span>
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}

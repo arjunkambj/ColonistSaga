@@ -2,17 +2,22 @@ import { describe, expect, test } from "bun:test";
 
 import {
   BUILD_COSTS,
+  DEVELOPMENT_CARD_COST,
+  DEVELOPMENT_CARD_DECK,
   GAME_MAP_IDS,
   GameRuleError,
   RESOURCE_TYPES,
   applyCommand,
+  assertGameState,
   chooseAutomatedCommand,
   createDefaultGame,
+  distributeResourcesForRoll,
   emptyInventory,
   getBoardTopology,
   getLegalActions,
   getRequiredPlayerIds,
   mapSupportsPlayerCount,
+  toPlayerView,
   type GameState,
   type ResourceInventory,
 } from "../src/index";
@@ -75,6 +80,28 @@ function cityReadyState(ownerId = PLAYERS[0]!.id): { state: GameState; vertexKey
   };
 }
 
+function developmentCardReadyState(seed = "development-card-purchase"): GameState {
+  const state = createGame(seed);
+  return {
+    ...state,
+    activePlayerId: PLAYERS[0]!.id,
+    bank: RESOURCE_TYPES.reduce<ResourceInventory>(
+      (bank, resource) => {
+        bank[resource] -= DEVELOPMENT_CARD_COST[resource];
+        return bank;
+      },
+      { ...state.bank },
+    ),
+    phase: { kind: "build_and_trade" },
+    players: state.players.map((player) =>
+      player.id === PLAYERS[0]!.id
+        ? { ...player, resources: { ...DEVELOPMENT_CARD_COST } }
+        : player,
+    ),
+    turnNumber: 1,
+  };
+}
+
 function expectRuleError(action: () => unknown, code: GameRuleError["code"]) {
   try {
     action();
@@ -117,7 +144,65 @@ function expectConservedState(state: GameState) {
     );
     expect(state.bank[resource] + playerCards).toBe(19);
   }
+
+  expect(
+    [
+      ...state.developmentDeck,
+      ...state.players.flatMap((player) => player.developmentCards),
+    ].toSorted(),
+  ).toEqual([...DEVELOPMENT_CARD_DECK].toSorted());
 }
+
+describe("opening setup", () => {
+  test("does not allow a roll while any player is missing opening placements", () => {
+    const created = createGame("incomplete-opening-roll");
+    const firstPlayerId = created.activePlayerId;
+    const settlementVertexKey = getLegalActions(created, firstPlayerId).settlementVertexKeys[0];
+    if (!settlementVertexKey) throw new Error("Opening setup needs a settlement location");
+
+    const withSettlement = applyCommand(created, firstPlayerId, {
+      kind: "place_settlement",
+      vertexKey: settlementVertexKey,
+    });
+    const roadEdgeKey = getLegalActions(withSettlement, firstPlayerId).roadEdgeKeys[0];
+    if (!roadEdgeKey) throw new Error("Opening setup needs a road location");
+
+    const partialSetup = applyCommand(withSettlement, firstPlayerId, {
+      edgeKey: roadEdgeKey,
+      kind: "place_road",
+    });
+    const inconsistentRollState: GameState = {
+      ...partialSetup,
+      activePlayerId: firstPlayerId,
+      phase: { kind: "roll" },
+    };
+
+    expect(getLegalActions(inconsistentRollState, firstPlayerId).canRoll).toBe(false);
+    expectRuleError(
+      () => applyCommand(inconsistentRollState, firstPlayerId, { kind: "roll" }),
+      "INVALID_PHASE",
+    );
+  });
+
+  test("allows the first roll only after every player completes opening setup", () => {
+    let state = createGame("complete-opening-roll");
+
+    while (state.phase.kind === "setup_settlement" || state.phase.kind === "setup_road") {
+      const actorPlayerId = getRequiredPlayerIds(state)[0];
+      if (!actorPlayerId) throw new Error("Opening setup needs an actor");
+      state = applyCommand(state, actorPlayerId, chooseAutomatedCommand(state, actorPlayerId));
+    }
+
+    for (const player of state.players) {
+      expect(
+        state.board.buildings.filter((building) => building.playerId === player.id),
+      ).toHaveLength(2);
+      expect(state.board.roads.filter((road) => road.playerId === player.id)).toHaveLength(2);
+    }
+    expect(state.phase.kind).toBe("roll");
+    expect(getLegalActions(state, state.activePlayerId).canRoll).toBe(true);
+  });
+});
 
 describe("city upgrades", () => {
   test("a bot upgrades only its persisted settlement and pays the full cost", () => {
@@ -165,18 +250,109 @@ describe("city upgrades", () => {
   });
 });
 
-describe("command boundary", () => {
-  test("rejects the removed development-card command without spending resources", () => {
-    const { state } = cityReadyState();
+describe("development card purchases", () => {
+  test("draws the deterministic top card, pays the bank, and updates legal actions", () => {
+    const state = developmentCardReadyState();
     const playerId = PLAYERS[0]!.id;
-    const resourcesBefore = { ...state.players[0]!.resources };
+    const topCard = state.developmentDeck[0];
+    if (!topCard) throw new Error("Development deck must not be empty");
 
-    expect("canBuyDevelopmentCard" in getLegalActions(state, playerId)).toBe(false);
+    expect(getLegalActions(state, playerId).canBuyDevelopmentCard).toBe(true);
+    const next = applyCommand(state, playerId, { kind: "buy_development_card" });
+
+    expect(next.developmentDeck).toEqual(state.developmentDeck.slice(1));
+    expect(next.players[0]!.developmentCards).toEqual([topCard]);
+    expect(next.players[0]!.resources).toEqual(emptyInventory());
+    expect(next.bank).toEqual(createGame("development-card-purchase").bank);
+    expect(getLegalActions(next, playerId).canBuyDevelopmentCard).toBe(false);
+    const buyerView = toPlayerView(next, playerId);
+    const opponentView = toPlayerView(next, PLAYERS[1]!.id);
+    expect(buyerView.developmentCardSupply).toBe(24);
+    expect(buyerView.players[0]!.isViewer && buyerView.players[0]!.developmentCards).toEqual([
+      topCard,
+    ]);
+    expect(
+      !opponentView.players[0]!.isViewer && opponentView.players[0]!.developmentCardCount,
+    ).toBe(1);
+    expect("developmentCards" in opponentView.players[0]!).toBe(false);
+    expectConservedState(next);
+  });
+
+  test("rejects an unaffordable purchase, an empty supply, and the wrong phase", () => {
+    const ready = developmentCardReadyState();
+    const playerId = PLAYERS[0]!.id;
+    const unaffordable: GameState = {
+      ...ready,
+      bank: { ...ready.bank, sheep: ready.bank.sheep + 1 },
+      players: ready.players.map((player) =>
+        player.id === playerId
+          ? { ...player, resources: { ...player.resources, sheep: 0 } }
+          : player,
+      ),
+    };
+    const emptySupply: GameState = { ...ready, developmentDeck: [] };
+    const wrongPhase: GameState = { ...ready, phase: { kind: "roll" } };
+
+    expect(getLegalActions(unaffordable, playerId).canBuyDevelopmentCard).toBe(false);
+    expect(getLegalActions(emptySupply, playerId).canBuyDevelopmentCard).toBe(false);
     expectRuleError(
-      () => applyCommand(state, playerId, { kind: "buy_development_card" } as never),
-      "INVALID_COMMAND",
+      () => applyCommand(unaffordable, playerId, { kind: "buy_development_card" }),
+      "INSUFFICIENT_RESOURCES",
     );
-    expect(state.players[0]!.resources).toEqual(resourcesBefore);
+    expectRuleError(
+      () => applyCommand(emptySupply, playerId, { kind: "buy_development_card" }),
+      "NO_DEVELOPMENT_CARD_AVAILABLE",
+    );
+    expectRuleError(
+      () => applyCommand(wrongPhase, playerId, { kind: "buy_development_card" }),
+      "INVALID_PHASE",
+    );
+  });
+
+  test("counts a drawn victory-point card without exposing it as building score", () => {
+    const ready = developmentCardReadyState("development-card-victory");
+    const playerId = PLAYERS[0]!.id;
+    const vertexKeys = getBoardTopology(ready.board.tiles).vertexKeys.slice(0, 2);
+    if (vertexKeys.length !== 2) throw new Error("Test board needs two vertices");
+    const developmentDeck = [...ready.developmentDeck];
+    const victoryPointIndex = developmentDeck.indexOf("victory-point");
+    if (victoryPointIndex < 0) throw new Error("Development deck needs a victory-point card");
+    [developmentDeck[0], developmentDeck[victoryPointIndex]] = [
+      developmentDeck[victoryPointIndex]!,
+      developmentDeck[0]!,
+    ];
+    const state: GameState = {
+      ...ready,
+      board: {
+        ...ready.board,
+        buildings: vertexKeys.map((vertexKey) => ({
+          kind: "settlement" as const,
+          playerId,
+          vertexKey,
+        })),
+      },
+      developmentDeck,
+      players: ready.players.map((player) =>
+        player.id === playerId
+          ? {
+              ...player,
+              piecesRemaining: { ...player.piecesRemaining, settlements: 3 },
+              victoryPoints: 2,
+            }
+          : player,
+      ),
+      settings: { ...ready.settings, victoryPoints: 3 },
+    };
+    assertGameState(state);
+
+    const next = applyCommand(state, playerId, { kind: "buy_development_card" });
+
+    expect(next.players[0]!.victoryPoints).toBe(2);
+    expect(next.players[0]!.developmentCards).toEqual(["victory-point"]);
+    expect(next.status).toBe("completed");
+    expect(next.phase.kind).toBe("finished");
+    expect(next.winnerPlayerId).toBe(playerId);
+    assertGameState(next);
   });
 });
 
@@ -225,8 +401,40 @@ describe("trade offers", () => {
 });
 
 describe("friendly robber", () => {
-  test("falls back to the desert when protection leaves no other legal tile", () => {
+  test("is opt-in so standard games can target player-adjacent tiles", () => {
+    const created = createGame("standard-robber");
+    const tile = created.board.tiles.find(
+      (candidate) => candidate.id !== created.board.robberTileId,
+    );
+    const vertexKey = tile
+      ? getBoardTopology(created.board.tiles).tileById[tile.id]?.vertexKeys[0]
+      : undefined;
+    if (!tile || !vertexKey) throw new Error("Robber test needs another occupied tile");
+    const state: GameState = {
+      ...created,
+      board: {
+        ...created.board,
+        buildings: [{ kind: "settlement", playerId: PLAYERS[1]!.id, vertexKey }],
+      },
+      phase: { kind: "move_robber", rollerPlayerId: PLAYERS[0]!.id },
+      players: created.players.map((player) =>
+        player.id === PLAYERS[1]!.id
+          ? {
+              ...player,
+              piecesRemaining: { ...player.piecesRemaining, settlements: 4 },
+              victoryPoints: 1,
+            }
+          : player,
+      ),
+    };
+
+    expect(state.settings.friendlyRobber).toBe(false);
+    expect(getLegalActions(state, PLAYERS[0]!.id).robberTileIds).toContain(tile.id);
+  });
+
+  test("still requires a move when every other tile is protected", () => {
     let state = createGame("fr7:58");
+    state = { ...state, settings: { ...state.settings, friendlyRobber: true } };
 
     while (state.phase.kind === "setup_settlement" || state.phase.kind === "setup_road") {
       const actorPlayerId = getRequiredPlayerIds(state)[0];
@@ -261,13 +469,66 @@ describe("friendly robber", () => {
 
     const currentTileId = state.board.robberTileId;
     const legalTileIds = getLegalActions(state, state.activePlayerId).robberTileIds;
-    expect(legalTileIds).toEqual([currentTileId]);
+    expect(legalTileIds).not.toContain(currentTileId);
+    expect(legalTileIds).toHaveLength(state.board.tiles.length - 1);
+    const destinationTileId = legalTileIds[0];
+    if (!destinationTileId) throw new Error("Robber needs a legal destination");
 
     const next = applyCommand(state, state.activePlayerId, {
       kind: "move_robber",
-      tileId: currentTileId,
+      tileId: destinationTileId,
     });
-    expect(next.board.robberTileId).toBe(currentTileId);
+    expect(next.board.robberTileId).toBe(destinationTileId);
+  });
+});
+
+describe("robber production blocking", () => {
+  test("a settlement or city receives nothing from the occupied terrain tile", () => {
+    const created = createGame("robber-production-block");
+    const topology = getBoardTopology(created.board.tiles);
+    const tilesById = new Map(created.board.tiles.map((tile) => [tile.id, tile]));
+    const placement = created.board.tiles.flatMap((tile) => {
+      if (tile.numberToken === null || tile.terrain === "desert") {
+        return [];
+      }
+      const vertexKey = (topology.tileById[tile.id]?.vertexKeys ?? []).find((candidate) =>
+        (topology.vertexTileIds[candidate] ?? []).every(
+          (tileId) => tileId === tile.id || tilesById.get(tileId)?.numberToken !== tile.numberToken,
+        ),
+      );
+      return vertexKey ? [{ rollTotal: tile.numberToken, tileId: tile.id, vertexKey }] : [];
+    })[0];
+    if (!placement) throw new Error("Test board needs an isolated production vertex");
+
+    for (const kind of ["settlement", "city"] as const) {
+      const state: GameState = {
+        ...created,
+        board: {
+          ...created.board,
+          buildings: [{ kind, playerId: PLAYERS[0]!.id, vertexKey: placement.vertexKey }],
+          robberTileId: placement.tileId,
+        },
+        players: created.players.map((player) =>
+          player.id === PLAYERS[0]!.id
+            ? {
+                ...player,
+                piecesRemaining: {
+                  ...player.piecesRemaining,
+                  cities: kind === "city" ? 3 : 4,
+                  settlements: kind === "settlement" ? 4 : 5,
+                },
+                victoryPoints: kind === "city" ? 2 : 1,
+              }
+            : player,
+        ),
+      };
+
+      const next = distributeResourcesForRoll(state, placement.rollTotal);
+
+      expect(next.players[0]!.resources).toEqual(emptyInventory());
+      expect(next.bank).toEqual(created.bank);
+      expectConservedState(next);
+    }
   });
 });
 

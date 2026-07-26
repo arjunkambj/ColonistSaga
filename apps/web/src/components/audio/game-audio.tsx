@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import {
-  getEventSound,
+  getViewerEventSound,
   shouldPlayVictory,
   SOUND_EFFECT_PATHS,
   type SoundEffect,
@@ -66,7 +66,13 @@ export function GameAudio({
       return;
     }
 
-    const sound = getEventSound(newestEvent.kind, newestEvent.sequence, phaseKind);
+    const sound = getViewerEventSound(
+      newestEvent.kind,
+      newestEvent.sequence,
+      phaseKind,
+      newestEvent.actorPlayerId,
+      viewerPlayerId,
+    );
     if (sound) {
       playSound(sound);
     }

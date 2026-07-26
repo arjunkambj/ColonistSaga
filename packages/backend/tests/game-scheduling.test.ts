@@ -11,7 +11,7 @@ import type { GameState } from "@colonistsaga/game";
 import { scheduleNextAutomatedAction } from "../convex/model/gameState";
 import {
   BOT_ACTION_DELAY_MS,
-  isScheduledActionDue,
+  isScheduledActionCurrentAndDue,
   logicalTurnId,
   nextScheduledActionAt,
   nextTurnDeadlineAt,
@@ -42,8 +42,24 @@ describe("game scheduling", () => {
 
     expect(firstActionAt).toBe(10_000 + BOT_ACTION_DELAY_MS);
     expect(secondActionAt).toBe(firstActionAt! + BOT_ACTION_DELAY_MS);
-    expect(isScheduledActionDue(firstActionAt, firstActionAt!, firstActionAt!)).toBe(true);
-    expect(isScheduledActionDue(secondActionAt, firstActionAt!, secondActionAt!)).toBe(false);
+    expect(
+      isScheduledActionCurrentAndDue({
+        currentActionAt: firstActionAt,
+        currentActionNumber: 4,
+        expectedActionNumber: 4,
+        now: firstActionAt!,
+        scheduledFor: firstActionAt,
+      }),
+    ).toBe(true);
+    expect(
+      isScheduledActionCurrentAndDue({
+        currentActionAt: secondActionAt,
+        currentActionNumber: 5,
+        expectedActionNumber: 4,
+        now: secondActionAt!,
+        scheduledFor: firstActionAt,
+      }),
+    ).toBe(false);
   });
 
   test("a required bot action does not outlive the active turn deadline", () => {
@@ -157,11 +173,59 @@ describe("game scheduling", () => {
     expect(afterRollDeadline).toBe(firstTurnDeadline);
   });
 
-  test("legacy jobs use the current due deadline while stale and future jobs do not", () => {
-    expect(isScheduledActionDue(10_000, undefined, 10_000)).toBe(true);
-    expect(isScheduledActionDue(10_000, undefined, 9_999)).toBe(false);
-    expect(isScheduledActionDue(20_000, 10_000, 20_000)).toBe(false);
-    expect(isScheduledActionDue(20_000, 20_000, 19_999)).toBe(false);
+  test("the first committed action wins the deadline race", () => {
+    const scheduledAction = {
+      currentActionAt: 10_000,
+      expectedActionNumber: 4,
+      now: 10_000,
+      scheduledFor: 10_000,
+    };
+
+    expect(isScheduledActionCurrentAndDue({ ...scheduledAction, currentActionNumber: 4 })).toBe(
+      true,
+    );
+    expect(isScheduledActionCurrentAndDue({ ...scheduledAction, currentActionNumber: 5 })).toBe(
+      false,
+    );
+  });
+
+  test("legacy, stale, and early scheduled jobs are distinguished", () => {
+    expect(
+      isScheduledActionCurrentAndDue({
+        currentActionAt: 10_000,
+        currentActionNumber: 4,
+        expectedActionNumber: 4,
+        now: 10_000,
+        scheduledFor: undefined,
+      }),
+    ).toBe(true);
+    expect(
+      isScheduledActionCurrentAndDue({
+        currentActionAt: 10_000,
+        currentActionNumber: 4,
+        expectedActionNumber: 4,
+        now: 9_999,
+        scheduledFor: undefined,
+      }),
+    ).toBe(false);
+    expect(
+      isScheduledActionCurrentAndDue({
+        currentActionAt: 20_000,
+        currentActionNumber: 4,
+        expectedActionNumber: 4,
+        now: 20_000,
+        scheduledFor: 10_000,
+      }),
+    ).toBe(false);
+    expect(
+      isScheduledActionCurrentAndDue({
+        currentActionAt: 20_000,
+        currentActionNumber: 4,
+        expectedActionNumber: 4,
+        now: 19_999,
+        scheduledFor: 20_000,
+      }),
+    ).toBe(false);
   });
 
   test("controller changes recompute turn ownership without duplicating an unchanged job", async () => {

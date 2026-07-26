@@ -2,7 +2,6 @@ import { DEFAULT_BASE_GAME_SETTINGS, applyCommand as applyGameCommand } from "@c
 import type { GameCommand } from "@colonistsaga/game";
 import { ConvexError, v } from "convex/values";
 
-import { earliestActionDeadlineAt, isActionDeadlineExpired } from "../lib/game-scheduling";
 import { mutation } from "./_generated/server";
 import { requireCurrentHexclaveUser } from "./hexclave/auth";
 import { commandText, serializeCommand, validateCommandBounds } from "./model/commands";
@@ -122,14 +121,9 @@ export const applyCommand = mutation({
       );
     }
     if (state.status === "completed") fail("GAME_ALREADY_FINISHED", "Game has already finished.");
-    if (
-      isActionDeadlineExpired(
-        earliestActionDeadlineAt(game.nextActionAt, game.turnDeadlineAt),
-        Date.now(),
-      )
-    ) {
-      fail("ACTION_DEADLINE_PASSED", "The scheduled action deadline has passed.");
-    }
+
+    // The timeout mutation competes through this same revision. Rejecting on wall-clock time
+    // creates a dead zone when scheduler delivery is delayed; the first mutation to commit wins.
 
     let nextState;
     try {

@@ -6,8 +6,22 @@ import { commandEventKind, commandText, parseCommandKind } from "../convex/model
 import { commandValidator } from "../convex/model/validators";
 
 describe("game command boundary", () => {
-  test("does not accept the removed development-card purchase command", () => {
-    expect(JSON.stringify(commandValidator)).not.toContain("buy_development_card");
+  test("accepts and describes development-card purchases", () => {
+    expect(JSON.stringify(commandValidator)).toContain("buy_development_card");
+    const state = createDefaultGame(
+      Array.from({ length: 3 }, (_, index) => ({
+        displayName: `Player ${index + 1}`,
+        id: `player-${index + 1}`,
+        isBot: true,
+      })),
+      "development-card-event",
+    );
+    const command: GameCommand = { kind: "buy_development_card" };
+
+    expect(commandEventKind(command, state, state)).toBe("buy_development_card");
+    expect(commandText(command, "Player 1", state, state)).toBe(
+      "Player 1 bought a development card.",
+    );
   });
 
   test("reads the command kind used by presentation event cues", () => {

@@ -61,9 +61,7 @@ const MUSIC_ASSETS = [
 
 const SOUND_EFFECT_DEFINITIONS = [
   ["Action feedback", "Generic game action confirmation.", "action"],
-  ["Dice roll I", "First tactile dice-roll variation.", "dice1"],
-  ["Dice roll II", "Second tactile dice-roll variation.", "dice2"],
-  ["Dice roll III", "Third tactile dice-roll variation.", "dice3"],
+  ["Magic dice", "Cushioned arcane roll.", "dice"],
   ["Your turn", "Notification when your turn begins.", "turn"],
   ["Turn reminder", "Gentle reminder when your turn has been idle.", "turnReminder"],
   ["Resource change", "Resource gain or loss cue.", "resource"],
@@ -71,7 +69,7 @@ const SOUND_EFFECT_DEFINITIONS = [
   ["Settlement placed", "Warm settlement placement cue.", "settlement"],
   ["City placed", "Weightier city upgrade cue.", "city"],
   ["Robber alert", "Robber sequence warning.", "robber"],
-  ["Trade resolved", "Completed trade confirmation.", "trade"],
+  ["Trade resolved", "Soft resource exchange.", "trade"],
   ["Victory", "Match-winning celebration.", "victory"],
 ] satisfies readonly (readonly [name: string, description: string, sound: SoundEffect])[];
 
@@ -104,9 +102,7 @@ const SOUND_EFFECT_SUBCATEGORIES = [
   {
     name: "Turn flow",
     assets: selectAssets(SOUND_EFFECT_ASSETS, [
-      "Dice roll I",
-      "Dice roll II",
-      "Dice roll III",
+      "Magic dice",
       "Your turn",
       "Turn reminder",
       "Resource change",

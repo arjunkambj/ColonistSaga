@@ -3,13 +3,12 @@
 import { api } from "@colonistsaga/backend/convex/_generated/api";
 import {
   BUILD_COSTS,
+  DEVELOPMENT_CARD_COST,
   RESOURCE_ORDER,
-  emptyInventory,
   type GameCommand,
   type PlayerGameView,
   type PrivatePlayerState,
   type ResourceInventory,
-  type ResourceType,
 } from "@colonistsaga/game";
 import { Button, Modal } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
@@ -38,11 +37,7 @@ import { GameAudio } from "@/components/audio/game-audio";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Brand } from "@/components/ui/brand";
 import { liquidGlassClassName } from "@/components/ui/liquid-glass";
-import {
-  ACTION_CARD_ASSET_PATHS,
-  getCardRuntimeAssetPath,
-  RESOURCE_CARD_ASSET_PATHS,
-} from "@/constants/game/card-assets";
+import { ACTION_CARD_ASSET_PATHS, DEVELOPMENT_DECK_ASSET_PATH } from "@/constants/game/card-assets";
 import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import { getTurnControlKind } from "@/lib/game/game-footer-model";
 import type { RoomEventView } from "@/lib/game/types";
@@ -50,10 +45,13 @@ import { getPhaseCopy } from "@/lib/game/view";
 import type { AudioSettings } from "@/lib/audio-settings";
 
 import { ActionTile } from "./action-tile";
+import { DiscardPanel } from "./discard-panel";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
+import { HandDockProvider } from "./hand-dock";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { PieceIcon } from "./piece-icon";
-import { TradeCenter } from "./trade-center";
+import { ResourceHand } from "./resource-hand";
+import { ActiveTradeOffer, TradeCenter } from "./trade-center";
 
 type GameConfirmation =
   | { kind: "leave" }
@@ -135,10 +133,17 @@ export function GameScreen({
   const me = game.players.find((player): player is PrivatePlayerState => player.isViewer);
   const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
   const winner = game.players.find((player) => player.id === game.winnerPlayerId);
+  const tradeOfferActionNumber = game.tradeOffer?.offerActionNumber;
 
   useEffect(() => {
     setBuildMode(null);
   }, [game.actionNumber, game.phase.kind]);
+
+  useEffect(() => {
+    if (tradeOfferActionNumber !== undefined) {
+      setIsBoardFocused(false);
+    }
+  }, [tradeOfferActionNumber]);
 
   if (!me || !activePlayer) {
     return <UnavailablePlayerView onLeave={onLeave} />;
@@ -305,82 +310,101 @@ export function GameScreen({
         </div>
       </header>
 
-      <aside
-        aria-hidden={isBoardFocused || undefined}
-        aria-label="Table status and game information"
-        className="game-sidebar"
-        inert={isBoardFocused || undefined}
-      >
-        <div
+      <HandDockProvider>
+        <aside
           aria-hidden={isBoardFocused || undefined}
-          className="game-sidebar-panels"
-          id="game-sidebar-panels"
+          aria-label="Table status and game information"
+          className="game-sidebar"
           inert={isBoardFocused || undefined}
         >
-          <EventLog events={events} />
-          <BankPanel bank={game.bank} />
-        </div>
+          <div
+            aria-hidden={isBoardFocused || undefined}
+            className="game-sidebar-panels"
+            id="game-sidebar-panels"
+            inert={isBoardFocused || undefined}
+          >
+            <EventLog events={events} />
+            <BankPanel bank={game.bank} />
+          </div>
 
-        <PlayerStrip
-          activePlayerId={game.activePlayerId}
-          activePhaseLabel={getPhaseStatusLabel(game.phase)}
-          isHost={isHost}
-          onReplacePlayer={requestBotReplacement}
-          pendingReplacementId={pendingReplacementId}
-          players={game.players}
-          viewerProfileImageUrl={viewerProfileImageUrl}
-          victoryTarget={game.settings.victoryPoints}
-        />
-      </aside>
+          {game.tradeOffer ? (
+            <ActiveTradeOffer
+              disabled={pendingCommand !== null}
+              game={game}
+              me={me}
+              onCommand={(command, message) => void sendCommand(command, message)}
+            />
+          ) : null}
 
-      <section className="phase-banner phase-banner-overlay" aria-labelledby="phase-title">
-        <div className="phase-icon" aria-hidden="true">
-          <Icon icon={game.phase.kind === "roll" ? diceIcon : flagIcon} />
-        </div>
-        <div className="phase-copy">
-          <p className="eyebrow">Turn {game.turnNumber}</p>
-          <h1 id="phase-title" ref={phaseHeadingRef} tabIndex={-1}>
-            {phaseCopy.title}
-          </h1>
-          <p>{phaseCopy.detail}</p>
-        </div>
-        <div className="phase-status-tools">
-          <TurnClock botThinking={botThinking} nextActionAt={nextActionAt} />
-          <DiceResult game={game} />
-        </div>
-      </section>
+          <PlayerStrip
+            activePlayerId={game.activePlayerId}
+            activePhaseLabel={getPhaseStatusLabel(game.phase)}
+            isHost={isHost}
+            onReplacePlayer={requestBotReplacement}
+            pendingReplacementId={pendingReplacementId}
+            players={game.players}
+            viewerProfileImageUrl={viewerProfileImageUrl}
+            victoryTarget={game.settings.victoryPoints}
+          />
+        </aside>
 
-      <GameBoard
-        buildMode={buildMode}
-        game={game}
-        onCancelBuildMode={() => setBuildMode(null)}
-        onCommand={(command, message) => void sendCommand(command, message)}
-        onPlacementExit={restorePlacementFocus}
-        pending={pendingCommand !== null}
-      />
+        <section className="phase-banner phase-banner-overlay" aria-labelledby="phase-title">
+          <div className="phase-icon" aria-hidden="true">
+            <Icon icon={game.phase.kind === "roll" ? diceIcon : flagIcon} />
+          </div>
+          <div className="phase-copy">
+            <p className="eyebrow">Turn {game.turnNumber}</p>
+            <h1 id="phase-title" ref={phaseHeadingRef} tabIndex={-1}>
+              {phaseCopy.title}
+            </h1>
+            <p>{phaseCopy.detail}</p>
+          </div>
+          <div className="phase-status-tools">
+            <TurnClock botThinking={botThinking} nextActionAt={nextActionAt} />
+            <DiceResult game={game} />
+          </div>
+        </section>
 
-      <footer
-        aria-hidden={isBoardFocused || undefined}
-        className="game-footer game-footer--three-sections"
-        inert={isBoardFocused || undefined}
-      >
-        <ResourceHand me={me} />
-
-        <ActionDock
+        <GameBoard
           buildMode={buildMode}
           game={game}
-          me={me}
-          onBuildMode={setBuildMode}
+          onCancelBuildMode={() => setBuildMode(null)}
           onCommand={(command, message) => void sendCommand(command, message)}
+          onPlacementExit={restorePlacementFocus}
           pending={pendingCommand !== null}
         />
 
-        <TurnControl
-          game={game}
-          onCommand={(command, message) => void sendCommand(command, message)}
-          pending={pendingCommand !== null}
-        />
-      </footer>
+        <footer
+          aria-hidden={isBoardFocused || undefined}
+          className="game-footer game-footer--three-sections"
+          inert={isBoardFocused || undefined}
+        >
+          <ResourceHand actionNumber={game.actionNumber} me={me} />
+
+          <ActionDock
+            buildMode={buildMode}
+            game={game}
+            me={me}
+            onBuildMode={setBuildMode}
+            onCommand={(command, message) => void sendCommand(command, message)}
+            pending={pendingCommand !== null}
+          />
+
+          <TurnControl
+            game={game}
+            onCommand={(command, message) => void sendCommand(command, message)}
+            pending={pendingCommand !== null}
+          />
+        </footer>
+        {game.legalActions.discardCount === null ? null : (
+          <DiscardPanel
+            count={game.legalActions.discardCount}
+            me={me}
+            onCommand={(command, message) => void sendCommand(command, message)}
+            pending={pendingCommand !== null}
+          />
+        )}
+      </HandDockProvider>
 
       {gameInfoView ? (
         <MobileGameInfo
@@ -775,7 +799,9 @@ function MobileGameInfo({
                   </li>
                   <li>
                     <strong>Trade and build</strong>
-                    <span>Exchange cards, then choose a piece and a glowing board target.</span>
+                    <span>
+                      Trade, buy development cards, or choose a piece and a glowing board target.
+                    </span>
                   </li>
                   <li>
                     <strong>Keep settlements apart</strong>
@@ -860,98 +886,6 @@ function MobileGameInfo({
   );
 }
 
-function GameCardArtwork({
-  className,
-  path,
-  sizes,
-}: {
-  className: string;
-  path: string;
-  sizes: string;
-}) {
-  return (
-    <Image
-      alt=""
-      className={className}
-      data-card-asset={path}
-      draggable={false}
-      height={768}
-      loading="eager"
-      sizes={sizes}
-      src={getCardRuntimeAssetPath(path)}
-      width={512}
-    />
-  );
-}
-
-function ResourceHand({ me }: { me: PrivatePlayerState }) {
-  const resourceListRef = useRef<HTMLUListElement>(null);
-  const [resourceListOverflows, setResourceListOverflows] = useState(false);
-
-  useEffect(() => {
-    const resourceList = resourceListRef.current;
-    if (!resourceList) {
-      return;
-    }
-
-    const updateOverflow = () =>
-      setResourceListOverflows(resourceList.scrollWidth > resourceList.clientWidth + 1);
-    const resizeObserver =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateOverflow);
-    resizeObserver?.observe(resourceList);
-    window.addEventListener("resize", updateOverflow, { passive: true });
-    updateOverflow();
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", updateOverflow);
-    };
-  }, []);
-
-  return (
-    <section aria-labelledby="resource-hand-title" className="resource-hand">
-      <div className="hand-heading">
-        <p className="eyebrow">Private Hand</p>
-        <h2 id="resource-hand-title">Your Resources</h2>
-        <span>{me.resourceCount} resources</span>
-      </div>
-      <ul
-        aria-label={
-          resourceListOverflows
-            ? "Your resource cards. Use the left and right arrow keys to scroll."
-            : undefined
-        }
-        className="resource-card-list"
-        ref={resourceListRef}
-        tabIndex={resourceListOverflows ? 0 : undefined}
-      >
-        {RESOURCE_ORDER.map((resource) => (
-          <li
-            aria-label={`${RESOURCE_LABELS[resource]}: ${me.resources[resource]}`}
-            className={`resource-card resource-card-face resource-${resource}`}
-            key={resource}
-          >
-            <span className="resource-card-art" aria-hidden="true">
-              <GameCardArtwork
-                className="resource-card-image"
-                path={RESOURCE_CARD_ASSET_PATHS[resource]}
-                sizes="4.5rem"
-              />
-            </span>
-            <span className="resource-card-copy">
-              <span className="resource-card-label">{RESOURCE_LABELS[resource]}</span>
-              <span className="resource-card-quantity">
-                <strong>{me.resources[resource]}</strong>
-                <small>{me.resources[resource] === 1 ? "card" : "cards"}</small>
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 function ActionDock({
   buildMode,
   game,
@@ -982,7 +916,17 @@ function ActionDock({
 
   if (legal.discardCount !== null) {
     return (
-      <DiscardPanel count={legal.discardCount} me={me} onCommand={onCommand} pending={pending} />
+      <BuildingActionsDock
+        buildMode={buildMode}
+        disabledReasonOverride={`Return ${legal.discardCount} resource ${
+          legal.discardCount === 1 ? "card" : "cards"
+        } from your hand`}
+        game={game}
+        me={me}
+        onBuildMode={onBuildMode}
+        onCommand={onCommand}
+        pending={pending}
+      />
     );
   }
 
@@ -1021,7 +965,12 @@ function ActionDock({
         <Icon aria-hidden="true" icon={moveIcon} />
         <div>
           <strong>Move the Robber</strong>
-          <span>Choose any glowing terrain tile on the board.</span>
+          <span>Choose a glowing hex, not a house.</span>
+          <span>
+            {game.settings.friendlyRobber
+              ? "Friendly Robber protects players with 2 or fewer visible victory points."
+              : "That hex will not produce resources while the robber remains."}
+          </span>
         </div>
       </section>
     );
@@ -1116,6 +1065,14 @@ function BuildingActionsDock({
       piecesRemaining: me.piecesRemaining.cities,
       resources: me.resources,
     });
+  const developmentCardDisabledReason =
+    disabledReasonOverride ??
+    getDevelopmentCardDisabledReason({
+      canBuy: legal.canBuyDevelopmentCard,
+      pending,
+      resources: me.resources,
+      supply: game.developmentCardSupply,
+    });
   return (
     <section
       aria-labelledby="building-actions-title"
@@ -1123,7 +1080,10 @@ function BuildingActionsDock({
     >
       <div className="action-heading">
         <strong id="building-actions-title">Build & Trade</strong>
-        <span>{disabledReasonOverride ?? "Select a piece, then choose a glowing target."}</span>
+        <span>
+          {disabledReasonOverride ??
+            "Buy a card, trade, or select a piece and choose a glowing target."}
+        </span>
       </div>
       <TradeCenter
         disabled={pending || disabledReasonOverride !== undefined}
@@ -1132,6 +1092,12 @@ function BuildingActionsDock({
         onCommand={onCommand}
       />
       <div className="action-group build-actions">
+        <DevelopmentCardAction
+          disabledReason={developmentCardDisabledReason}
+          onPress={() => onCommand({ kind: "buy_development_card" }, "Development card purchased.")}
+          resources={me.resources}
+          supply={game.developmentCardSupply}
+        />
         <BuildAction
           active={buildMode === "road"}
           asset="road"
@@ -1283,6 +1249,60 @@ function UnavailablePlayerView({ onLeave }: { onLeave(): Promise<void> }) {
           title="Leave this game?"
         />
       ) : null}
+    </>
+  );
+}
+
+function DevelopmentCardAction({
+  disabledReason,
+  onPress,
+  resources,
+  supply,
+}: {
+  disabledReason: string | null;
+  onPress(): void;
+  resources: Readonly<ResourceInventory>;
+  supply: number;
+}) {
+  const descriptionId = "buy-development-card-description";
+  const costResources = getCostResources(DEVELOPMENT_CARD_COST);
+
+  return (
+    <>
+      <ActionTile
+        ariaDescribedBy={descriptionId}
+        ariaLabel={disabledReason ? "Buy development card unavailable" : "Buy development card"}
+        art={
+          <Image
+            alt=""
+            className="action-art"
+            draggable={false}
+            height={512}
+            loading="eager"
+            sizes="4rem"
+            src={DEVELOPMENT_DECK_ASSET_PATH}
+            width={512}
+          />
+        }
+        caption={
+          <span className={`build-action-status${disabledReason ? " is-blocked" : ""}`}>
+            {getBuildStatusLabel(disabledReason)}
+          </span>
+        }
+        count={supply}
+        kind="development-card"
+        meta={<CostSummary cost={DEVELOPMENT_CARD_COST} resources={resources} />}
+        onPress={disabledReason ? () => undefined : onPress}
+        title="Dev Card"
+        unavailable={disabledReason !== null}
+      />
+      <span className="sr-only" id={descriptionId}>
+        {supply} development {supply === 1 ? "card" : "cards"} remaining. Cost:{" "}
+        {costResources
+          .map((resource) => `${DEVELOPMENT_CARD_COST[resource]} ${RESOURCE_LABELS[resource]}`)
+          .join(", ")}
+        .{disabledReason ? ` ${disabledReason}.` : ""}
+      </span>
     </>
   );
 }
@@ -1460,17 +1480,48 @@ function getBuildDisabledReason({
     return `No ${piecePlural} remaining`;
   }
 
-  const missingResources = RESOURCE_ORDER.flatMap((resource) => {
-    const missingCount = Math.max(0, cost[resource] - resources[resource]);
-    return missingCount > 0 ? [`${missingCount} ${RESOURCE_LABELS[resource]}`] : [];
-  });
-  if (missingResources.length > 0) {
-    return `Need ${missingResources.join(", ")}`;
+  const missingResourcesReason = getMissingResourcesReason(cost, resources);
+  if (missingResourcesReason) {
+    return missingResourcesReason;
   }
   if (legalTargetCount === 0) {
     return `No legal ${pieceLabel} location`;
   }
   return null;
+}
+
+function getDevelopmentCardDisabledReason({
+  canBuy,
+  pending,
+  resources,
+  supply,
+}: {
+  canBuy: boolean;
+  pending: boolean;
+  resources: Readonly<ResourceInventory>;
+  supply: number;
+}): string | null {
+  if (pending) {
+    return "Action in progress…";
+  }
+  if (supply <= 0) {
+    return "No development cards remaining";
+  }
+  return (
+    getMissingResourcesReason(DEVELOPMENT_CARD_COST, resources) ??
+    (canBuy ? null : "Unavailable right now")
+  );
+}
+
+function getMissingResourcesReason(
+  cost: Readonly<ResourceInventory>,
+  resources: Readonly<ResourceInventory>,
+): string | null {
+  const missingResources = RESOURCE_ORDER.flatMap((resource) => {
+    const missingCount = Math.max(0, cost[resource] - resources[resource]);
+    return missingCount > 0 ? [`${missingCount} ${RESOURCE_LABELS[resource]}`] : [];
+  });
+  return missingResources.length > 0 ? `Need ${missingResources.join(", ")}` : null;
 }
 
 function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {
@@ -1552,73 +1603,6 @@ function getPhaseStatusLabel(phase: PlayerGameView["phase"]): string {
     case "finished":
       return "Game complete";
   }
-}
-
-function DiscardPanel({
-  count,
-  me,
-  onCommand,
-  pending,
-}: {
-  count: number;
-  me: PrivatePlayerState;
-  onCommand(command: GameCommand, message: string): void;
-  pending: boolean;
-}) {
-  const [selection, setSelection] = useState<ResourceInventory>(() => emptyInventory());
-  const selectedCount = RESOURCE_ORDER.reduce((total, resource) => total + selection[resource], 0);
-
-  const update = (resource: ResourceType, change: number) => {
-    setSelection((current) => ({
-      ...current,
-      [resource]: Math.max(0, Math.min(me.resources[resource], current[resource] + change)),
-    }));
-  };
-
-  return (
-    <section className="action-dock discard-dock" aria-label="Discard resources">
-      <div className="action-heading">
-        <strong>Return {count} Resources</strong>
-        <span>{selectedCount} selected</span>
-      </div>
-      <div className="discard-resources">
-        {RESOURCE_ORDER.map((resource) => (
-          <div key={resource}>
-            <ResourceIcon decorative resource={resource} size={32} />
-            <span>{RESOURCE_LABELS[resource]}</span>
-            <Button
-              aria-label={`Remove one ${RESOURCE_LABELS[resource]}`}
-              isDisabled={pending || selection[resource] === 0}
-              isIconOnly
-              onPress={() => update(resource, -1)}
-              variant="ghost"
-            >
-              −
-            </Button>
-            <strong>{selection[resource]}</strong>
-            <Button
-              aria-label={`Add one ${RESOURCE_LABELS[resource]}`}
-              isDisabled={
-                pending || selectedCount >= count || selection[resource] >= me.resources[resource]
-              }
-              isIconOnly
-              onPress={() => update(resource, 1)}
-              variant="ghost"
-            >
-              +
-            </Button>
-          </div>
-        ))}
-      </div>
-      <Button
-        className="button button-primary"
-        isDisabled={pending || selectedCount !== count}
-        onPress={() => onCommand({ kind: "discard", resources: selection }, "Resources returned.")}
-      >
-        Confirm Discard
-      </Button>
-    </section>
-  );
 }
 
 function WinOverlay({

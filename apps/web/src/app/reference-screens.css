@@ -1631,6 +1631,8 @@
 
 @media (min-width: 1101px) and (min-height: 561px) {
   .game-page.reference-game {
+    --hud-rail: min(26vw, 27rem);
+
     position: relative;
     display: block;
     padding: 0;
@@ -1647,20 +1649,8 @@
     padding: 0 27.4vw 0 0;
     border: 0;
     border-radius: 0;
-    background:
-      radial-gradient(ellipse at 37% 48%, rgba(246, 215, 236, 0.18), transparent 46%),
-      linear-gradient(145deg, rgba(128, 53, 147, 0.42), rgba(65, 24, 78, 0.48)),
-      url("/game-assets/ui/ocean-board-canvas.webp") center / cover no-repeat,
-      #70407f;
-    background-blend-mode: soft-light, color, normal, normal;
-    box-shadow: inset 0 0 9rem rgba(47, 17, 57, 0.22);
-  }
-
-  .reference-game .board-shell::before {
-    background:
-      linear-gradient(rgba(129, 58, 148, 0.06), rgba(72, 28, 87, 0.14)),
-      radial-gradient(ellipse at 38% 49%, rgba(246, 215, 236, 0.18), transparent 43%),
-      linear-gradient(90deg, transparent 64%, rgba(83, 32, 100, 0.1) 76%, rgba(44, 16, 54, 0.22));
+    background: url("/game-assets/ui/ocean-board-canvas.webp") center / cover no-repeat;
+    box-shadow: none;
   }
 
   .reference-game .board-stage {
@@ -1788,7 +1778,7 @@
     right: max(1.25rem, env(safe-area-inset-right));
     bottom: 8.8rem;
     display: grid;
-    width: min(26vw, 27rem);
+    width: var(--hud-rail);
     min-height: 0;
     grid-template-rows: minmax(0, 1.35fr) minmax(18rem, 1fr);
     gap: 0.7rem;
@@ -2224,8 +2214,8 @@
 }
 
 @media (min-width: 1101px) and (max-width: 1240px) and (min-height: 561px) {
-  .reference-game .game-sidebar {
-    width: min(25vw, 19rem);
+  .game-page.reference-game {
+    --hud-rail: min(25vw, 19rem);
   }
 
   .reference-game .board-shell {

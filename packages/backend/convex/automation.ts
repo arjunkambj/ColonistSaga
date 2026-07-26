@@ -1,7 +1,7 @@
 import { applyCommand, chooseAutomatedCommand } from "@colonistsaga/game";
 import { v } from "convex/values";
 
-import { isScheduledActionDue } from "../lib/game-scheduling";
+import { isScheduledActionCurrentAndDue } from "../lib/game-scheduling";
 import { internalMutation } from "./_generated/server";
 import { commandText } from "./model/commands";
 import { fail } from "./model/errors";
@@ -23,8 +23,13 @@ export const runAutomatedAction = internalMutation({
     if (
       !game ||
       game.status !== "active" ||
-      game.revision !== expectedActionNumber ||
-      !isScheduledActionDue(game.nextActionAt, args.scheduledFor, Date.now())
+      !isScheduledActionCurrentAndDue({
+        currentActionAt: game.nextActionAt,
+        currentActionNumber: game.revision,
+        expectedActionNumber,
+        now: Date.now(),
+        scheduledFor: args.scheduledFor,
+      })
     ) {
       return null;
     }
