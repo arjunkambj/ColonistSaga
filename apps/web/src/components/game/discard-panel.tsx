@@ -13,7 +13,7 @@ import { Button } from "@heroui/react";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
-import { getCardRuntimeAssetPath, RESOURCE_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
+import { RESOURCE_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
 
 import { HandDockPortal, useHandDock } from "./hand-dock";
 import { RESOURCE_LABELS } from "./resource-icon";
@@ -144,7 +144,7 @@ export function DiscardPanel({
                       draggable={false}
                       height={768}
                       sizes="2.7rem"
-                      src={getCardRuntimeAssetPath(RESOURCE_CARD_ASSET_PATHS[resource])}
+                      src={RESOURCE_CARD_ASSET_PATHS[resource]}
                       width={512}
                     />
                     <span aria-hidden="true" className={styles.quantity}>

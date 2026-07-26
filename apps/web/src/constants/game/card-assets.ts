@@ -52,15 +52,6 @@ export const DEVELOPMENT_CARD_ASSETS = [
   },
 ] as const;
 
-export function getCardRuntimeAssetPath(sourcePath: string): string {
-  const cardRoot = "/game-assets/cards/";
-  if (!sourcePath.startsWith(cardRoot) || !sourcePath.endsWith(".png")) {
-    throw new Error(`Invalid source card asset path: ${sourcePath}`);
-  }
-
-  return sourcePath.replace(cardRoot, `${cardRoot}runtime/`).replace(/\.png$/, ".webp");
-}
-
-export function getResourceCardRuntimeAssetPath(resource: ResourceType): string {
-  return getCardRuntimeAssetPath(RESOURCE_CARD_ASSET_PATHS[resource]);
+export function getResourceCardAssetPath(resource: ResourceType): string {
+  return RESOURCE_CARD_ASSET_PATHS[resource];
 }

@@ -17,6 +17,7 @@ import {
   subtractResources,
   totalResources,
 } from "./resources";
+import { reconcileLongestRoadAward } from "./longest-road";
 import { getBoardTopology } from "./topology";
 import { GameRuleError, RESOURCE_TYPES } from "./types";
 import type {
@@ -215,14 +216,16 @@ function addBuilding(state: GameState, playerId: PlayerId, vertexKey: string) {
     },
   };
 
-  return updatePlayer(withBuilding, playerId, (player) => ({
-    ...player,
-    piecesRemaining: {
-      ...player.piecesRemaining,
-      settlements: player.piecesRemaining.settlements - 1,
-    },
-    victoryPoints: player.victoryPoints + 1,
-  }));
+  return reconcileLongestRoadAward(
+    updatePlayer(withBuilding, playerId, (player) => ({
+      ...player,
+      piecesRemaining: {
+        ...player.piecesRemaining,
+        settlements: player.piecesRemaining.settlements - 1,
+      },
+      victoryPoints: player.victoryPoints + 1,
+    })),
+  );
 }
 
 function addRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
@@ -234,13 +237,15 @@ function addRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
     },
   };
 
-  return updatePlayer(withRoad, playerId, (player) => ({
-    ...player,
-    piecesRemaining: {
-      ...player.piecesRemaining,
-      roads: player.piecesRemaining.roads - 1,
-    },
-  }));
+  return reconcileLongestRoadAward(
+    updatePlayer(withRoad, playerId, (player) => ({
+      ...player,
+      piecesRemaining: {
+        ...player.piecesRemaining,
+        roads: player.piecesRemaining.roads - 1,
+      },
+    })),
+  );
 }
 
 function grantSecondSettlementResources(state: GameState, playerId: PlayerId, vertexKey: string) {
@@ -404,7 +409,10 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
     fail("ROAD_NOT_CONNECTED", "Road must connect to the player's network");
   }
 
-  return addRoad(payCost(state, playerId, BUILD_COSTS.road), playerId, edgeKey);
+  return finishIfWinner(
+    addRoad(payCost(state, playerId, BUILD_COSTS.road), playerId, edgeKey),
+    playerId,
+  );
 }
 
 function buildCity(state: GameState, playerId: PlayerId, vertexKey: string) {

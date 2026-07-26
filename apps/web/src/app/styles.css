@@ -4231,7 +4231,7 @@ select {
 .piece-icon > .piece-color {
   background: var(--player-color);
   mask: var(--piece-mask) center / contain no-repeat;
-  mix-blend-mode: color;
+  mix-blend-mode: multiply;
   opacity: 1;
 }
 

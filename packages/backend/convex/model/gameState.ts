@@ -4,6 +4,8 @@ import {
   assertGameState,
   createDevelopmentDeck,
   createDefaultGame,
+  getLongestRoadPlayerId,
+  LONGEST_ROAD_VICTORY_POINTS,
   getRequiredPlayerIds,
   toPlayerView,
 } from "@colonistsaga/game";
@@ -71,13 +73,19 @@ function canonicalizeStoredGameState(value: unknown): unknown {
     return value;
   }
   const stored = value as Record<string, unknown>;
-  if (stored.version === 3 || (stored.version !== 1 && stored.version !== 2)) {
+  if (stored.version === 3) {
+    if ("longestRoadPlayerId" in stored) {
+      return stored;
+    }
+    return addLongestRoadAward(stored);
+  }
+  if (stored.version !== 1 && stored.version !== 2) {
     return stored;
   }
 
   const canonical: Record<string, unknown> = { ...stored, version: 3 };
   if (!Array.isArray(canonical.players)) {
-    return canonical;
+    return addLongestRoadAward(canonical);
   }
 
   if (stored.version === 2) {
@@ -140,7 +148,48 @@ function canonicalizeStoredGameState(value: unknown): unknown {
     );
   }
 
-  return canonical;
+  return addLongestRoadAward(canonical);
+}
+
+function addLongestRoadAward(state: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(state.players)) {
+    return state;
+  }
+
+  const playerIds = state.players.flatMap((player) =>
+    typeof player === "object" &&
+    player !== null &&
+    !Array.isArray(player) &&
+    typeof player.id === "string"
+      ? [player.id]
+      : [],
+  );
+  const longestRoadPlayerId = getLongestRoadPlayerId(
+    state.board as GameState["board"],
+    playerIds,
+    null,
+  );
+
+  return {
+    ...state,
+    longestRoadPlayerId,
+    players: state.players.map((player) => {
+      if (
+        longestRoadPlayerId === null ||
+        typeof player !== "object" ||
+        player === null ||
+        Array.isArray(player) ||
+        player.id !== longestRoadPlayerId ||
+        typeof player.victoryPoints !== "number"
+      ) {
+        return player;
+      }
+      return {
+        ...player,
+        victoryPoints: player.victoryPoints + LONGEST_ROAD_VICTORY_POINTS,
+      };
+    }),
+  };
 }
 
 export function parseGameState(stateJson: string): GameState {

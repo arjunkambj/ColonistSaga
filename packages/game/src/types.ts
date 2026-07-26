@@ -195,6 +195,7 @@ export interface GameState {
   board: BoardState;
   developmentDeck: DevelopmentCardType[];
   lastDiceRoll: DiceRoll | null;
+  longestRoadPlayerId: PlayerId | null;
   phase: GamePhase;
   players: PlayerState[];
   randomIndex: number;

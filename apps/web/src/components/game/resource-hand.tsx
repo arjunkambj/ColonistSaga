@@ -12,7 +12,6 @@ import { type CSSProperties, type AnimationEvent, useEffect, useRef, useState } 
 
 import {
   DEVELOPMENT_CARD_ASSETS,
-  getCardRuntimeAssetPath,
   RESOURCE_CARD_ASSET_PATHS,
 } from "@/constants/game/card-assets";
 import { getResourceCardChanges, type ResourceCardChange } from "@/lib/game/resource-card-changes";
@@ -77,7 +76,7 @@ function GameCardArtwork({
       height={768}
       loading="eager"
       sizes={sizes}
-      src={getCardRuntimeAssetPath(path)}
+      src={path}
       width={512}
     />
   );

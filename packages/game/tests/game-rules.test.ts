@@ -134,7 +134,9 @@ function expectConservedState(state: GameState) {
     expect(player.piecesRemaining.settlements + settlementCount).toBe(5);
     expect(player.piecesRemaining.cities + cityCount).toBe(4);
     expect(player.piecesRemaining.roads + roadCount).toBe(15);
-    expect(player.victoryPoints).toBe(settlementCount + cityCount * 2);
+    expect(player.victoryPoints).toBe(
+      settlementCount + cityCount * 2 + (state.longestRoadPlayerId === player.id ? 2 : 0),
+    );
   }
 
   for (const resource of RESOURCE_TYPES) {

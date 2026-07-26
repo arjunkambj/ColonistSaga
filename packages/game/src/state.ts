@@ -140,6 +140,7 @@ export function createDefaultGame(
     board: createBoard(settings.map, seed),
     developmentDeck: createDevelopmentDeck(seed),
     lastDiceRoll: null,
+    longestRoadPlayerId: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
     players: players.map((player, seatIndex) => {
       const botDifficulty = botDifficultyFor(player);

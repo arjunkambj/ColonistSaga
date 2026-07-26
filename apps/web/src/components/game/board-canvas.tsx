@@ -21,7 +21,7 @@ import {
   PORT_SKIFF_ASSET_PATH,
   getTerrainAssetPath,
 } from "@/constants/game/board-assets";
-import { getResourceCardRuntimeAssetPath } from "@/constants/game/card-assets";
+import { getResourceCardAssetPath } from "@/constants/game/card-assets";
 import {
   BOARD_CANVAS,
   getEdgePlacement,
@@ -245,7 +245,7 @@ async function renderStaticScene(
 ) {
   const terrainPaths = scene.tiles.map((tile) => getTerrainAssetPath(tile.terrain));
   const portResourcePaths = scene.ports.flatMap((port) =>
-    port.trade === "any" ? [] : [getResourceCardRuntimeAssetPath(port.trade)],
+    port.trade === "any" ? [] : [getResourceCardAssetPath(port.trade)],
   );
   const images = await loadImages([
     ISLAND_SHELF_ASSET_PATH,
@@ -468,7 +468,7 @@ function drawPorts(
       images.get(PORT_SKIFF_ASSET_PATH) ?? null,
       port.trade === "any"
         ? null
-        : (images.get(getResourceCardRuntimeAssetPath(port.trade)) ?? null),
+        : (images.get(getResourceCardAssetPath(port.trade)) ?? null),
     );
   }
 }
@@ -816,10 +816,10 @@ function getTintedPieceCanvas(
     return canvas;
   }
 
-  // The color blend keeps the modeled light and shadow from the source asset
-  // while replacing its beige material color with the player's actual color.
+  // Multiply preserves the modeled clay lighting while keeping player colors
+  // rich enough to distinguish at the board's smallest rendered sizes.
   context.drawImage(image, 0, 0);
-  context.globalCompositeOperation = "color";
+  context.globalCompositeOperation = "multiply";
   context.fillStyle = color;
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.globalCompositeOperation = "destination-in";

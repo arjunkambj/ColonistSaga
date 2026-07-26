@@ -1,5 +1,6 @@
 import { getGameMapDefinition, mapSupportsPlayerCount } from "./maps";
 import { BANK_RESOURCE_COUNT, DEVELOPMENT_CARD_DECK, INITIAL_PIECES } from "./constants";
+import { LONGEST_ROAD_VICTORY_POINTS, getLongestRoadPlayerId } from "./longest-road";
 import { getBoardTopology, getTileId } from "./topology";
 import {
   DEVELOPMENT_CARD_TYPES,
@@ -451,6 +452,7 @@ function validateBoard(
 function validatePieceAndScoreConservation(
   players: ValidatedPlayers,
   board: ValidatedBoard,
+  longestRoadPlayerId: PlayerId | null,
   path: string,
 ): void {
   for (const [playerId, player] of players.records) {
@@ -464,9 +466,15 @@ function validatePieceAndScoreConservation(
     ) {
       invalid(`${path}.${playerId}.piecesRemaining`, "does not match pieces placed on the board");
     }
-    const buildingVictoryPoints = buildings.settlements + buildings.cities * 2;
-    if (player.victoryPoints !== buildingVictoryPoints) {
-      invalid(`${path}.${playerId}.victoryPoints`, "does not match the player's buildings");
+    const publicVictoryPoints =
+      buildings.settlements +
+      buildings.cities * 2 +
+      (playerId === longestRoadPlayerId ? LONGEST_ROAD_VICTORY_POINTS : 0);
+    if (player.victoryPoints !== publicVictoryPoints) {
+      invalid(
+        `${path}.${playerId}.victoryPoints`,
+        "does not match the player's buildings and awards",
+      );
     }
   }
 }
@@ -581,7 +589,19 @@ function validateSharedGame(
   nonNegativeInteger(game.actionNumber, `${path}.actionNumber`);
   validatePlayerId(game.activePlayerId, players.ids, `${path}.activePlayerId`);
   const board = validateBoard(game.board, settings.map, players.ids, `${path}.board`);
-  validatePieceAndScoreConservation(players, board, `${path}.players`);
+  const longestRoadPlayerId =
+    game.longestRoadPlayerId === null
+      ? null
+      : validatePlayerId(game.longestRoadPlayerId, players.ids, `${path}.longestRoadPlayerId`);
+  const expectedLongestRoadPlayerId = getLongestRoadPlayerId(
+    game.board as unknown as GameState["board"],
+    [...players.ids],
+    longestRoadPlayerId,
+  );
+  if (longestRoadPlayerId !== expectedLongestRoadPlayerId) {
+    invalid(`${path}.longestRoadPlayerId`, "does not match the board's longest road");
+  }
+  validatePieceAndScoreConservation(players, board, longestRoadPlayerId, `${path}.players`);
   if (game.lastDiceRoll !== null) {
     validateDiceRoll(game.lastDiceRoll, `${path}.lastDiceRoll`);
   }

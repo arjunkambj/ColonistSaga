@@ -1,5 +1,8 @@
 import { getBoardTopology } from "./topology";
-import type { BoardState, PlayerId } from "./types";
+import type { BoardState, GameState, PlayerId } from "./types";
+
+export const LONGEST_ROAD_MINIMUM_LENGTH = 5;
+export const LONGEST_ROAD_VICTORY_POINTS = 2;
 
 export function getLongestRoadLength(board: BoardState, playerId: PlayerId): number {
   const topology = getBoardTopology(board.tiles);
@@ -53,4 +56,54 @@ export function getLongestRoadLength(board: BoardState, playerId: PlayerId): num
   }
 
   return longestLength;
+}
+
+export function getLongestRoadPlayerId(
+  board: BoardState,
+  playerIds: readonly PlayerId[],
+  currentPlayerId: PlayerId | null,
+): PlayerId | null {
+  const lengths = playerIds.map((playerId) => ({
+    length: getLongestRoadLength(board, playerId),
+    playerId,
+  }));
+  const longestLength = Math.max(0, ...lengths.map(({ length }) => length));
+
+  if (longestLength < LONGEST_ROAD_MINIMUM_LENGTH) {
+    return null;
+  }
+
+  const leaders = lengths
+    .filter(({ length }) => length === longestLength)
+    .map(({ playerId }) => playerId);
+
+  if (currentPlayerId && leaders.includes(currentPlayerId)) {
+    return currentPlayerId;
+  }
+
+  return leaders.length === 1 ? leaders[0]! : null;
+}
+
+export function reconcileLongestRoadAward(state: GameState): GameState {
+  const longestRoadPlayerId = getLongestRoadPlayerId(
+    state.board,
+    state.players.map(({ id }) => id),
+    state.longestRoadPlayerId,
+  );
+
+  if (longestRoadPlayerId === state.longestRoadPlayerId) {
+    return state;
+  }
+
+  return {
+    ...state,
+    longestRoadPlayerId,
+    players: state.players.map((player) => ({
+      ...player,
+      victoryPoints:
+        player.victoryPoints -
+        (player.id === state.longestRoadPlayerId ? LONGEST_ROAD_VICTORY_POINTS : 0) +
+        (player.id === longestRoadPlayerId ? LONGEST_ROAD_VICTORY_POINTS : 0),
+    })),
+  };
 }

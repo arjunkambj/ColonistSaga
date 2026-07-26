@@ -37,7 +37,17 @@ describe("stored game-state parsing", () => {
     const parsed = parseGameState(serializedGame());
     expect(parsed.version).toBe(3);
     expect(parsed.developmentDeck).toHaveLength(25);
+    expect(parsed.longestRoadPlayerId).toBeNull();
     expect(parsed.players.map((player) => player.id)).toEqual(["one", "two", "three"]);
+  });
+
+  test("adds the longest-road holder field to existing version 3 games", () => {
+    const stored = JSON.parse(serializedGame()) as Record<string, unknown>;
+    delete stored.longestRoadPlayerId;
+
+    const parsed = parseGameState(JSON.stringify(stored));
+
+    expect(parsed.longestRoadPlayerId).toBeNull();
   });
 
   test("preserves valid version 1 cards without changing conserved resources", () => {
