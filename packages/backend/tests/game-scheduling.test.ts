@@ -192,6 +192,26 @@ describe("game scheduling", () => {
     );
   });
 
+  test("one human timeout remains valid across commands in the same logical turn", () => {
+    const scheduledAction = {
+      currentActionAt: 10_000,
+      currentActionNumber: 5,
+      currentTurnId: "turn:2:human",
+      expectedActionNumber: 4,
+      expectedTurnId: "turn:2:human",
+      now: 10_000,
+      scheduledFor: 10_000,
+    };
+
+    expect(isScheduledActionCurrentAndDue(scheduledAction)).toBe(true);
+    expect(
+      isScheduledActionCurrentAndDue({
+        ...scheduledAction,
+        currentTurnId: "turn:3:human",
+      }),
+    ).toBe(false);
+  });
+
   test("legacy, stale, and early scheduled jobs are distinguished", () => {
     expect(
       isScheduledActionCurrentAndDue({
@@ -273,6 +293,43 @@ describe("game scheduling", () => {
     );
 
     expect(schedule).toEqual({ nextActionAt: 50_000, turnDeadlineAt: undefined });
+    expect(scheduledAt).toEqual([]);
+  });
+
+  test("human commands in one turn do not schedule duplicate timeout jobs", async () => {
+    const initial = createHumanGame();
+    const previousState: GameState = {
+      ...initial,
+      actionNumber: 12,
+      phase: { kind: "roll" },
+      turnNumber: 2,
+    };
+    const nextState: GameState = {
+      ...previousState,
+      actionNumber: 13,
+      phase: { kind: "build_and_trade" },
+    };
+    const scheduledAt: number[] = [];
+    const ctx = {
+      scheduler: {
+        runAt: async (timestamp: number) => {
+          scheduledAt.push(timestamp);
+        },
+      },
+    };
+
+    const schedule = await scheduleNextAutomatedAction(
+      ctx as never,
+      "game" as never,
+      nextState,
+      nextState.settings,
+      20_000,
+      previousState,
+      50_000,
+      50_000,
+    );
+
+    expect(schedule).toEqual({ nextActionAt: 50_000, turnDeadlineAt: 50_000 });
     expect(scheduledAt).toEqual([]);
   });
 

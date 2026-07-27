@@ -5,7 +5,7 @@ import type { RoomId, SeatDoc } from "../convex/model/types";
 export function createBotDisplayName(
   roomId: RoomId,
   seatIndex: number,
-  seats: readonly SeatDoc[],
+  seats: readonly Pick<SeatDoc, "displayName">[],
   randomSalt = Date.now(),
 ): string {
   return chooseBotName(

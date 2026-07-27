@@ -71,17 +71,25 @@ export function nextScheduledActionAt(
 export function isScheduledActionCurrentAndDue({
   currentActionAt,
   currentActionNumber,
+  currentTurnId,
   expectedActionNumber,
+  expectedTurnId,
   now,
   scheduledFor,
 }: {
   currentActionAt: number | undefined;
   currentActionNumber: number;
+  currentTurnId?: string;
   expectedActionNumber: number;
+  expectedTurnId?: string;
   now: number;
   scheduledFor: number | undefined;
 }): boolean {
-  if (currentActionNumber !== expectedActionNumber) {
+  if (
+    expectedTurnId === undefined
+      ? currentActionNumber !== expectedActionNumber
+      : currentTurnId !== expectedTurnId
+  ) {
     return false;
   }
   const expectedActionAt = scheduledFor ?? currentActionAt;

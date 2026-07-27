@@ -1,7 +1,7 @@
 import { MAX_SEATS, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "./constants";
 import { fail } from "./errors";
 import { normalizeRoomCode } from "./normalize";
-import type { ReadCtx, RoomDoc, RoomId, SeatDoc } from "./types";
+import type { ReadCtx, RoomDoc, RoomId, SeatDoc, SeatRecord } from "./types";
 
 function hashText(value: string): number {
   let hash = 2_166_136_261;
@@ -55,12 +55,12 @@ export async function requireRoom(ctx: ReadCtx, rawCode: string): Promise<RoomDo
 export async function listSeats(ctx: ReadCtx, roomId: RoomId): Promise<SeatDoc[]> {
   const seats = await ctx.db
     .query("seats")
-    .withIndex("by_room", (index) => index.eq("roomId", roomId))
+    .withIndex("by_room_and_seat_index", (index) => index.eq("roomId", roomId))
     .take(MAX_SEATS + 1);
   if (seats.length > MAX_SEATS) {
-    fail("CORRUPT_GAME_STATE", "Room contains more than four seats.");
+    fail("CORRUPT_GAME_STATE", `Room contains more than ${MAX_SEATS} seats.`);
   }
-  return [...seats].sort((left, right) => left.seatIndex - right.seatIndex);
+  return seats;
 }
 
 export async function findSeatByAuthUser(
@@ -88,23 +88,38 @@ export async function requireHumanSeat(
   return seat;
 }
 
+export function requireHumanSeatFromList<Seat extends SeatRecord>(
+  seats: readonly Seat[],
+  authUserId: string,
+): Seat {
+  const seat = seats.find((candidate) => candidate.authUserId === authUserId);
+  if (!seat || seat.kind !== "human") {
+    fail("NOT_ROOM_MEMBER", "Your account does not own a human seat in this room.");
+  }
+  return seat;
+}
+
 export async function requireWaitingHost(
   ctx: ReadCtx,
   rawCode: string,
   authUserId: string,
-): Promise<{ hostSeat: SeatDoc; room: RoomDoc }> {
+): Promise<{ room: RoomDoc; seats: SeatDoc[] }> {
   const room = await requireRoom(ctx, rawCode);
-  const hostSeat = await requireHumanSeat(ctx, room._id, authUserId);
+  const seats = await listSeats(ctx, room._id);
+  const hostSeat = requireHumanSeatFromList(seats, authUserId);
   if (hostSeat._id !== room.hostSeatId) {
     fail("NOT_HOST", "Only the room host can change lobby settings.");
   }
   if (room.status !== "waiting" || room.gameId) {
     fail("ROOM_STARTED", "Lobby settings can only be changed before the game starts.");
   }
-  return { hostSeat, room };
+  return { room, seats };
 }
 
-export function nextOpenSeatIndex(seats: readonly SeatDoc[], maxPlayers: number): number {
+export function nextOpenSeatIndex(
+  seats: readonly Pick<SeatDoc, "seatIndex">[],
+  maxPlayers: number,
+): number {
   const occupied = new Set(seats.map((seat) => seat.seatIndex));
   const seatIndex = Array.from({ length: maxPlayers }, (_, index) => index).find(
     (index) => !occupied.has(index),

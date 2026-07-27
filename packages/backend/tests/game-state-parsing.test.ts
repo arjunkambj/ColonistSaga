@@ -41,6 +41,27 @@ describe("stored game-state parsing", () => {
     expect(parsed.players.map((player) => player.id)).toEqual(["one", "two", "three"]);
   });
 
+  test("stores only dynamic board state and restores the deterministic board", () => {
+    const state = createDefaultGame(PLAYERS, "compact-state-storage", {
+      maxPlayers: 3,
+      turnTimerSeconds: 0,
+    });
+    const serialized = serializeGameState(state);
+    const stored = JSON.parse(serialized) as {
+      state: { board: Record<string, unknown> };
+      storageFormat: number;
+    };
+
+    expect(stored.storageFormat).toBe(1);
+    expect(stored.state.board).toEqual({
+      buildings: [],
+      roads: [],
+      robberTileId: state.board.robberTileId,
+    });
+    expect(parseGameState(serialized)).toEqual(state);
+    expect(serialized.length).toBeLessThan(JSON.stringify(state).length * 0.65);
+  });
+
   test("upgrades version 3 public counters and played knights", () => {
     const stored = JSON.parse(serializedGame()) as Record<string, unknown> & {
       players: Record<string, unknown>[];

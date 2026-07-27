@@ -1,9 +1,11 @@
 import {
   DEFAULT_BASE_GAME_SETTINGS,
   DEVELOPMENT_CARD_TYPES,
+  GAME_MAP_IDS,
   LARGEST_ARMY_MINIMUM_KNIGHTS,
   LARGEST_ARMY_VICTORY_POINTS,
   assertGameState,
+  createBoard,
   createDevelopmentDeck,
   createDefaultGame,
   getLongestRoadPlayerId,
@@ -40,9 +42,10 @@ import {
   validateGameSettings,
 } from "./normalize";
 import { allocateRoomCode, listSeats, nextOpenSeatIndex } from "./roomQueries";
-import type { GameDoc, GameId, RoomDoc, SeatDoc, WriteCtx } from "./types";
+import type { GameDoc, GameId, RoomDoc, RoomRecord, SeatDoc, SeatRecord, WriteCtx } from "./types";
 
 const DEVELOPMENT_CARD_TYPE_SET = new Set<DevelopmentCardType>(DEVELOPMENT_CARD_TYPES);
+const GAME_STATE_STORAGE_FORMAT = 1;
 
 function developmentCards(value: unknown, path: string): DevelopmentCardType[] {
   if (!Array.isArray(value)) {
@@ -297,6 +300,44 @@ function addLongestRoadAward(state: Record<string, unknown>): Record<string, unk
   };
 }
 
+function restoreStoredGameState(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+  const stored = value as Record<string, unknown>;
+  if (stored.storageFormat !== GAME_STATE_STORAGE_FORMAT) {
+    return value;
+  }
+  if (typeof stored.state !== "object" || stored.state === null || Array.isArray(stored.state)) {
+    return stored.state;
+  }
+
+  const state = stored.state as Record<string, unknown>;
+  const board =
+    typeof state.board === "object" && state.board !== null && !Array.isArray(state.board)
+      ? (state.board as Record<string, unknown>)
+      : null;
+  const settings =
+    typeof state.settings === "object" && state.settings !== null && !Array.isArray(state.settings)
+      ? (state.settings as Record<string, unknown>)
+      : null;
+  const map = GAME_MAP_IDS.find((candidate) => candidate === settings?.map);
+  if (!board || !map || typeof state.seed !== "string") {
+    return state;
+  }
+
+  const staticBoard = createBoard(map, state.seed);
+  return {
+    ...state,
+    board: {
+      ...staticBoard,
+      buildings: board.buildings,
+      roads: board.roads,
+      robberTileId: board.robberTileId,
+    },
+  };
+}
+
 export function parseGameState(stateJson: string): GameState {
   let state: unknown;
   try {
@@ -306,6 +347,7 @@ export function parseGameState(stateJson: string): GameState {
   }
 
   try {
+    state = restoreStoredGameState(state);
     state = canonicalizeStoredGameState(state);
     assertGameState(state);
   } catch {
@@ -320,7 +362,17 @@ export function serializeGameState(state: GameState): string {
   } catch {
     fail("CORRUPT_GAME_STATE", "Game state failed integrity validation before persistence.");
   }
-  return JSON.stringify(state);
+  return JSON.stringify({
+    storageFormat: GAME_STATE_STORAGE_FORMAT,
+    state: {
+      ...state,
+      board: {
+        buildings: state.board.buildings,
+        roads: state.board.roads,
+        robberTileId: state.board.robberTileId,
+      },
+    },
+  });
 }
 
 export function gameStatus(state: GameState): "active" | "finished" {
@@ -397,13 +449,15 @@ export async function scheduleNextAutomatedAction(
     turnId,
   });
   const existingScheduleStillApplies =
-    previousState?.actionNumber === state.actionNumber &&
     previousActor?.playerId === actor?.playerId &&
-    previousActionAt === nextActionAt;
+    previousActionAt === nextActionAt &&
+    (previousState?.actionNumber === state.actionNumber ||
+      (actor?.isBot === false && previousTurnId === turnId));
   if (nextActionAt !== undefined && actor && !existingScheduleStillApplies) {
     await ctx.scheduler.runAt(nextActionAt, internal.automation.runAutomatedAction, {
       expectedActionNumber: state.actionNumber,
       expectedActorPlayerId: actor.playerId,
+      ...(actor.isBot ? {} : { expectedTurnId: turnId }),
       gameId,
       scheduledFor: nextActionAt,
     });
@@ -431,6 +485,7 @@ export async function resumeAutomatedActionSchedule(
     await ctx.scheduler.runAt(nextActionAt, internal.automation.runAutomatedAction, {
       expectedActionNumber: state.actionNumber,
       expectedActorPlayerId: actor.playerId,
+      ...(actor.isBot ? {} : { expectedTurnId: logicalTurnId(state) }),
       gameId,
       scheduledFor: nextActionAt,
     });
@@ -473,38 +528,45 @@ export async function persistAppliedCommand(
     game.nextActionAt,
     game.turnDeadlineAt,
   );
-  await ctx.db.patch("games", game._id, {
-    ...schedule,
-    revision: nextState.actionNumber,
-    stateJson: serializeGameState(nextState),
-    status: gameStatus(nextState),
-    updatedAt: now,
-  });
-  await ctx.db.insert("gameActions", {
-    actorSeatId: actorSeat._id,
-    afterRevision: nextState.actionNumber,
-    beforeRevision: state.actionNumber,
-    clientActionId,
-    commandJson: serializeCommand(command),
-    createdAt: now,
-    eventKind: commandEventKind(command, state, nextState),
-    gameId: game._id,
-    text,
-  });
-  await ctx.db.patch("rooms", game.roomId, {
-    status: gameStatus(nextState),
-    updatedAt: now,
-  });
+  await Promise.all([
+    ctx.db.patch("games", game._id, {
+      ...schedule,
+      revision: nextState.actionNumber,
+      stateJson: serializeGameState(nextState),
+      status: gameStatus(nextState),
+      updatedAt: now,
+    }),
+    ctx.db.insert("gameActions", {
+      actorSeatId: actorSeat._id,
+      afterRevision: nextState.actionNumber,
+      beforeRevision: state.actionNumber,
+      clientActionId,
+      commandJson: serializeCommand(command),
+      createdAt: now,
+      eventKind: commandEventKind(command, state, nextState),
+      gameId: game._id,
+      text,
+    }),
+    ...(nextState.status === "completed"
+      ? [
+          ctx.db.patch("rooms", game.roomId, {
+            status: "finished",
+            updatedAt: now,
+          }),
+        ]
+      : []),
+  ]);
 }
 
 export async function setWaitingBotCount(
   ctx: WriteCtx,
-  room: RoomDoc,
+  room: RoomRecord,
   botCount: number,
-): Promise<void> {
+  seatsInput?: readonly SeatRecord[],
+): Promise<SeatRecord[]> {
   const maxPlayers = room.settings.maxPlayers;
   validateBotCount(botCount, maxPlayers);
-  const seats = await listSeats(ctx, room._id);
+  const seats = seatsInput ? [...seatsInput] : await listSeats(ctx, room._id);
   const humanCount = seats.filter((seat) => seat.kind === "human").length;
   if (humanCount + botCount > maxPlayers) {
     fail(
@@ -524,25 +586,34 @@ export async function setWaitingBotCount(
   );
   for (let index = bots.length - botsToRemove.length; index < botCount; index += 1) {
     const seatIndex = nextOpenSeatIndex(remainingSeats, maxPlayers);
+    const displayName = createBotDisplayName(room._id, seatIndex, remainingSeats);
+    const joinedAt = Date.now();
     const seatId = await ctx.db.insert("seats", {
-      displayName: createBotDisplayName(room._id, seatIndex, remainingSeats),
-      joinedAt: Date.now(),
+      displayName,
+      joinedAt,
       kind: "bot",
       roomId: room._id,
       seatIndex,
     });
-    const seat = await ctx.db.get("seats", seatId);
-    if (!seat) fail("CORRUPT_GAME_STATE", "Bot seat creation did not complete.");
-    remainingSeats.push(seat);
+    remainingSeats.push({
+      _id: seatId,
+      displayName,
+      joinedAt,
+      kind: "bot",
+      roomId: room._id,
+      seatIndex,
+    });
   }
+  return remainingSeats;
 }
 
 export async function fitWaitingSeatsToSettings(
   ctx: WriteCtx,
-  room: RoomDoc,
+  room: RoomRecord,
   settings: BaseGameSettings,
-): Promise<void> {
-  const seats = await listSeats(ctx, room._id);
+  seatsInput?: readonly SeatRecord[],
+): Promise<SeatRecord[]> {
+  const seats = seatsInput ? [...seatsInput] : await listSeats(ctx, room._id);
   const humans = seats.filter((seat) => seat.kind === "human");
   if (humans.length > settings.maxPlayers) {
     fail("TOO_MANY_PLAYERS", "The room has more human players than the selected player count.");
@@ -561,11 +632,12 @@ export async function fitWaitingSeatsToSettings(
     return left.seatIndex - right.seatIndex;
   });
   await Promise.all(
-    keptSeats.map((seat, seatIndex) => {
-      return seat.seatIndex === seatIndex
-        ? Promise.resolve()
-        : ctx.db.patch("seats", seat._id, { seatIndex });
-    }),
+    keptSeats.flatMap((seat, seatIndex) =>
+      seat.seatIndex === seatIndex ? [] : [ctx.db.patch("seats", seat._id, { seatIndex })],
+    ),
+  );
+  return keptSeats.map((seat, seatIndex) =>
+    seat.seatIndex === seatIndex ? seat : { ...seat, seatIndex },
   );
 }
 
@@ -575,7 +647,7 @@ export async function createRoomRecord(
   rawDisplayName: string,
   settings: BaseGameSettings = DEFAULT_BASE_GAME_SETTINGS,
   botDifficulty: BotDifficulty = DEFAULT_BOT_DIFFICULTY,
-): Promise<{ code: string; room: RoomDoc; seat: SeatDoc }> {
+): Promise<{ code: string; room: RoomRecord; seat: SeatRecord }> {
   const displayName = normalizeDisplayName(rawDisplayName);
   const now = Date.now();
   const code = await allocateRoomCode(ctx, user.id, now);
@@ -598,16 +670,38 @@ export async function createRoomRecord(
   });
   await ctx.db.patch("rooms", roomId, { hostSeatId: seatId });
 
-  const room = await ctx.db.get("rooms", roomId);
-  const seat = await ctx.db.get("seats", seatId);
-  if (!room || !seat) fail("ROOM_NOT_FOUND", "Room creation did not complete.");
-  return { code, room, seat };
+  return {
+    code,
+    room: {
+      _id: roomId,
+      botDifficulty,
+      code,
+      createdAt: now,
+      hostSeatId: seatId,
+      settings: validatedSettings,
+      status: "waiting",
+      updatedAt: now,
+    },
+    seat: {
+      _id: seatId,
+      authUserId: user.id,
+      displayName,
+      joinedAt: now,
+      kind: "human",
+      roomId,
+      seatIndex: 0,
+    },
+  };
 }
 
-export async function startRoomGame(ctx: WriteCtx, room: RoomDoc): Promise<GameDoc> {
+export async function startRoomGame(
+  ctx: WriteCtx,
+  room: RoomRecord,
+  seatsInput?: readonly SeatRecord[],
+): Promise<void> {
   if (room.gameId) {
     const existingGame = await ctx.db.get("games", room.gameId);
-    if (existingGame) return existingGame;
+    if (existingGame) return;
   }
   if (room.status === "finished") fail("GAME_ALREADY_FINISHED", "Game has already finished.");
   if (room.status !== "waiting") fail("ROOM_STARTED", "Room is no longer waiting.");
@@ -618,7 +712,7 @@ export async function startRoomGame(ctx: WriteCtx, room: RoomDoc): Promise<GameD
   if (hasRetiredGameMap(room.settings)) {
     await ctx.db.patch("rooms", room._id, { settings, updatedAt: now });
   }
-  const seats = await listSeats(ctx, room._id);
+  const seats = seatsInput ? [...seatsInput] : await listSeats(ctx, room._id);
   if (
     seats.length !== settings.maxPlayers ||
     seats.some((seat, index) => seat.seatIndex !== index)
@@ -647,27 +741,28 @@ export async function startRoomGame(ctx: WriteCtx, room: RoomDoc): Promise<GameD
     updatedAt: now,
   });
   const schedule = await scheduleNextAutomatedAction(ctx, gameId, state, settings, now);
-  await ctx.db.patch("games", gameId, schedule);
-  await ctx.db.patch("rooms", room._id, {
-    gameId,
-    status: gameStatus(state),
-    updatedAt: now,
-  });
   const humanCount = seats.filter((seat) => seat.kind === "human").length;
   const botCount = seats.length - humanCount;
-  await ctx.db.insert("gameActions", {
-    actorSeatId: room.hostSeatId,
-    afterRevision: state.actionNumber,
-    beforeRevision: state.actionNumber,
-    clientActionId: "system:game-started",
-    commandJson: JSON.stringify({ kind: "game_started" }),
-    createdAt: now,
-    gameId,
-    text: `Game started with ${humanCount} human player${humanCount === 1 ? "" : "s"} and ${botCount} bot${botCount === 1 ? "" : "s"}.`,
-  });
-  const game = await ctx.db.get("games", gameId);
-  if (!game) fail("GAME_NOT_STARTED", "Game creation did not complete.");
-  return game;
+  await Promise.all([
+    ...(schedule.nextActionAt === undefined && schedule.turnDeadlineAt === undefined
+      ? []
+      : [ctx.db.patch("games", gameId, schedule)]),
+    ctx.db.patch("rooms", room._id, {
+      gameId,
+      status: gameStatus(state),
+      updatedAt: now,
+    }),
+    ctx.db.insert("gameActions", {
+      actorSeatId: room.hostSeatId,
+      afterRevision: state.actionNumber,
+      beforeRevision: state.actionNumber,
+      clientActionId: "system:game-started",
+      commandJson: JSON.stringify({ kind: "game_started" }),
+      createdAt: now,
+      gameId,
+      text: `Game started with ${humanCount} human player${humanCount === 1 ? "" : "s"} and ${botCount} bot${botCount === 1 ? "" : "s"}.`,
+    }),
+  ]);
 }
 
 export function transferPlayerToBot(
@@ -700,6 +795,7 @@ export async function convertGameSeatToBot(
   room: RoomDoc,
   seat: SeatDoc,
   eventText: string,
+  seatsInput?: readonly SeatRecord[],
 ): Promise<void> {
   if (seat.kind !== "human") {
     fail("TARGET_NOT_HUMAN", "Target seat is not controlled by a human player.");
@@ -718,7 +814,7 @@ export async function convertGameSeatToBot(
     fail("CORRUPT_GAME_STATE", "Stored game revision does not match its state.");
   }
 
-  const seats = await listSeats(ctx, room._id);
+  const seats = seatsInput ?? (await listSeats(ctx, room._id));
   const displayName = createBotDisplayName(room._id, seat.seatIndex, seats);
   const nextState = transferPlayerToBot(state, seat, room.botDifficulty, displayName);
   const now = Date.now();
@@ -735,30 +831,28 @@ export async function convertGameSeatToBot(
           game.nextActionAt,
           game.turnDeadlineAt,
         );
-  await ctx.db.patch("seats", seat._id, {
-    authUserId: undefined,
-    displayName,
-    kind: "bot",
-  });
-  await ctx.db.patch("games", game._id, {
-    ...schedule,
-    revision: nextState.actionNumber,
-    stateJson: serializeGameState(nextState),
-    status: game.status === "paused" ? "paused" : gameStatus(nextState),
-    updatedAt: now,
-  });
-  await ctx.db.patch("rooms", room._id, {
-    status: gameStatus(nextState),
-    updatedAt: now,
-  });
-  await ctx.db.insert("gameActions", {
-    actorSeatId: seat._id,
-    afterRevision: nextState.actionNumber,
-    beforeRevision: state.actionNumber,
-    clientActionId: `system:bot-control:${String(seat._id)}`,
-    commandJson: JSON.stringify({ kind: "bot_control_started" }),
-    createdAt: now,
-    gameId: game._id,
-    text: eventText,
-  });
+  await Promise.all([
+    ctx.db.patch("seats", seat._id, {
+      authUserId: undefined,
+      displayName,
+      kind: "bot",
+    }),
+    ctx.db.patch("games", game._id, {
+      ...schedule,
+      revision: nextState.actionNumber,
+      stateJson: serializeGameState(nextState),
+      status: game.status === "paused" ? "paused" : gameStatus(nextState),
+      updatedAt: now,
+    }),
+    ctx.db.insert("gameActions", {
+      actorSeatId: seat._id,
+      afterRevision: nextState.actionNumber,
+      beforeRevision: state.actionNumber,
+      clientActionId: `system:bot-control:${String(seat._id)}`,
+      commandJson: JSON.stringify({ kind: "bot_control_started" }),
+      createdAt: now,
+      gameId: game._id,
+      text: eventText,
+    }),
+  ]);
 }

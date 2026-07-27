@@ -20,7 +20,12 @@ import {
   validateClientActionId,
   validateGameSettings,
 } from "./model/normalize";
-import { requireHumanSeat, requireRoom } from "./model/roomQueries";
+import {
+  listSeats,
+  requireHumanSeat,
+  requireHumanSeatFromList,
+  requireRoom,
+} from "./model/roomQueries";
 import { commandValidator } from "./model/validators";
 import { baseGameSettingsValidator, botDifficultyValidator } from "./schema";
 import { DEFAULT_BOT_DIFFICULTY } from "./model/constants";
@@ -33,9 +38,10 @@ export const startGame = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentHexclaveUser(ctx);
     const room = await requireRoom(ctx, args.code);
-    const seat = await requireHumanSeat(ctx, room._id, user.id);
+    const seats = await listSeats(ctx, room._id);
+    const seat = requireHumanSeatFromList(seats, user.id);
     if (seat._id !== room.hostSeatId) fail("NOT_HOST", "Only the room host can start the game.");
-    await startRoomGame(ctx, room);
+    await startRoomGame(ctx, room, seats);
     return null;
   },
 });
@@ -62,15 +68,15 @@ export const createQuickGame = mutation({
       );
     }
     const botDifficulty = args.botDifficulty ?? DEFAULT_BOT_DIFFICULTY;
-    const { code, room } = await createRoomRecord(
+    const { code, room, seat } = await createRoomRecord(
       ctx,
       user,
       args.displayName,
       settings,
       botDifficulty,
     );
-    await setWaitingBotCount(ctx, room, botCount);
-    await startRoomGame(ctx, room);
+    const seats = await setWaitingBotCount(ctx, room, botCount, [seat]);
+    await startRoomGame(ctx, room, seats);
     return { code };
   },
 });
@@ -98,27 +104,29 @@ export const pauseGame = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch("games", game._id, {
-      nextActionAt: undefined,
-      pausedNextActionRemainingMs:
-        game.nextActionAt === undefined ? undefined : Math.max(0, game.nextActionAt - now),
-      pausedTurnDeadlineRemainingMs:
-        game.turnDeadlineAt === undefined ? undefined : Math.max(0, game.turnDeadlineAt - now),
-      status: "paused",
-      turnDeadlineAt: undefined,
-      updatedAt: now,
-    });
-    await ctx.db.insert("gameActions", {
-      actorSeatId: seat._id,
-      afterRevision: game.revision,
-      beforeRevision: game.revision,
-      clientActionId: `system:game-paused:${game.revision}:${now}`,
-      commandJson: JSON.stringify({ kind: "pause_game" }),
-      createdAt: now,
-      eventKind: "game_paused",
-      gameId: game._id,
-      text: `${seat.displayName} paused the game.`,
-    });
+    await Promise.all([
+      ctx.db.patch("games", game._id, {
+        nextActionAt: undefined,
+        pausedNextActionRemainingMs:
+          game.nextActionAt === undefined ? undefined : Math.max(0, game.nextActionAt - now),
+        pausedTurnDeadlineRemainingMs:
+          game.turnDeadlineAt === undefined ? undefined : Math.max(0, game.turnDeadlineAt - now),
+        status: "paused",
+        turnDeadlineAt: undefined,
+        updatedAt: now,
+      }),
+      ctx.db.insert("gameActions", {
+        actorSeatId: seat._id,
+        afterRevision: game.revision,
+        beforeRevision: game.revision,
+        clientActionId: `system:game-paused:${game.revision}:${now}`,
+        commandJson: JSON.stringify({ kind: "pause_game" }),
+        createdAt: now,
+        eventKind: "game_paused",
+        gameId: game._id,
+        text: `${seat.displayName} paused the game.`,
+      }),
+    ]);
     return null;
   },
 });
@@ -154,24 +162,26 @@ export const resumeGame = mutation({
       game.pausedNextActionRemainingMs,
       game.pausedTurnDeadlineRemainingMs,
     );
-    await ctx.db.patch("games", game._id, {
-      ...schedule,
-      pausedNextActionRemainingMs: undefined,
-      pausedTurnDeadlineRemainingMs: undefined,
-      status: "active",
-      updatedAt: now,
-    });
-    await ctx.db.insert("gameActions", {
-      actorSeatId: seat._id,
-      afterRevision: game.revision,
-      beforeRevision: game.revision,
-      clientActionId: `system:game-resumed:${game.revision}:${now}`,
-      commandJson: JSON.stringify({ kind: "resume_game" }),
-      createdAt: now,
-      eventKind: "game_resumed",
-      gameId: game._id,
-      text: `${seat.displayName} resumed the game.`,
-    });
+    await Promise.all([
+      ctx.db.patch("games", game._id, {
+        ...schedule,
+        pausedNextActionRemainingMs: undefined,
+        pausedTurnDeadlineRemainingMs: undefined,
+        status: "active",
+        updatedAt: now,
+      }),
+      ctx.db.insert("gameActions", {
+        actorSeatId: seat._id,
+        afterRevision: game.revision,
+        beforeRevision: game.revision,
+        clientActionId: `system:game-resumed:${game.revision}:${now}`,
+        commandJson: JSON.stringify({ kind: "resume_game" }),
+        createdAt: now,
+        eventKind: "game_resumed",
+        gameId: game._id,
+        text: `${seat.displayName} resumed the game.`,
+      }),
+    ]);
     return null;
   },
 });

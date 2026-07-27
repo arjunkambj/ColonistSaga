@@ -87,9 +87,7 @@ export default defineSchema({
     settings: storedBaseGameSettingsValidator,
     status: roomStatusValidator,
     updatedAt: v.number(),
-  })
-    .index("by_code", ["code"])
-    .index("by_status_and_updated_at", ["status", "updatedAt"]),
+  }).index("by_code", ["code"]),
 
   seats: defineTable({
     authUserId: v.optional(v.string()),
@@ -99,7 +97,6 @@ export default defineSchema({
     roomId: v.id("rooms"),
     seatIndex: v.number(),
   })
-    .index("by_room", ["roomId"])
     .index("by_room_and_seat_index", ["roomId", "seatIndex"])
     .index("by_room_and_auth_user_id", ["roomId", "authUserId"]),
 
@@ -116,9 +113,7 @@ export default defineSchema({
     status: gameStatusValidator,
     turnDeadlineAt: v.optional(v.number()),
     updatedAt: v.number(),
-  })
-    .index("by_room", ["roomId"])
-    .index("by_status_and_updated_at", ["status", "updatedAt"]),
+  }),
 
   gameActions: defineTable({
     actorSeatId: v.id("seats"),
@@ -131,7 +126,6 @@ export default defineSchema({
     gameId: v.id("games"),
     text: v.string(),
   })
-    .index("by_game_and_before_revision", ["gameId", "beforeRevision"])
     .index("by_game_and_after_revision", ["gameId", "afterRevision"])
     .index("by_game_and_client_action_id", ["gameId", "clientActionId"]),
 });
