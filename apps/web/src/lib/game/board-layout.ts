@@ -16,8 +16,14 @@ export interface EdgePlacement extends PixelCoordinate {
   angle: number;
 }
 
+interface DockPlacement {
+  end: PixelCoordinate;
+  start: PixelCoordinate;
+}
+
 export interface PortPlacement extends EdgePlacement {
-  dock: { end: PixelCoordinate; start: PixelCoordinate };
+  docks: readonly [DockPlacement, DockPlacement];
+  outwardAngle: number;
 }
 
 export interface BoardLayout {
@@ -87,10 +93,13 @@ export function getEdgePlacement(layout: BoardLayout, edgeKey: string): EdgePlac
 
 export function getPortPlacement(layout: BoardLayout, edgeKey: string): PortPlacement | null {
   const edge = getEdgePlacement(layout, edgeKey);
+  const [firstVertexKey, secondVertexKey] = layout.topology.edgeVertices[edgeKey] ?? [];
+  const firstVertex = firstVertexKey ? getVertexPoint(layout, firstVertexKey) : null;
+  const secondVertex = secondVertexKey ? getVertexPoint(layout, secondVertexKey) : null;
   const coastalTileId = layout.topology.edgeTileIds[edgeKey]?.[0];
   const coastalTile = coastalTileId ? layout.topology.tileById[coastalTileId] : null;
 
-  if (!edge || !coastalTile) {
+  if (!edge || !firstVertex || !secondVertex || !coastalTile) {
     return null;
   }
 
@@ -99,7 +108,8 @@ export function getPortPlacement(layout: BoardLayout, edgeKey: string): PortPlac
   const relativeY = edge.y - coastalTilePoint.y;
   const length = Math.hypot(relativeX, relativeY) || 1;
   const outward = { x: relativeX / length, y: relativeY / length };
-  const outwardDistance = layout.tileRadius * 1.06;
+  const tangent = { x: -outward.y, y: outward.x };
+  const outwardDistance = layout.tileRadius * 0.82;
   const point = {
     x: edge.x + outward.x * outwardDistance,
     y: edge.y + outward.y * outwardDistance,
@@ -107,20 +117,22 @@ export function getPortPlacement(layout: BoardLayout, edgeKey: string): PortPlac
   const hullHalfHeight = PORT_BOAT_RENDER_SIZE.height * 0.47;
   const hullOverlap = 6;
   const dockEndInset = hullHalfHeight - hullOverlap;
+  const dockHalfWidth = PORT_BOAT_RENDER_SIZE.width * 0.22;
+  const firstSide =
+    (firstVertex.x - edge.x) * tangent.x + (firstVertex.y - edge.y) * tangent.y < 0 ? -1 : 1;
+  const getDockEnd = (side: number) => ({
+    x: point.x - outward.x * dockEndInset + tangent.x * dockHalfWidth * side,
+    y: point.y - outward.y * dockEndInset + tangent.y * dockHalfWidth * side,
+  });
 
   return {
     ...edge,
     ...point,
-    dock: {
-      end: {
-        x: point.x - outward.x * dockEndInset,
-        y: point.y - outward.y * dockEndInset,
-      },
-      start: {
-        x: edge.x,
-        y: edge.y,
-      },
-    },
+    docks: [
+      { end: getDockEnd(firstSide), start: firstVertex },
+      { end: getDockEnd(-firstSide), start: secondVertex },
+    ],
+    outwardAngle: Math.atan2(outward.y, outward.x),
   };
 }
 

@@ -86,9 +86,9 @@ const ROAD_PIECE_SIZE = 132;
 const ROAD_PIECE_SCALE_Y = 0.82;
 const SETTLEMENT_PIECE_SIZE = 88;
 const PORT_DOCK_RENDER_HEIGHT = 26;
-const PORT_RESOURCE_BADGE_HEIGHT = 38;
-const PORT_RESOURCE_BADGE_WIDTH = 42;
-const PORT_RESOURCE_MARK_SIZE = 30;
+const PORT_TRADE_BADGE_HEIGHT = 36;
+const PORT_TRADE_BADGE_WIDTH = 68;
+const PORT_RESOURCE_MARK_SIZE = 27;
 
 const PORT_RESOURCE_ACCENTS: Readonly<Record<ResourceType, string>> = {
   brick: "#c94f2d",
@@ -464,12 +464,9 @@ function drawPorts(
   });
 
   for (const { placement } of ports) {
-    drawDock(
-      context,
-      placement.dock.start,
-      placement.dock.end,
-      images.get(PORT_DOCK_ASSET_PATH) ?? null,
-    );
+    for (const dock of placement.docks) {
+      drawDock(context, dock.start, dock.end, images.get(PORT_DOCK_ASSET_PATH) ?? null);
+    }
   }
 
   for (const { placement, port } of ports) {
@@ -530,13 +527,9 @@ function drawPort(
   const { height, width } = PORT_BOAT_RENDER_SIZE;
 
   if (boatImage) {
-    const outwardAngle = Math.atan2(
-      placement.dock.end.y - placement.dock.start.y,
-      placement.dock.end.x - placement.dock.start.x,
-    );
     context.save();
     context.translate(placement.x, placement.y);
-    context.rotate(outwardAngle - Math.PI / 2);
+    context.rotate(placement.outwardAngle - Math.PI / 2);
     context.shadowBlur = 4;
     context.shadowColor = "rgba(39, 96, 122, 0.24)";
     context.shadowOffsetY = 3;
@@ -544,23 +537,7 @@ function drawPort(
     context.restore();
   }
 
-  drawPortResourceBadge(context, { x: placement.x, y: placement.y - 16 }, trade, resourceImage);
-
-  const label = trade === "any" ? "3:1" : "2:1";
-  context.save();
-  context.font = "850 14px ui-sans-serif, system-ui, sans-serif";
-  const labelWidth = context.measureText(label).width + 11;
-  createRoundedRectPath(context, placement.x - labelWidth / 2, placement.y + 5, labelWidth, 20, 10);
-  context.fillStyle = "rgba(255, 250, 233, 0.96)";
-  context.shadowBlur = 3;
-  context.shadowColor = "rgba(55, 49, 42, 0.2)";
-  context.fill();
-  context.shadowColor = "transparent";
-  context.fillStyle = "#233b55";
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText(label, placement.x, placement.y + 15);
-  context.restore();
+  drawPortTradeBadge(context, placement, trade, resourceImage);
 }
 
 function drawRoads(
@@ -868,26 +845,19 @@ function getTintedPieceCanvas(
   return canvas;
 }
 
-function drawPortResourceBadge(
+function drawPortTradeBadge(
   context: CanvasRenderingContext2D,
   point: PixelCoordinate,
   trade: "any" | ResourceType,
   resourceImage: HTMLImageElement | null,
 ) {
-  const left = point.x - PORT_RESOURCE_BADGE_WIDTH / 2;
-  const top = point.y - PORT_RESOURCE_BADGE_HEIGHT / 2;
+  const left = point.x - PORT_TRADE_BADGE_WIDTH / 2;
+  const top = point.y - PORT_TRADE_BADGE_HEIGHT / 2;
   const accent = trade === "any" ? "#8b6a35" : PORT_RESOURCE_ACCENTS[trade];
-  const mark = { x: point.x, y: point.y };
+  const mark = { x: point.x - 17, y: point.y };
 
   context.save();
-  createRoundedRectPath(
-    context,
-    left,
-    top,
-    PORT_RESOURCE_BADGE_WIDTH,
-    PORT_RESOURCE_BADGE_HEIGHT,
-    9,
-  );
+  createRoundedRectPath(context, left, top, PORT_TRADE_BADGE_WIDTH, PORT_TRADE_BADGE_HEIGHT, 12);
   context.fillStyle = "rgba(255, 248, 226, 0.98)";
   context.shadowBlur = 3;
   context.shadowColor = "rgba(54, 38, 21, 0.34)";
@@ -898,11 +868,24 @@ function drawPortResourceBadge(
   context.strokeStyle = accent;
   context.stroke();
 
+  context.beginPath();
+  context.moveTo(point.x, top + 7);
+  context.lineTo(point.x, top + PORT_TRADE_BADGE_HEIGHT - 7);
+  context.lineWidth = 1.4;
+  context.strokeStyle = `${accent}66`;
+  context.stroke();
+
   if (trade === "any") {
     drawAnyResourceMark(context, mark);
   } else if (resourceImage) {
     drawCroppedResourceMark(context, mark, resourceImage, accent);
   }
+
+  context.fillStyle = "#233b55";
+  context.font = "900 14px ui-sans-serif, system-ui, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(trade === "any" ? "3:1" : "2:1", point.x + 17, point.y + 0.5);
   context.restore();
 }
 
@@ -949,9 +932,9 @@ function drawAnyResourceMark(context: CanvasRenderingContext2D, point: PixelCoor
     const angle = -Math.PI / 2 + (index * Math.PI * 2) / colors.length;
     context.beginPath();
     context.arc(
-      point.x + Math.cos(angle) * 8.5,
-      point.y + Math.sin(angle) * 8.5,
-      4.5,
+      point.x + Math.cos(angle) * 7.2,
+      point.y + Math.sin(angle) * 7.2,
+      3.8,
       0,
       Math.PI * 2,
     );
