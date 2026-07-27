@@ -1,0 +1,74 @@
+.dialog {
+  width: min(44rem, calc(100vw - 2rem));
+}
+
+.instructions {
+  margin: 0 0 1rem;
+  color: rgba(255, 249, 241, 0.82);
+}
+
+.resources {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.resource {
+  display: grid;
+  place-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(238, 210, 244, 0.2);
+  border-radius: 0.9rem;
+  background: rgba(36, 13, 46, 0.38);
+}
+
+.resource[data-selected="true"] {
+  border-color: rgba(245, 195, 85, 0.8);
+  box-shadow: 0 0 0 2px rgba(245, 195, 85, 0.16);
+}
+
+.resource img {
+  width: min(4.5rem, 100%);
+  height: auto;
+}
+
+.resource strong {
+  font-size: 0.78rem;
+}
+
+.quantity {
+  display: grid;
+  grid-template-columns: 2rem 1.5rem 2rem;
+  align-items: center;
+  text-align: center;
+}
+
+.footer {
+  min-height: auto;
+}
+
+.footer > span {
+  color: rgba(255, 249, 241, 0.72);
+  font-size: 0.82rem;
+}
+
+.footer > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .resources {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .footer > div {
+    justify-content: flex-end;
+  }
+}

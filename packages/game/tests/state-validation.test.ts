@@ -49,7 +49,7 @@ describe("serialized game-state validation", () => {
     const state = createGame();
     const view = toPlayerView(state, state.players[0]!.id);
 
-    expect(state.version).toBe(3);
+    expect(state.version).toBe(4);
     expect(state.developmentDeck).toHaveLength(DEVELOPMENT_CARD_DECK.length);
     expect(state.players[0]!.developmentCards).toEqual([]);
     expect("victoryPoints" in state).toBe(false);
@@ -89,17 +89,17 @@ describe("serialized game-state validation", () => {
     expect(() => assertPlayerGameView(completedView)).not.toThrow();
   });
 
-  test("exposes played knights as a public conserved count", () => {
+  test("exposes played development cards as public conserved history", () => {
     const state = createGame();
     const knightIndex = state.developmentDeck.indexOf("knight");
     if (knightIndex < 0) throw new Error("Development deck needs a knight");
 
     state.developmentDeck.splice(knightIndex, 1);
-    state.players[0]!.playedKnights = 1;
+    state.players[0]!.playedDevelopmentCards = ["knight"];
 
     expect(() => assertGameState(state)).not.toThrow();
     const view = toPlayerView(state, state.players[1]!.id);
-    expect(view.players[0]!.playedKnights).toBe(1);
+    expect(view.players[0]!.playedDevelopmentCards).toEqual(["knight"]);
     expect(() => assertPlayerGameView(view)).not.toThrow();
   });
 

@@ -56,16 +56,16 @@ Do not use neon lime, lemon yellow, saturated orange, bright cyan, pure white, o
 
 ## Current asset specifications
 
-| Asset group         | File                                                           | Output             |
-| ------------------- | -------------------------------------------------------------- | ------------------ |
-| Coastal environment | `apps/web/public/shared-assets/coastal-island-kingdom-day.png` | 1672×941 RGB PNG   |
-| Ocean board canvas  | `apps/web/public/game-assets/ui/ocean-board-canvas.webp`       | 1586×992 RGB WebP  |
-| Port skiff          | `apps/web/public/game-assets/ui/port-skiff.png`                | 384×512 RGBA PNG   |
-| Road piece          | `apps/web/public/game-assets/pieces/road-piece.png`            | 512×512 RGBA PNG   |
-| Settlement piece    | `apps/web/public/game-assets/pieces/settlement-piece.png`      | 512×512 RGBA PNG   |
-| City piece          | `apps/web/public/game-assets/pieces/city-piece.png`            | 512×512 RGBA PNG   |
-| Robber piece        | `apps/web/public/game-assets/pieces/robber-piece.png`          | 256×256 RGBA PNG   |
-| Player portraits    | `apps/web/public/game-assets/players/*.png`                    | 256×256 RGB PNG    |
+| Asset group         | File                                                           | Output            |
+| ------------------- | -------------------------------------------------------------- | ----------------- |
+| Coastal environment | `apps/web/public/shared-assets/coastal-island-kingdom-day.png` | 1672×941 RGB PNG  |
+| Ocean board canvas  | `apps/web/public/game-assets/ui/ocean-board-canvas.webp`       | 1586×992 RGB WebP |
+| Port skiff          | `apps/web/public/game-assets/ui/port-skiff.png`                | 384×512 RGBA PNG  |
+| Road piece          | `apps/web/public/game-assets/pieces/road-piece.png`            | 512×512 RGBA PNG  |
+| Settlement piece    | `apps/web/public/game-assets/pieces/settlement-piece.png`      | 512×512 RGBA PNG  |
+| City piece          | `apps/web/public/game-assets/pieces/city-piece.png`            | 512×512 RGBA PNG  |
+| Robber piece        | `apps/web/public/game-assets/pieces/robber-piece.png`          | 256×256 RGBA PNG  |
+| Player portraits    | `apps/web/public/game-assets/players/*.png`                    | 256×256 RGB PNG   |
 | Victory flourish    | `apps/web/public/game-assets/results/victory-flourish.png`     | 1536×512 RGBA PNG |
 
 Player pieces must remain neutral parchment/stone renders. The application applies player color through the asset alpha mask and `mix-blend-mode: color`, so silhouettes, value separation, and ambient-occlusion detail matter more than baked hue.

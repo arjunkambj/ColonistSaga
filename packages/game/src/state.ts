@@ -138,8 +138,11 @@ export function createDefaultGame(
     balancedDiceBag: [],
     bank: filledInventory(BANK_RESOURCE_COUNT),
     board: createBoard(settings.map, seed),
+    developmentCardPlayedThisTurn: false,
+    developmentCardsBoughtThisTurn: 0,
     developmentDeck: createDevelopmentDeck(seed),
     lastDiceRoll: null,
+    largestArmyPlayerId: null,
     longestRoadPlayerId: null,
     phase: { kind: "setup_settlement", setupIndex: 0 },
     players: players.map((player, seatIndex) => {
@@ -151,7 +154,7 @@ export function createDefaultGame(
         id: player.id,
         isBot: player.isBot,
         piecesRemaining: { ...INITIAL_PIECES },
-        playedKnights: 0,
+        playedDevelopmentCards: [],
         resources: emptyInventory(),
         seatIndex,
         victoryPoints: 0,
@@ -164,7 +167,7 @@ export function createDefaultGame(
     tradeOffer: null,
     turnNumber: 0,
     turnOrder: players.map((player) => player.id),
-    version: 3,
+    version: 4,
     winnerPlayerId: null,
   };
 }

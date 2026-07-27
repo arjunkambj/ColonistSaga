@@ -1,6 +1,8 @@
 import {
   DEFAULT_BASE_GAME_SETTINGS,
   DEVELOPMENT_CARD_TYPES,
+  LARGEST_ARMY_MINIMUM_KNIGHTS,
+  LARGEST_ARMY_VICTORY_POINTS,
   assertGameState,
   createDevelopmentDeck,
   createDefaultGame,
@@ -74,12 +76,15 @@ function canonicalizeStoredGameState(value: unknown): unknown {
     return value;
   }
   const stored = value as Record<string, unknown>;
+  if (stored.version === 4) {
+    return stored;
+  }
   if (stored.version === 3) {
     const canonical = addPlayedKnightCounts(stored);
     if ("longestRoadPlayerId" in canonical) {
-      return canonical;
+      return upgradeVersionThreeState(canonical);
     }
-    return addLongestRoadAward(canonical);
+    return upgradeVersionThreeState(addLongestRoadAward(canonical));
   }
   if (stored.version !== 1 && stored.version !== 2) {
     return stored;
@@ -115,7 +120,7 @@ function canonicalizeStoredGameState(value: unknown): unknown {
       }
       return { ...player, developmentCards: [], playedKnights: 0 };
     });
-    return canonical;
+    return upgradeVersionThreeState(addLongestRoadAward(canonical));
   }
 
   delete canonical.victoryPoints;
@@ -151,7 +156,86 @@ function canonicalizeStoredGameState(value: unknown): unknown {
     );
   }
 
-  return addLongestRoadAward(canonical);
+  return upgradeVersionThreeState(addLongestRoadAward(canonical));
+}
+
+function upgradeVersionThreeState(state: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(state.players)) {
+    return { ...state, version: 4 };
+  }
+
+  const players = state.players.map((player) => {
+    if (typeof player !== "object" || player === null || Array.isArray(player)) {
+      return player;
+    }
+    const canonicalPlayer = { ...player } as Record<string, unknown>;
+    const playedKnights =
+      typeof canonicalPlayer.playedKnights === "number" &&
+      Number.isSafeInteger(canonicalPlayer.playedKnights) &&
+      canonicalPlayer.playedKnights >= 0
+        ? canonicalPlayer.playedKnights
+        : 0;
+    canonicalPlayer.playedDevelopmentCards = Array.from(
+      { length: playedKnights },
+      () => "knight" as const,
+    );
+    delete canonicalPlayer.playedKnights;
+    return canonicalPlayer;
+  });
+  const largestArmyPlayer = players
+    .flatMap((player) =>
+      typeof player === "object" &&
+      player !== null &&
+      !Array.isArray(player) &&
+      typeof player.id === "string" &&
+      Array.isArray(player.playedDevelopmentCards) &&
+      typeof player.seatIndex === "number"
+        ? [
+            {
+              id: player.id,
+              knightCount: player.playedDevelopmentCards.filter(
+                (card: unknown) => card === "knight",
+              ).length,
+              seatIndex: player.seatIndex,
+            },
+          ]
+        : [],
+    )
+    .filter((player) => player.knightCount >= LARGEST_ARMY_MINIMUM_KNIGHTS)
+    .sort(
+      (first, second) =>
+        second.knightCount - first.knightCount || first.seatIndex - second.seatIndex,
+    )[0];
+  const storedPhase =
+    typeof state.phase === "object" && state.phase !== null && !Array.isArray(state.phase)
+      ? (state.phase as Record<string, unknown>)
+      : null;
+  const phase =
+    storedPhase && (storedPhase.kind === "move_robber" || storedPhase.kind === "steal")
+      ? { ...storedPhase, resumePhase: "build_and_trade" }
+      : state.phase;
+
+  return {
+    ...state,
+    developmentCardPlayedThisTurn: false,
+    developmentCardsBoughtThisTurn: 0,
+    largestArmyPlayerId: largestArmyPlayer?.id ?? null,
+    phase,
+    players: players.map((player) =>
+      largestArmyPlayer &&
+      typeof player === "object" &&
+      player !== null &&
+      !Array.isArray(player) &&
+      player.id === largestArmyPlayer.id &&
+      typeof player.victoryPoints === "number"
+        ? {
+            ...player,
+            victoryPoints: player.victoryPoints + LARGEST_ARMY_VICTORY_POINTS,
+          }
+        : player,
+    ),
+    version: 4,
+  };
 }
 
 function addPlayedKnightCounts(state: Record<string, unknown>): Record<string, unknown> {
@@ -341,9 +425,7 @@ export async function resumeAutomatedActionSchedule(
       ? now + Math.max(0, nextActionRemainingMs)
       : undefined;
   const turnDeadlineAt =
-    turnDeadlineRemainingMs === undefined
-      ? undefined
-      : now + Math.max(0, turnDeadlineRemainingMs);
+    turnDeadlineRemainingMs === undefined ? undefined : now + Math.max(0, turnDeadlineRemainingMs);
 
   if (actor && nextActionAt !== undefined) {
     await ctx.scheduler.runAt(nextActionAt, internal.automation.runAutomatedAction, {

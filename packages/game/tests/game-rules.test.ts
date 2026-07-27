@@ -19,6 +19,7 @@ import {
   getRequiredPlayerIds,
   mapSupportsPlayerCount,
   toPlayerView,
+  type DevelopmentCardType,
   type GameState,
   type ResourceInventory,
 } from "../src/index";
@@ -103,6 +104,27 @@ function developmentCardReadyState(seed = "development-card-purchase"): GameStat
   };
 }
 
+function giveDevelopmentCard(
+  state: GameState,
+  playerId: string,
+  card: DevelopmentCardType,
+): GameState {
+  const developmentDeck = [...state.developmentDeck];
+  const cardIndex = developmentDeck.indexOf(card);
+  if (cardIndex < 0) throw new Error(`Development deck needs a ${card} card`);
+  developmentDeck.splice(cardIndex, 1);
+
+  return {
+    ...state,
+    developmentDeck,
+    players: state.players.map((player) =>
+      player.id === playerId
+        ? { ...player, developmentCards: [...player.developmentCards, card] }
+        : player,
+    ),
+  };
+}
+
 function expectRuleError(action: () => unknown, code: GameRuleError["code"]) {
   try {
     action();
@@ -136,7 +158,10 @@ function expectConservedState(state: GameState) {
     expect(player.piecesRemaining.cities + cityCount).toBe(4);
     expect(player.piecesRemaining.roads + roadCount).toBe(15);
     expect(player.victoryPoints).toBe(
-      settlementCount + cityCount * 2 + (state.longestRoadPlayerId === player.id ? 2 : 0),
+      settlementCount +
+        cityCount * 2 +
+        (state.largestArmyPlayerId === player.id ? 2 : 0) +
+        (state.longestRoadPlayerId === player.id ? 2 : 0),
     );
   }
 
@@ -152,6 +177,7 @@ function expectConservedState(state: GameState) {
     [
       ...state.developmentDeck,
       ...state.players.flatMap((player) => player.developmentCards),
+      ...state.players.flatMap((player) => player.playedDevelopmentCards),
     ].toSorted(),
   ).toEqual([...DEVELOPMENT_CARD_DECK].toSorted());
 }
@@ -359,6 +385,181 @@ describe("development card purchases", () => {
   });
 });
 
+describe("development card plays", () => {
+  test("plays a Knight before rolling and awards Largest Army at three knights", () => {
+    const playerId = PLAYERS[0]!.id;
+    let state = createGame("play-knight");
+    state = giveDevelopmentCard(state, playerId, "knight");
+    for (let count = 0; count < 2; count += 1) {
+      const knightIndex = state.developmentDeck.indexOf("knight");
+      if (knightIndex < 0) throw new Error("Development deck needs another Knight");
+      state.developmentDeck.splice(knightIndex, 1);
+    }
+    state = {
+      ...state,
+      phase: { kind: "roll" },
+      players: state.players.map((player) =>
+        player.id === playerId
+          ? { ...player, playedDevelopmentCards: ["knight", "knight"] }
+          : player,
+      ),
+      turnNumber: 1,
+    };
+
+    expect(getLegalActions(state, playerId).playableDevelopmentCards).toContain("knight");
+    const next = applyCommand(state, playerId, { kind: "play_knight" });
+
+    expect(next.phase).toEqual({
+      kind: "move_robber",
+      resumePhase: "roll",
+      rollerPlayerId: playerId,
+    });
+    expect(next.players[0]!.developmentCards).toEqual([]);
+    expect(next.players[0]!.playedDevelopmentCards).toEqual(["knight", "knight", "knight"]);
+    expect(next.largestArmyPlayerId).toBe(playerId);
+    expect(next.players[0]!.victoryPoints).toBe(2);
+    expectConservedState(next);
+    assertGameState(next);
+  });
+
+  test("Monopoly collects the named resource from every opponent", () => {
+    const playerId = PLAYERS[0]!.id;
+    let state = giveDevelopmentCard(createGame("play-monopoly"), playerId, "monopoly");
+    state = {
+      ...state,
+      bank: { ...state.bank, brick: state.bank.brick - 3 },
+      phase: { kind: "build_and_trade" },
+      players: state.players.map((player) =>
+        player.id === PLAYERS[1]!.id
+          ? { ...player, resources: { ...player.resources, brick: 2 } }
+          : player.id === PLAYERS[2]!.id
+            ? { ...player, resources: { ...player.resources, brick: 1 } }
+            : player,
+      ),
+      turnNumber: 1,
+    };
+
+    const next = applyCommand(state, playerId, {
+      kind: "play_monopoly",
+      resource: "brick",
+    });
+
+    expect(next.players[0]!.resources.brick).toBe(3);
+    expect(next.players.slice(1).every((player) => player.resources.brick === 0)).toBe(true);
+    expect(next.players[0]!.playedDevelopmentCards).toEqual(["monopoly"]);
+    expect(next.phase.kind).toBe("build_and_trade");
+    expectConservedState(next);
+  });
+
+  test("Year of Plenty takes exactly two selected cards from the bank", () => {
+    const playerId = PLAYERS[0]!.id;
+    const state = {
+      ...giveDevelopmentCard(createGame("play-year-of-plenty"), playerId, "year-of-plenty"),
+      phase: { kind: "roll" as const },
+      turnNumber: 1,
+    };
+    const resources = { ...emptyInventory(), brick: 1, wheat: 1 };
+    const next = applyCommand(state, playerId, {
+      kind: "play_year_of_plenty",
+      resources,
+    });
+
+    expect(next.players[0]!.resources).toEqual(resources);
+    expect(next.bank.brick).toBe(state.bank.brick - 1);
+    expect(next.bank.wheat).toBe(state.bank.wheat - 1);
+    expect(next.phase.kind).toBe("roll");
+    expectConservedState(next);
+    expectRuleError(
+      () =>
+        applyCommand(
+          giveDevelopmentCard(
+            { ...createGame("invalid-year-of-plenty"), phase: { kind: "roll" } },
+            playerId,
+            "year-of-plenty",
+          ),
+          playerId,
+          {
+            kind: "play_year_of_plenty",
+            resources: { ...emptyInventory(), wheat: 1 },
+          },
+        ),
+      "INVALID_COMMAND",
+    );
+  });
+
+  test("Road Building places two connected roads for free and resumes the prior phase", () => {
+    const playerId = PLAYERS[0]!.id;
+    let state = createGame("play-road-building");
+    while (state.phase.kind === "setup_settlement" || state.phase.kind === "setup_road") {
+      const actorPlayerId = getRequiredPlayerIds(state)[0];
+      if (!actorPlayerId) throw new Error("Setup needs an actor");
+      state = applyCommand(state, actorPlayerId, chooseAutomatedCommand(state, actorPlayerId));
+    }
+    state = giveDevelopmentCard(state, playerId, "road-building");
+    const resourcesBefore = { ...state.players[0]!.resources };
+    const roadsBefore = state.board.roads.length;
+
+    state = applyCommand(state, playerId, { kind: "play_road_building" });
+    expect(state.phase).toEqual({
+      kind: "road_building",
+      remainingRoads: 2,
+      resumePhase: "roll",
+    });
+
+    for (let count = 0; count < 2; count += 1) {
+      const edgeKey = getLegalActions(state, playerId).roadEdgeKeys[0];
+      if (!edgeKey) throw new Error("Road Building needs a legal road");
+      state = applyCommand(state, playerId, { edgeKey, kind: "place_road" });
+    }
+
+    expect(state.phase.kind).toBe("roll");
+    expect(state.board.roads).toHaveLength(roadsBefore + 2);
+    expect(state.players[0]!.resources).toEqual(resourcesBefore);
+    expect(state.players[0]!.playedDevelopmentCards).toEqual(["road-building"]);
+    expectConservedState(state);
+  });
+
+  test("blocks a card bought this turn and a second card in the same turn", () => {
+    const playerId = PLAYERS[0]!.id;
+    const boughtThisTurn = {
+      ...giveDevelopmentCard(createGame("new-development-card"), playerId, "monopoly"),
+      developmentCardsBoughtThisTurn: 1,
+      phase: { kind: "roll" as const },
+      turnNumber: 1,
+    };
+    expect(getLegalActions(boughtThisTurn, playerId).playableDevelopmentCards).toEqual([]);
+    expectRuleError(
+      () =>
+        applyCommand(boughtThisTurn, playerId, {
+          kind: "play_monopoly",
+          resource: "brick",
+        }),
+      "DEVELOPMENT_CARD_NOT_PLAYABLE",
+    );
+
+    const alreadyPlayed = {
+      ...boughtThisTurn,
+      developmentCardPlayedThisTurn: true,
+      developmentCardsBoughtThisTurn: 0,
+    };
+    expect(getLegalActions(alreadyPlayed, playerId).playableDevelopmentCards).toEqual([]);
+    expectRuleError(
+      () =>
+        applyCommand(alreadyPlayed, playerId, {
+          kind: "play_monopoly",
+          resource: "brick",
+        }),
+      "DEVELOPMENT_CARD_NOT_PLAYABLE",
+    );
+
+    const ended = applyCommand({ ...alreadyPlayed, phase: { kind: "build_and_trade" } }, playerId, {
+      kind: "end_turn",
+    });
+    expect(ended.developmentCardPlayedThisTurn).toBe(false);
+    expect(ended.developmentCardsBoughtThisTurn).toBe(0);
+  });
+});
+
 describe("trade offers", () => {
   test("spending offered resources cancels the offer and stale bots reject it", () => {
     const cityReady = cityReadyState();
@@ -419,7 +620,11 @@ describe("friendly robber", () => {
         ...created.board,
         buildings: [{ kind: "settlement", playerId: PLAYERS[1]!.id, vertexKey }],
       },
-      phase: { kind: "move_robber", rollerPlayerId: PLAYERS[0]!.id },
+      phase: {
+        kind: "move_robber",
+        resumePhase: "build_and_trade",
+        rollerPlayerId: PLAYERS[0]!.id,
+      },
       players: created.players.map((player) =>
         player.id === PLAYERS[1]!.id
           ? {
@@ -564,7 +769,11 @@ describe("robber theft", () => {
           vertexKey: vertexKeys[index]!,
         })),
       },
-      phase: { kind: "move_robber", rollerPlayerId: PLAYERS[0]!.id },
+      phase: {
+        kind: "move_robber",
+        resumePhase: "build_and_trade",
+        rollerPlayerId: PLAYERS[0]!.id,
+      },
       players: created.players.map((player) =>
         victimIdSet.has(player.id)
           ? {
@@ -600,6 +809,7 @@ describe("robber theft", () => {
     expect(next.phase).toEqual({
       eligibleVictimIds: victimPlayerIds,
       kind: "steal",
+      resumePhase: "build_and_trade",
       rollerPlayerId: PLAYERS[0]!.id,
     });
     expect(next.players[0]!.resources.brick).toBe(0);

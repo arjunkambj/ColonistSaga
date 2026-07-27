@@ -5,9 +5,11 @@ import {
   BUILD_COSTS,
   DEVELOPMENT_CARD_COST,
   getLongestRoadLength,
+  LARGEST_ARMY_VICTORY_POINTS,
   LONGEST_ROAD_VICTORY_POINTS,
   RESOURCE_ORDER,
   type GameCommand,
+  type PlayableDevelopmentCardType,
   type PlayerGameView,
   type PrivatePlayerState,
   type ResourceInventory,
@@ -45,6 +47,7 @@ import type { AudioSettings } from "@/lib/audio-settings";
 
 import { ActionTile } from "./action-tile";
 import { DiscardPanel } from "./discard-panel";
+import { DevelopmentCardDialog } from "./development-card-dialog";
 import { GameBoard, getPlayerTheme, type BuildMode } from "./game-board";
 import { BOARD_INSPECTOR_DOCK_ROOT_ID, HandDockProvider } from "./hand-dock";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
@@ -56,6 +59,7 @@ import { useActionCountdown } from "./use-action-countdown";
 type GameConfirmation =
   | { kind: "leave" }
   | { displayName: string; kind: "replace"; playerId: string };
+type DevelopmentCardChoice = "monopoly" | "year-of-plenty";
 
 const DIE_PIPS: Record<number, readonly number[]> = {
   1: [4],
@@ -108,6 +112,9 @@ export function GameScreen({
   const [pendingReplacementId, setPendingReplacementId] = useState<string | null>(null);
   const [pauseChangePending, setPauseChangePending] = useState(false);
   const [confirmation, setConfirmation] = useState<GameConfirmation | null>(null);
+  const [developmentCardChoice, setDevelopmentCardChoice] = useState<DevelopmentCardChoice | null>(
+    null,
+  );
   const [confirming, setConfirming] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -207,6 +214,25 @@ export function GameScreen({
     } finally {
       commandInFlightRef.current = false;
       setPendingCommand(null);
+    }
+  };
+
+  const playDevelopmentCard = (card: PlayableDevelopmentCardType) => {
+    if (isPaused) {
+      showPausedNotice();
+      return;
+    }
+    switch (card) {
+      case "knight":
+        void sendCommand({ kind: "play_knight" }, "Knight played.");
+        return;
+      case "road-building":
+        void sendCommand({ kind: "play_road_building" }, "Road Building played.");
+        return;
+      case "monopoly":
+      case "year-of-plenty":
+        setDevelopmentCardChoice(card);
+        return;
     }
   };
 
@@ -431,6 +457,9 @@ export function GameScreen({
                 </div>
               ) : null
             }
+            onPlayDevelopmentCard={playDevelopmentCard}
+            pending={pendingCommand !== null}
+            playableDevelopmentCards={game.legalActions.playableDevelopmentCards}
           />
 
           <div className="action-dock-stack">
@@ -500,6 +529,18 @@ export function GameScreen({
       </HandDockProvider>
 
       {isHelpOpen ? <GameHelpDialog onClose={() => setIsHelpOpen(false)} /> : null}
+      {developmentCardChoice ? (
+        <DevelopmentCardDialog
+          bank={game.bank}
+          card={developmentCardChoice}
+          onClose={() => setDevelopmentCardChoice(null)}
+          onPlay={(command, message) => {
+            setDevelopmentCardChoice(null);
+            void sendCommand(command, message);
+          }}
+          pending={pendingCommand !== null}
+        />
+      ) : null}
 
       {confirmation ? (
         <ConfirmationDialog
@@ -609,6 +650,7 @@ function PlayerStrip({
         const hiddenVictoryPointCount = player.isViewer
           ? player.developmentCards.filter((card) => card === "victory-point").length
           : 0;
+        const displayedVictoryPoints = player.victoryPoints + hiddenVictoryPointCount;
         const isActive = player.id === activePlayerId;
         const avatarSrc =
           player.isViewer && viewerProfileImageUrl
@@ -660,17 +702,14 @@ function PlayerStrip({
               <span
                 aria-label={
                   hiddenVictoryPointCount > 0
-                    ? `${player.victoryPoints} visible plus ${hiddenVictoryPointCount} hidden of ${victoryTarget} victory points`
-                    : `${player.victoryPoints} of ${victoryTarget} victory points`
+                    ? `${displayedVictoryPoints} of ${victoryTarget} victory points, including ${hiddenVictoryPointCount} from hidden victory point cards`
+                    : `${displayedVictoryPoints} of ${victoryTarget} victory points`
                 }
                 className="player-stat player-victory-stat"
               >
                 <Icon aria-hidden="true" icon={crownIcon} />
                 <span className="player-victory-score" aria-hidden="true">
-                  <strong>{player.victoryPoints}</strong>
-                  {hiddenVictoryPointCount > 0 ? (
-                    <span className="player-victory-bonus">(+{hiddenVictoryPointCount})</span>
-                  ) : null}
+                  <strong>{displayedVictoryPoints}</strong>
                   <small>/{victoryTarget}</small>
                 </span>
                 <em aria-hidden="true">Victory</em>
@@ -727,9 +766,13 @@ function PlayerStrip({
                 <small aria-hidden="true">Road</small>
               </span>
               <span
-                aria-label={`${player.playedKnights} knights played toward Largest Army`}
+                aria-label={`${player.playedDevelopmentCards.filter((card) => card === "knight").length} knights played toward Largest Army`}
                 className="player-table-fact player-award-fact"
-                data-empty={player.playedKnights === 0 ? "true" : undefined}
+                data-empty={
+                  player.playedDevelopmentCards.every((card) => card !== "knight")
+                    ? "true"
+                    : undefined
+                }
               >
                 <Image
                   alt=""
@@ -740,7 +783,9 @@ function PlayerStrip({
                   src={AWARD_ASSET_PATHS.largestArmy}
                   width={512}
                 />
-                <strong>{player.playedKnights}</strong>
+                <strong>
+                  {player.playedDevelopmentCards.filter((card) => card === "knight").length}
+                </strong>
                 <small aria-hidden="true">Army</small>
               </span>
             </div>
@@ -1728,7 +1773,12 @@ function WinOverlay({
                     </span>
                     <span>
                       <small>Knights played</small>
-                      <strong>{featuredPlayer.playedKnights}</strong>
+                      <strong>
+                        {
+                          featuredPlayer.playedDevelopmentCards.filter((card) => card === "knight")
+                            .length
+                        }
+                      </strong>
                     </span>
                   </div>
                 ) : null}
@@ -1831,6 +1881,8 @@ function getVictoryPointBreakdown(
   }
 
   const victoryPointCards = getRevealedVictoryPointCards(player);
+  const largestArmyPoints =
+    game.largestArmyPlayerId === player.id ? LARGEST_ARMY_VICTORY_POINTS : 0;
   const longestRoadPoints =
     game.longestRoadPlayerId === player.id ? LONGEST_ROAD_VICTORY_POINTS : 0;
 
@@ -1858,6 +1910,14 @@ function getVictoryPointBreakdown(
       detail: longestRoadPoints > 0 ? "Award held" : "Not held",
       label: "Longest Road",
       points: longestRoadPoints,
+    },
+    {
+      asset: AWARD_ASSET_PATHS.largestArmy,
+      assetHeight: 512,
+      assetWidth: 512,
+      detail: largestArmyPoints > 0 ? "Award held" : "Not held",
+      label: "Largest Army",
+      points: largestArmyPoints,
     },
     {
       asset: VICTORY_POINT_CARD_ASSET,

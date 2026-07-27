@@ -37,6 +37,13 @@ export function serializeCommand(command: GameCommand): string {
       return JSON.stringify({ kind: command.kind, victimPlayerId: command.victimPlayerId });
     case "build_city":
       return JSON.stringify({ kind: command.kind, vertexKey: command.vertexKey });
+    case "play_monopoly":
+      return JSON.stringify({ kind: command.kind, resource: command.resource });
+    case "play_year_of_plenty":
+      return JSON.stringify({
+        kind: command.kind,
+        resources: serializableInventory(command.resources),
+      });
     case "trade_bank":
       return JSON.stringify({ give: command.give, kind: command.kind, receive: command.receive });
     case "propose_trade":
@@ -58,6 +65,8 @@ export function serializeCommand(command: GameCommand): string {
         offerActionNumber: command.offerActionNumber,
       });
     case "buy_development_card":
+    case "play_knight":
+    case "play_road_building":
     case "roll":
     case "end_turn":
       return JSON.stringify({ kind: command.kind });
@@ -121,6 +130,14 @@ export function commandText(
       return `${displayName} upgraded a settlement to a city.`;
     case "buy_development_card":
       return `${displayName} bought a development card.`;
+    case "play_knight":
+      return `${displayName} played a Knight.`;
+    case "play_monopoly":
+      return `${displayName} played Monopoly on ${command.resource}.`;
+    case "play_road_building":
+      return `${displayName} played Road Building.`;
+    case "play_year_of_plenty":
+      return `${displayName} played Year of Plenty.`;
     case "trade_bank":
       return `${displayName} traded ${command.give} for ${command.receive}.`;
     case "propose_trade":
@@ -155,6 +172,11 @@ export function validateCommandBounds(command: GameCommand): void {
     case "discard":
       if (!validInventory(command.resources)) fail("INVALID_COMMAND", "Invalid discard inventory.");
       return;
+    case "play_year_of_plenty":
+      if (!validInventory(command.resources)) {
+        fail("INVALID_COMMAND", "Invalid Year of Plenty inventory.");
+      }
+      return;
     case "propose_trade":
       if (!validInventory(command.give) || !validInventory(command.want)) {
         fail("INVALID_COMMAND", "Invalid player trade inventory.");
@@ -173,7 +195,10 @@ export function validateCommandBounds(command: GameCommand): void {
       validateActionNumber(command.offerActionNumber);
       return;
     case "trade_bank":
+    case "play_monopoly":
     case "buy_development_card":
+    case "play_knight":
+    case "play_road_building":
     case "roll":
     case "end_turn":
       return;

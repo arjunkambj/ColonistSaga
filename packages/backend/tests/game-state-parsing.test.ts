@@ -35,25 +35,29 @@ function serializedGame(): string {
 describe("stored game-state parsing", () => {
   test("accepts a complete current game state", () => {
     const parsed = parseGameState(serializedGame());
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(4);
     expect(parsed.developmentDeck).toHaveLength(25);
     expect(parsed.longestRoadPlayerId).toBeNull();
     expect(parsed.players.map((player) => player.id)).toEqual(["one", "two", "three"]);
   });
 
-  test("adds public counters to existing version 3 games", () => {
+  test("upgrades version 3 public counters and played knights", () => {
     const stored = JSON.parse(serializedGame()) as Record<string, unknown> & {
       players: Record<string, unknown>[];
     };
-    delete stored.longestRoadPlayerId;
+    stored.version = 3;
+    delete stored.developmentCardPlayedThisTurn;
+    delete stored.developmentCardsBoughtThisTurn;
+    delete stored.largestArmyPlayerId;
     for (const player of stored.players) {
-      delete player.playedKnights;
+      delete player.playedDevelopmentCards;
+      player.playedKnights = 0;
     }
 
     const parsed = parseGameState(JSON.stringify(stored));
 
     expect(parsed.longestRoadPlayerId).toBeNull();
-    expect(parsed.players.every((player) => player.playedKnights === 0)).toBe(true);
+    expect(parsed.players.every((player) => player.playedDevelopmentCards.length === 0)).toBe(true);
   });
 
   test("preserves valid version 1 cards without changing conserved resources", () => {
@@ -68,7 +72,7 @@ describe("stored game-state parsing", () => {
     const bankBefore = structuredClone(oldState.bank) as ResourceInventory;
 
     const parsed = parseGameState(JSON.stringify(oldState));
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(4);
     expect(parsed.developmentDeck).toEqual(LEGACY_DEVELOPMENT_DECK);
     expect("victoryPoints" in parsed).toBe(false);
     expect(parsed.players[0]!.developmentCards).toEqual(["knight"]);
@@ -108,7 +112,7 @@ describe("stored game-state parsing", () => {
     const firstParse = parseGameState(JSON.stringify(oldState));
     const secondParse = parseGameState(JSON.stringify(oldState));
 
-    expect(firstParse.version).toBe(3);
+    expect(firstParse.version).toBe(4);
     expect(firstParse.developmentDeck).toHaveLength(25);
     expect(firstParse.developmentDeck).toEqual(secondParse.developmentDeck);
     expect(firstParse.players.every((player) => player.developmentCards.length === 0)).toBe(true);

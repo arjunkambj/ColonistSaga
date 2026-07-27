@@ -58,6 +58,13 @@ export function getPhaseCopy(
         detail: isViewerTurn ? "Choose a neighboring player." : "A resource is being stolen.",
         title: "Choose a Player",
       };
+    case "road_building":
+      return {
+        detail: isViewerTurn
+          ? `Choose ${phase.remainingRoads === 1 ? "one more free road" : "two free roads"}.`
+          : `${activePlayerName} is placing free roads.`,
+        title: "Road Building",
+      };
     case "build_and_trade":
       return {
         detail: isViewerTurn

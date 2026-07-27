@@ -13,6 +13,7 @@ export const DEVELOPMENT_CARD_TYPES = [
 ] as const;
 
 export type DevelopmentCardType = (typeof DEVELOPMENT_CARD_TYPES)[number];
+export type PlayableDevelopmentCardType = Exclude<DevelopmentCardType, "victory-point">;
 
 export const TERRAIN_TYPES = [
   "desert",
@@ -81,7 +82,7 @@ export interface PlayerPieces {
 export interface PlayerState extends GamePlayerInput {
   developmentCards: DevelopmentCardType[];
   piecesRemaining: PlayerPieces;
-  playedKnights: number;
+  playedDevelopmentCards: PlayableDevelopmentCardType[];
   resources: ResourceInventory;
   seatIndex: number;
   victoryPoints: number;
@@ -147,12 +148,20 @@ export interface DiscardPhase {
 export interface MoveRobberPhase {
   kind: "move_robber";
   rollerPlayerId: PlayerId;
+  resumePhase: "build_and_trade" | "roll";
 }
 
 export interface StealPhase {
   eligibleVictimIds: PlayerId[];
   kind: "steal";
   rollerPlayerId: PlayerId;
+  resumePhase: "build_and_trade" | "roll";
+}
+
+export interface RoadBuildingPhase {
+  kind: "road_building";
+  remainingRoads: number;
+  resumePhase: "build_and_trade" | "roll";
 }
 
 export interface BuildAndTradePhase {
@@ -170,6 +179,7 @@ export type GamePhase =
   | DiscardPhase
   | MoveRobberPhase
   | StealPhase
+  | RoadBuildingPhase
   | BuildAndTradePhase
   | FinishedPhase;
 
@@ -194,8 +204,11 @@ export interface GameState {
   balancedDiceBag: DiceRoll[];
   bank: ResourceInventory;
   board: BoardState;
+  developmentCardPlayedThisTurn: boolean;
+  developmentCardsBoughtThisTurn: number;
   developmentDeck: DevelopmentCardType[];
   lastDiceRoll: DiceRoll | null;
+  largestArmyPlayerId: PlayerId | null;
   longestRoadPlayerId: PlayerId | null;
   phase: GamePhase;
   players: PlayerState[];
@@ -206,7 +219,7 @@ export interface GameState {
   tradeOffer: TradeOffer | null;
   turnNumber: number;
   turnOrder: PlayerId[];
-  version: 3;
+  version: 4;
   winnerPlayerId: PlayerId | null;
 }
 
@@ -219,6 +232,10 @@ export type GameCommand =
   | { kind: "steal"; victimPlayerId: PlayerId }
   | { kind: "build_city"; vertexKey: string }
   | { kind: "buy_development_card" }
+  | { kind: "play_knight" }
+  | { kind: "play_monopoly"; resource: ResourceType }
+  | { kind: "play_road_building" }
+  | { kind: "play_year_of_plenty"; resources: ResourceInventory }
   | {
       give: ResourceType;
       kind: "trade_bank";
@@ -259,6 +276,7 @@ export interface LegalActions {
   discardCount: number | null;
   isRequiredActor: boolean;
   phase: GamePhase["kind"];
+  playableDevelopmentCards: PlayableDevelopmentCardType[];
   roadEdgeKeys: string[];
   robberTileIds: string[];
   settlementVertexKeys: string[];
@@ -304,6 +322,7 @@ export type GameRuleErrorCode =
   | "INVALID_VICTIM"
   | "LOCATION_OCCUPIED"
   | "NO_DEVELOPMENT_CARD_AVAILABLE"
+  | "DEVELOPMENT_CARD_NOT_PLAYABLE"
   | "NO_PIECE_AVAILABLE"
   | "NOT_REQUIRED_ACTOR"
   | "ROAD_NOT_CONNECTED"

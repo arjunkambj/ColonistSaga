@@ -110,6 +110,7 @@ export function resolveBoardTargetMode(
     case "setup_settlement":
       return "settlement";
     case "setup_road":
+    case "road_building":
       return "road";
     case "move_robber":
       return "robber";

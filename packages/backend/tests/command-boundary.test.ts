@@ -24,6 +24,45 @@ describe("game command boundary", () => {
     );
   });
 
+  test("accepts and describes every development-card play command", () => {
+    const validatorJson = JSON.stringify(commandValidator);
+    for (const kind of [
+      "play_knight",
+      "play_monopoly",
+      "play_road_building",
+      "play_year_of_plenty",
+    ]) {
+      expect(validatorJson).toContain(kind);
+    }
+    const state = createDefaultGame(
+      Array.from({ length: 3 }, (_, index) => ({
+        displayName: `Player ${index + 1}`,
+        id: `player-${index + 1}`,
+        isBot: true,
+      })),
+      "development-card-play-events",
+    );
+    const commands: GameCommand[] = [
+      { kind: "play_knight" },
+      { kind: "play_monopoly", resource: "wheat" },
+      { kind: "play_road_building" },
+      {
+        kind: "play_year_of_plenty",
+        resources: { brick: 1, sheep: 0, stone: 0, tree: 0, wheat: 1 },
+      },
+    ];
+
+    expect(commands.map((command) => commandEventKind(command, state, state))).toEqual(
+      commands.map((command) => command.kind),
+    );
+    expect(commands.map((command) => commandText(command, "Player 1", state, state))).toEqual([
+      "Player 1 played a Knight.",
+      "Player 1 played Monopoly on wheat.",
+      "Player 1 played Road Building.",
+      "Player 1 played Year of Plenty.",
+    ]);
+  });
+
   test("reads the command kind used by presentation event cues", () => {
     expect(parseCommandKind('{"kind":"place_road","edgeKey":"1:2"}')).toBe("place_road");
     expect(parseCommandKind("invalid")).toBe("unknown");

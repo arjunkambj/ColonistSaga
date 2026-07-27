@@ -1,13 +1,13 @@
 "use client";
 
-import { Button, Modal } from "@heroui/react";
+import { Button } from "@heroui/react";
 import Image from "next/image";
 import { useState } from "react";
 
-import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import { ACTION_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
 import { END_TURN_ICON_ASSET_PATH } from "@/constants/game/ui-assets";
 
+import { GameDialog } from "./game-dialog";
 import styles from "./game-help-dialog.module.css";
 
 interface GameHelpDialogProps {
@@ -190,110 +190,80 @@ export function GameHelpDialog({ onClose }: GameHelpDialogProps) {
   }
 
   return (
-    <Modal>
-      <Modal.Backdrop
-        className={styles.backdrop}
-        isOpen
-        onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
-        variant="blur"
-      >
-        <Modal.Container>
-          <Modal.Dialog
-            aria-label="How to play"
-            className={liquidGlassClassName({
-              className: styles.dialog,
-              kind: "panel",
-              radius: "md",
-            })}
-            id="game-help-dialog"
-          >
-            <Modal.Header className={styles.header}>
-              <div>
-                <p className={styles.kicker}>Player guide</p>
-                <Modal.Heading>How to Play</Modal.Heading>
-              </div>
-              <Button
-                aria-label="Close game guide"
-                className={styles.closeButton}
-                isIconOnly
-                onPress={onClose}
-                variant="ghost"
-              >
-                ×
+    <GameDialog
+      ariaLabel="How to play"
+      footer={
+        <>
+          <div aria-label="Guide pages" className={styles.dots} role="group">
+            {GUIDE_PAGES.map((guidePage, index) => (
+              <button
+                aria-label={`Go to page ${index + 1}: ${guidePage.eyebrow}`}
+                aria-pressed={index === pageIndex}
+                className={index === pageIndex ? styles.activeDot : styles.dot}
+                key={guidePage.eyebrow}
+                onClick={() => setPageIndex(index)}
+                type="button"
+              />
+            ))}
+          </div>
+          <div className={styles.actions}>
+            {!isFirstPage && (
+              <Button className={styles.backButton} onPress={showPreviousPage} variant="ghost">
+                Back
               </Button>
-            </Modal.Header>
+            )}
+            <Button className={styles.nextButton} onPress={showNextPage} variant="primary">
+              {isLastPage ? "Start playing" : "Next"}
+              {!isLastPage && <span aria-hidden="true">→</span>}
+            </Button>
+          </div>
+        </>
+      }
+      id="game-help-dialog"
+      kicker="Player guide"
+      onClose={onClose}
+      title="How to Play"
+    >
+      <article aria-live="polite" className={styles.page} key={page.eyebrow}>
+        <div className={styles.visual} data-page={pageIndex + 1}>
+          <div className={styles.artGroup}>
+            {page.art.map((asset) => (
+              <Image
+                alt={asset.alt}
+                className={styles.art}
+                draggable={false}
+                height={asset.height}
+                key={asset.path}
+                priority={pageIndex === 0}
+                sizes="(max-width: 640px) 42vw, 220px"
+                src={asset.path}
+                width={asset.width}
+              />
+            ))}
+          </div>
+          <span className={styles.pageNumber}>
+            {pageIndex + 1} / {GUIDE_PAGES.length}
+          </span>
+        </div>
 
-            <Modal.Body className={styles.body}>
-              <article aria-live="polite" className={styles.page} key={page.eyebrow}>
-                <div className={styles.visual} data-page={pageIndex + 1}>
-                  <div className={styles.artGroup}>
-                    {page.art.map((asset) => (
-                      <Image
-                        alt={asset.alt}
-                        className={styles.art}
-                        draggable={false}
-                        height={asset.height}
-                        key={asset.path}
-                        priority={pageIndex === 0}
-                        sizes="(max-width: 640px) 42vw, 220px"
-                        src={asset.path}
-                        width={asset.width}
-                      />
-                    ))}
-                  </div>
-                  <span className={styles.pageNumber}>
-                    {pageIndex + 1} / {GUIDE_PAGES.length}
-                  </span>
+        <div className={styles.copy}>
+          <p className={styles.pageEyebrow}>{page.eyebrow}</p>
+          <h3>{page.title}</h3>
+          <ul className={styles.tips}>
+            {page.tips.map((tip) => (
+              <li key={tip.title}>
+                <span aria-hidden="true" className={styles.check}>
+                  ✓
+                </span>
+                <div>
+                  <strong>{tip.title}</strong>
+                  <p>{tip.copy}</p>
                 </div>
-
-                <div className={styles.copy}>
-                  <p className={styles.pageEyebrow}>{page.eyebrow}</p>
-                  <h3>{page.title}</h3>
-                  <ul className={styles.tips}>
-                    {page.tips.map((tip) => (
-                      <li key={tip.title}>
-                        <span aria-hidden="true" className={styles.check}>
-                          ✓
-                        </span>
-                        <div>
-                          <strong>{tip.title}</strong>
-                          <p>{tip.copy}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </article>
-            </Modal.Body>
-
-            <Modal.Footer className={styles.footer}>
-              <div aria-label="Guide pages" className={styles.dots} role="group">
-                {GUIDE_PAGES.map((guidePage, index) => (
-                  <button
-                    aria-label={`Go to page ${index + 1}: ${guidePage.eyebrow}`}
-                    aria-pressed={index === pageIndex}
-                    className={index === pageIndex ? styles.activeDot : styles.dot}
-                    key={guidePage.eyebrow}
-                    onClick={() => setPageIndex(index)}
-                    type="button"
-                  />
-                ))}
-              </div>
-              <div className={styles.actions}>
-                {!isFirstPage && (
-                  <Button className={styles.backButton} onPress={showPreviousPage} variant="ghost">
-                    Back
-                  </Button>
-                )}
-                <Button className={styles.nextButton} onPress={showNextPage} variant="primary">
-                  {isLastPage ? "Start playing" : "Next"}
-                  {!isLastPage && <span aria-hidden="true">→</span>}
-                </Button>
-              </div>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </article>
+    </GameDialog>
   );
 }

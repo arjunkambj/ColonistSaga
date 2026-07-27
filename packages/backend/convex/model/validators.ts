@@ -75,6 +75,16 @@ export const commandValidator = v.union(
     vertexKey: v.string(),
   }),
   v.object({ kind: v.literal("buy_development_card") }),
+  v.object({ kind: v.literal("play_knight") }),
+  v.object({
+    kind: v.literal("play_monopoly"),
+    resource: resourceTypeValidator,
+  }),
+  v.object({ kind: v.literal("play_road_building") }),
+  v.object({
+    kind: v.literal("play_year_of_plenty"),
+    resources: resourceInventoryValidator,
+  }),
   v.object({
     give: resourceTypeValidator,
     kind: v.literal("trade_bank"),

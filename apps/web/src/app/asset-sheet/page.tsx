@@ -65,8 +65,8 @@ const MUSIC_ASSETS = [
 const SOUND_EFFECT_DEFINITIONS = [
   ["Action feedback", "Generic game action confirmation.", "action"],
   ["Magic dice", "Cushioned arcane roll.", "dice"],
-  ["Your turn", "Notification when your turn begins.", "turn"],
-  ["Turn reminder", "Gentle reminder when your turn has been idle.", "turnReminder"],
+  ["Next turn", "Notification when another player's turn begins.", "nextTurn"],
+  ["Your turn", "Notification when your turn begins or has been idle.", "turn"],
   ["Resource change", "Resource gain or loss cue.", "resource"],
   ["Road placed", "Short wooden road placement cue.", "road"],
   ["Settlement placed", "Warm settlement placement cue.", "settlement"],
@@ -106,8 +106,8 @@ const SOUND_EFFECT_SUBCATEGORIES = [
     name: "Turn flow",
     assets: selectAssets(SOUND_EFFECT_ASSETS, [
       "Magic dice",
+      "Next turn",
       "Your turn",
-      "Turn reminder",
       "Resource change",
     ]),
   },

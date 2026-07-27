@@ -2,6 +2,7 @@ export * from "./board";
 export * from "./bot-names";
 export * from "./bots";
 export * from "./constants";
+export * from "./largest-army";
 export * from "./longest-road";
 export * from "./maps";
 export * from "./random";

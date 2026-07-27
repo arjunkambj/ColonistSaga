@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { getEventSound, getViewerEventSound, shouldPlayVictory } from "../src/lib/game/audio-cues";
+import {
+  getEventSound,
+  getTurnSound,
+  getViewerEventSound,
+  shouldPlayVictory,
+} from "../src/lib/game/audio-cues";
 
 describe("game audio cues", () => {
   test("maps every audible command family to its generated effect", () => {
@@ -28,11 +33,16 @@ describe("game audio cues", () => {
     expect(getEventSound("place_road", 0, "setup_settlement")).toBe("road");
   });
 
-  test("reserves detailed cues for the viewer's own actions", () => {
+  test("plays action cues only for the viewer's own actions", () => {
     expect(getViewerEventSound("roll", 1, "rolling", "me", "me")).toBe("dice");
-    expect(getViewerEventSound("roll", 1, "rolling", "other", "me")).toBe("action");
-    expect(getViewerEventSound("place_road", 2, "main", "other", "me")).toBe("action");
+    expect(getViewerEventSound("roll", 1, "rolling", "other", "me")).toBeNull();
+    expect(getViewerEventSound("place_road", 2, "main", "other", "me")).toBeNull();
     expect(getViewerEventSound("end_turn", 3, "main", "other", "me")).toBeNull();
+  });
+
+  test("announces whose turn begins", () => {
+    expect(getTurnSound("me", "me")).toBe("turn");
+    expect(getTurnSound("other", "me")).toBe("nextTurn");
   });
 
   test("plays victory only when a live game gains a winner", () => {

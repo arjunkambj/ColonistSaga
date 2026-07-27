@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import {
   getViewerEventSound,
+  getTurnSound,
   shouldPlayVictory,
   SOUND_EFFECT_PATHS,
   type SoundEffect,
@@ -89,8 +90,8 @@ export function GameAudio({
   useEffect(() => {
     const previousActivePlayerId = previousActivePlayerIdRef.current;
     previousActivePlayerIdRef.current = activePlayerId;
-    if (previousActivePlayerId !== activePlayerId && activePlayerId === viewerPlayerId) {
-      playSound("turn");
+    if (previousActivePlayerId !== activePlayerId) {
+      playSound(getTurnSound(activePlayerId, viewerPlayerId));
     }
   }, [activePlayerId, playSound, viewerPlayerId]);
 
@@ -100,7 +101,7 @@ export function GameAudio({
     }
 
     const timeoutId = window.setTimeout(() => {
-      playSound("turnReminder");
+      playSound("turn");
     }, TURN_REMINDER_DELAY_MS);
 
     return () => {

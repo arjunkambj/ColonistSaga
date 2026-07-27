@@ -28,7 +28,7 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
           isBot: player.isBot,
           isViewer: false,
           piecesRemaining: { ...player.piecesRemaining },
-          playedKnights: player.playedKnights,
+          playedDevelopmentCards: [...player.playedDevelopmentCards],
           revealedVictoryPointCards:
             state.status === "completed"
               ? player.developmentCards.filter((card) => card === "victory-point").length

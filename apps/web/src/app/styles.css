@@ -4342,12 +4342,6 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
-.player-victory-bonus {
-  color: var(--player-color);
-  font-size: 0.58rem;
-  font-weight: 900;
-}
-
 .player-victory-score small {
   color: #7c8798;
   font-size: 0.58rem;

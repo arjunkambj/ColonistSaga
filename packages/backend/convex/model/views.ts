@@ -64,9 +64,7 @@ export async function toRoomView(ctx: ReadCtx, room: RoomDoc, seat: SeatDoc): Pr
     ...base,
     botDifficulty: game.botDifficulty,
     botThinking:
-      game.status === "active" &&
-      automatedActor?.isBot === true &&
-      game.nextActionAt !== undefined,
+      game.status === "active" && automatedActor?.isBot === true && game.nextActionAt !== undefined,
     events,
     gameJson: playerViewJson(state, seat),
     isPaused: game.status === "paused",

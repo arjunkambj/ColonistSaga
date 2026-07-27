@@ -2,6 +2,8 @@
 
 import {
   RESOURCE_ORDER,
+  type DevelopmentCardType,
+  type PlayableDevelopmentCardType,
   type PrivatePlayerState,
   type ResourceInventory,
   type ResourceType,
@@ -91,10 +93,16 @@ export function ResourceHand({
   actionNumber,
   me,
   notice,
+  onPlayDevelopmentCard,
+  pending,
+  playableDevelopmentCards,
 }: {
   actionNumber: number;
   me: PrivatePlayerState;
   notice?: ReactNode;
+  onPlayDevelopmentCard(card: PlayableDevelopmentCardType): void;
+  pending: boolean;
+  playableDevelopmentCards: readonly PlayableDevelopmentCardType[];
 }) {
   const { interaction } = useHandDock();
   const resourceListRef = useRef<HTMLUListElement>(null);
@@ -265,29 +273,47 @@ export function ResourceHand({
           {developmentCardCounts.length > 0 ? (
             <li aria-hidden="true" className={`mx-1 ${styles.cardSectionDivider}`} />
           ) : null}
-          {developmentCardCounts.map((card) => (
-            <li
-              aria-label={`${card.label} development cards: ${card.count}. ${card.description}`}
-              className="resource-card resource-card-face development-card-face"
-              key={card.id}
-            >
-              <span className="resource-card-art" aria-hidden="true">
-                <Image
-                  alt=""
-                  className="resource-card-image"
-                  draggable={false}
-                  height={768}
-                  loading="eager"
-                  sizes="4.5rem"
-                  src={card.path}
-                  width={512}
+          {developmentCardCounts.map((card) => {
+            const playable =
+              card.id !== "victory-point" && playableDevelopmentCards.includes(card.id);
+            return (
+              <li
+                aria-label={`${card.label} development cards: ${card.count}. ${card.description}`}
+                className={[
+                  "resource-card resource-card-face development-card-face",
+                  playable ? styles.selectableCard : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                key={card.id}
+              >
+                <span className="resource-card-art" aria-hidden="true">
+                  <Image
+                    alt=""
+                    className="resource-card-image"
+                    draggable={false}
+                    height={768}
+                    loading="eager"
+                    sizes="4.5rem"
+                    src={card.path}
+                    width={512}
+                  />
+                </span>
+                <span aria-hidden="true" className={styles.cardCount}>
+                  {card.count}
+                </span>
+                <DevelopmentCardButton
+                  card={card.id}
+                  count={card.count}
+                  description={card.description}
+                  label={card.label}
+                  onPlayDevelopmentCard={onPlayDevelopmentCard}
+                  pending={pending}
+                  playableDevelopmentCards={playableDevelopmentCards}
                 />
-              </span>
-              <span aria-hidden="true" className={styles.cardCount}>
-                {card.count}
-              </span>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
         <div aria-hidden="true" className={styles.flightLayer}>
           {resourceAnimations.map((animation) => {
@@ -324,5 +350,47 @@ export function ResourceHand({
         </div>
       </div>
     </section>
+  );
+}
+
+function DevelopmentCardButton({
+  card,
+  count,
+  description,
+  label,
+  onPlayDevelopmentCard,
+  pending,
+  playableDevelopmentCards,
+}: {
+  card: DevelopmentCardType;
+  count: number;
+  description: string;
+  label: string;
+  onPlayDevelopmentCard(card: PlayableDevelopmentCardType): void;
+  pending: boolean;
+  playableDevelopmentCards: readonly PlayableDevelopmentCardType[];
+}) {
+  const playable = card !== "victory-point" && playableDevelopmentCards.includes(card);
+  const status =
+    card === "victory-point"
+      ? "This card counts automatically."
+      : playable
+        ? "Play this card."
+        : "This card cannot be played right now.";
+
+  return (
+    <Button
+      aria-label={`${label} development cards: ${count}. ${description} ${status}`}
+      className={styles.handCardSelector}
+      isDisabled={pending || !playable}
+      onPress={() => {
+        if (card !== "victory-point") {
+          onPlayDevelopmentCard(card);
+        }
+      }}
+      variant="ghost"
+    >
+      <span className="sr-only">{status}</span>
+    </Button>
   );
 }

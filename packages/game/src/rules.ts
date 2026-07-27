@@ -18,10 +18,12 @@ import {
   totalResources,
 } from "./resources";
 import { reconcileLongestRoadAward } from "./longest-road";
+import { reconcileLargestArmyAward } from "./largest-army";
 import { getBoardTopology } from "./topology";
 import { GameRuleError, RESOURCE_TYPES } from "./types";
 import type {
   GameCommand,
+  DevelopmentCardType,
   GameRuleErrorCode,
   GameState,
   LegalActions,
@@ -401,6 +403,29 @@ function placeRoad(state: GameState, playerId: PlayerId, edgeKey: string) {
     };
   }
 
+  if (state.phase.kind === "road_building") {
+    if (!roadConnectsToPlayer(state, playerId, edgeKey)) {
+      fail("ROAD_NOT_CONNECTED", "Road must connect to the player's network");
+    }
+
+    const resumePhase = state.phase.resumePhase;
+    const remainingRoads = state.phase.remainingRoads - 1;
+    const withRoad = addRoad(state, playerId, edgeKey);
+    const playerAfterRoad = requirePlayer(withRoad, playerId);
+    const shouldResume =
+      remainingRoads <= 0 ||
+      playerAfterRoad.piecesRemaining.roads <= 0 ||
+      getRoadEdgeKeys(withRoad, playerId).length === 0;
+    const next = {
+      ...withRoad,
+      phase: shouldResume
+        ? ({ kind: resumePhase } as const)
+        : ({ kind: "road_building", remainingRoads, resumePhase } as const),
+    };
+
+    return finishIfWinner(next, playerId);
+  }
+
   if (state.phase.kind !== "build_and_trade") {
     fail("INVALID_PHASE", "Roads cannot be placed in this phase");
   }
@@ -469,6 +494,7 @@ function buyDevelopmentCard(state: GameState, playerId: PlayerId) {
   const withCard = updatePlayer(
     {
       ...paid,
+      developmentCardsBoughtThisTurn: paid.developmentCardsBoughtThisTurn + 1,
       developmentDeck: paid.developmentDeck.slice(1),
     },
     playerId,
@@ -479,6 +505,143 @@ function buyDevelopmentCard(state: GameState, playerId: PlayerId) {
   );
 
   return finishIfWinner(withCard, playerId);
+}
+
+function playableDevelopmentCards(state: GameState, playerId: PlayerId) {
+  if (
+    state.developmentCardPlayedThisTurn ||
+    (state.phase.kind !== "roll" && state.phase.kind !== "build_and_trade") ||
+    state.activePlayerId !== playerId
+  ) {
+    return [];
+  }
+
+  const player = requirePlayer(state, playerId);
+  const playableCardCount = Math.max(
+    0,
+    player.developmentCards.length - state.developmentCardsBoughtThisTurn,
+  );
+  const cards = new Set(
+    player.developmentCards.slice(0, playableCardCount).filter((card) => card !== "victory-point"),
+  );
+
+  if (player.piecesRemaining.roads <= 0 || getRoadEdgeKeys(state, playerId).length === 0) {
+    cards.delete("road-building");
+  }
+  if (totalResources(state.bank) < 2) {
+    cards.delete("year-of-plenty");
+  }
+
+  return [...cards];
+}
+
+function consumeDevelopmentCard(
+  state: GameState,
+  playerId: PlayerId,
+  card: Exclude<DevelopmentCardType, "victory-point">,
+) {
+  const playableCards = playableDevelopmentCards(state, playerId);
+  if (!playableCards.includes(card)) {
+    fail("DEVELOPMENT_CARD_NOT_PLAYABLE", "This development card cannot be played right now");
+  }
+
+  const player = requirePlayer(state, playerId);
+  const playableCardCount = player.developmentCards.length - state.developmentCardsBoughtThisTurn;
+  const cardIndex = player.developmentCards
+    .slice(0, playableCardCount)
+    .findIndex((candidate) => candidate === card);
+  if (cardIndex < 0) {
+    fail("DEVELOPMENT_CARD_NOT_PLAYABLE", "Player does not have this development card");
+  }
+
+  return updatePlayer(
+    {
+      ...state,
+      developmentCardPlayedThisTurn: true,
+      tradeOffer: null,
+    },
+    playerId,
+    (current) => ({
+      ...current,
+      developmentCards: current.developmentCards.filter((_, index) => index !== cardIndex),
+      playedDevelopmentCards: [...current.playedDevelopmentCards, card],
+    }),
+  );
+}
+
+function playKnight(state: GameState, playerId: PlayerId) {
+  const resumePhase = state.phase.kind;
+  if (resumePhase !== "roll" && resumePhase !== "build_and_trade") {
+    fail("INVALID_PHASE", "Knight cannot be played in this phase");
+  }
+
+  const withKnight = reconcileLargestArmyAward(consumeDevelopmentCard(state, playerId, "knight"));
+  return finishIfWinner(
+    {
+      ...withKnight,
+      phase: { kind: "move_robber", resumePhase, rollerPlayerId: playerId },
+    },
+    playerId,
+  );
+}
+
+function playMonopoly(state: GameState, playerId: PlayerId, resource: unknown) {
+  if (!isResourceType(resource)) {
+    fail("INVALID_COMMAND", "Monopoly requires a known resource");
+  }
+
+  const consumed = consumeDevelopmentCard(state, playerId, "monopoly");
+  const collected = consumed.players.reduce(
+    (total, player) => total + (player.id === playerId ? 0 : player.resources[resource]),
+    0,
+  );
+
+  return {
+    ...consumed,
+    players: consumed.players.map((player) => ({
+      ...player,
+      resources:
+        player.id === playerId
+          ? { ...player.resources, [resource]: player.resources[resource] + collected }
+          : { ...player.resources, [resource]: 0 },
+    })),
+  };
+}
+
+function playRoadBuilding(state: GameState, playerId: PlayerId): GameState {
+  const resumePhase = state.phase.kind;
+  if (resumePhase !== "roll" && resumePhase !== "build_and_trade") {
+    fail("INVALID_PHASE", "Road Building cannot be played in this phase");
+  }
+
+  const consumed = consumeDevelopmentCard(state, playerId, "road-building");
+  return {
+    ...consumed,
+    phase: {
+      kind: "road_building" as const,
+      remainingRoads: Math.min(2, requirePlayer(consumed, playerId).piecesRemaining.roads),
+      resumePhase,
+    },
+  };
+}
+
+function playYearOfPlenty(state: GameState, playerId: PlayerId, resources: ResourceInventory) {
+  if (!isValidInventory(resources) || totalResources(resources) !== 2) {
+    fail("INVALID_COMMAND", "Year of Plenty must select exactly two resource cards");
+  }
+  if (!hasResources(state.bank, resources)) {
+    fail("BANK_OUT_OF_RESOURCE", "The bank does not have the selected resource cards");
+  }
+
+  const consumed = consumeDevelopmentCard(state, playerId, "year-of-plenty");
+  const withResources = updatePlayer(consumed, playerId, (player) => ({
+    ...player,
+    resources: addResources(player.resources, resources),
+  }));
+  return {
+    ...withResources,
+    bank: subtractResources(withResources.bank, resources),
+  };
 }
 
 export function distributeResourcesForRoll(state: GameState, rollTotal: number) {
@@ -637,7 +800,11 @@ function rollDice(state: GameState, playerId: PlayerId) {
     phase:
       pending.length > 0
         ? { kind: "discard" as const, pending, rollerPlayerId: playerId }
-        : { kind: "move_robber" as const, rollerPlayerId: playerId },
+        : {
+            kind: "move_robber" as const,
+            resumePhase: "build_and_trade" as const,
+            rollerPlayerId: playerId,
+          },
   };
 }
 
@@ -675,6 +842,7 @@ function discardResources(state: GameState, playerId: PlayerId, discarded: Resou
           }
         : {
             kind: "move_robber" as const,
+            resumePhase: "build_and_trade" as const,
             rollerPlayerId: state.phase.rollerPlayerId,
           },
   };
@@ -757,7 +925,7 @@ function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
   if (eligibleVictimIds.length === 0) {
     return {
       ...withRobber,
-      phase: { kind: "build_and_trade" as const },
+      phase: { kind: state.phase.resumePhase } as const,
     };
   }
 
@@ -766,6 +934,7 @@ function moveRobber(state: GameState, playerId: PlayerId, tileId: string) {
     phase: {
       eligibleVictimIds,
       kind: "steal",
+      resumePhase: state.phase.resumePhase,
       rollerPlayerId: state.phase.rollerPlayerId,
     },
   };
@@ -819,7 +988,7 @@ function stealResource(state: GameState, playerId: PlayerId, victimPlayerId: Pla
 
   return {
     ...withThief,
-    phase: { kind: "build_and_trade" as const },
+    phase: { kind: state.phase.resumePhase } as const,
     randomIndex: draw.nextIndex,
   };
 }
@@ -1012,6 +1181,8 @@ function endTurn(state: GameState) {
   return {
     ...state,
     activePlayerId: nextPlayerId,
+    developmentCardPlayedThisTurn: false,
+    developmentCardsBoughtThisTurn: 0,
     lastDiceRoll: null,
     phase: { kind: "roll" as const },
     tradeOffer: null,
@@ -1067,6 +1238,7 @@ function emptyLegalActions(state: GameState): LegalActions {
     discardCount: null,
     isRequiredActor: false,
     phase: state.phase.kind,
+    playableDevelopmentCards: [],
     roadEdgeKeys: [],
     robberTileIds: [],
     settlementVertexKeys: [],
@@ -1099,8 +1271,13 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
             )
           : [];
       return actions;
+    case "road_building":
+      actions.roadEdgeKeys =
+        player.piecesRemaining.roads > 0 ? getRoadEdgeKeys(state, actorPlayerId) : [];
+      return actions;
     case "roll":
       actions.canRoll = hasCompletedSetupPlacements(state);
+      actions.playableDevelopmentCards = playableDevelopmentCards(state, actorPlayerId);
       return actions;
     case "discard":
       actions.discardCount =
@@ -1123,6 +1300,7 @@ export function getLegalActions(state: GameState, actorPlayerId: PlayerId): Lega
       }
 
       actions.canEndTurn = true;
+      actions.playableDevelopmentCards = playableDevelopmentCards(state, actorPlayerId);
       actions.canBuyDevelopmentCard =
         state.developmentDeck.length > 0 && hasResources(player.resources, DEVELOPMENT_CARD_COST);
       actions.canCancelTrade = state.tradeOffer?.proposerPlayerId === actorPlayerId;
@@ -1204,6 +1382,18 @@ export function applyCommand(
       break;
     case "buy_development_card":
       next = buyDevelopmentCard(state, actorPlayerId);
+      break;
+    case "play_knight":
+      next = playKnight(state, actorPlayerId);
+      break;
+    case "play_monopoly":
+      next = playMonopoly(state, actorPlayerId, command.resource);
+      break;
+    case "play_road_building":
+      next = playRoadBuilding(state, actorPlayerId);
+      break;
+    case "play_year_of_plenty":
+      next = playYearOfPlenty(state, actorPlayerId, command.resources);
       break;
     case "trade_bank":
       next = tradeWithBank(state, actorPlayerId, command.give, command.receive);

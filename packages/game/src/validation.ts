@@ -1,6 +1,7 @@
 import { getGameMapDefinition, mapSupportsPlayerCount } from "./maps";
 import { BANK_RESOURCE_COUNT, DEVELOPMENT_CARD_DECK, INITIAL_PIECES } from "./constants";
 import { LONGEST_ROAD_VICTORY_POINTS, getLongestRoadPlayerId } from "./longest-road";
+import { LARGEST_ARMY_VICTORY_POINTS, getLargestArmyPlayerId } from "./largest-army";
 import { getBoardTopology, getTileId } from "./topology";
 import {
   DEVELOPMENT_CARD_TYPES,
@@ -16,6 +17,7 @@ import type {
   GameState,
   PlayerGameView,
   PlayerId,
+  PlayableDevelopmentCardType,
   ResourceInventory,
 } from "./types";
 
@@ -31,6 +33,7 @@ const PHASE_KINDS = [
   "discard",
   "move_robber",
   "steal",
+  "road_building",
   "build_and_trade",
   "finished",
 ] as const satisfies readonly GamePhase["kind"][];
@@ -163,6 +166,7 @@ interface ValidatedPlayers {
   developmentCardCounts: Map<PlayerId, number>;
   ids: Set<PlayerId>;
   length: number;
+  playedDevelopmentCards: Map<PlayerId, PlayableDevelopmentCardType[]>;
   records: Map<PlayerId, UnknownRecord>;
   resources: Map<PlayerId, ResourceInventory>;
 }
@@ -170,7 +174,12 @@ interface ValidatedPlayers {
 function validatePlayerBase(
   value: unknown,
   path: string,
-): { id: PlayerId; player: UnknownRecord; seatIndex: number } {
+): {
+  id: PlayerId;
+  playedDevelopmentCards: PlayableDevelopmentCardType[];
+  player: UnknownRecord;
+  seatIndex: number;
+} {
   const player = record(value, path);
   const id = identifier(player.id, `${path}.id`);
   string(player.displayName, `${path}.displayName`);
@@ -178,9 +187,20 @@ function validatePlayerBase(
   optionalMember(player.botDifficulty, BOT_DIFFICULTIES, `${path}.botDifficulty`);
   const seatIndex = nonNegativeInteger(player.seatIndex, `${path}.seatIndex`);
   validatePieces(player.piecesRemaining, `${path}.piecesRemaining`);
-  nonNegativeInteger(player.playedKnights, `${path}.playedKnights`);
+  const playedDevelopmentCards = validateDevelopmentCards(
+    player.playedDevelopmentCards,
+    `${path}.playedDevelopmentCards`,
+  );
+  if (playedDevelopmentCards.includes("victory-point")) {
+    invalid(`${path}.playedDevelopmentCards`, "cannot contain victory-point cards");
+  }
   nonNegativeInteger(player.victoryPoints, `${path}.victoryPoints`);
-  return { id, player, seatIndex };
+  return {
+    id,
+    playedDevelopmentCards: playedDevelopmentCards as PlayableDevelopmentCardType[],
+    player,
+    seatIndex,
+  };
 }
 
 function validatePlayers(
@@ -195,13 +215,19 @@ function validatePlayers(
   const players = array(value, path);
   const ids = new Set<PlayerId>();
   const developmentCardCounts = new Map<PlayerId, number>();
+  const playedDevelopmentCards = new Map<PlayerId, PlayableDevelopmentCardType[]>();
   const records = new Map<PlayerId, UnknownRecord>();
   const resources = new Map<PlayerId, ResourceInventory>();
   const seatIndexes = new Set<number>();
 
   for (const [index, valueAtIndex] of players.entries()) {
     const playerPath = `${path}[${index}]`;
-    const { id, player, seatIndex } = validatePlayerBase(valueAtIndex, playerPath);
+    const {
+      id,
+      playedDevelopmentCards: playerPlayedDevelopmentCards,
+      player,
+      seatIndex,
+    } = validatePlayerBase(valueAtIndex, playerPath);
     if (ids.has(id)) {
       invalid(`${playerPath}.id`, "duplicates another player ID");
     }
@@ -218,12 +244,20 @@ function validatePlayers(
         : validateDevelopmentCards(player.developmentCards, `${playerPath}.developmentCards`)
             .length;
     developmentCardCounts.set(id, developmentCardCount);
+    playedDevelopmentCards.set(id, playerPlayedDevelopmentCards);
     if (inventory) {
       resources.set(id, inventory);
     }
   }
 
-  return { developmentCardCounts, ids, length: players.length, records, resources };
+  return {
+    developmentCardCounts,
+    ids,
+    length: players.length,
+    playedDevelopmentCards,
+    records,
+    resources,
+  };
 }
 
 function validateStatePlayers(value: unknown): ValidatedPlayers {
@@ -299,11 +333,11 @@ function validateDevelopmentCardConservation(
     )) {
       actualCounts.set(card, (actualCounts.get(card) ?? 0) + 1);
     }
-    actualCounts.set(
-      "knight",
-      (actualCounts.get("knight") ?? 0) +
-        nonNegativeInteger(player.playedKnights, "game.players.playedKnights"),
-    );
+  }
+  for (const cards of players.playedDevelopmentCards.values()) {
+    for (const card of cards) {
+      actualCounts.set(card, (actualCounts.get(card) ?? 0) + 1);
+    }
   }
 
   for (const card of DEVELOPMENT_CARD_TYPES) {
@@ -461,6 +495,7 @@ function validateBoard(
 function validatePieceAndScoreConservation(
   players: ValidatedPlayers,
   board: ValidatedBoard,
+  largestArmyPlayerId: PlayerId | null,
   longestRoadPlayerId: PlayerId | null,
   path: string,
 ): void {
@@ -478,6 +513,7 @@ function validatePieceAndScoreConservation(
     const publicVictoryPoints =
       buildings.settlements +
       buildings.cities * 2 +
+      (playerId === largestArmyPlayerId ? LARGEST_ARMY_VICTORY_POINTS : 0) +
       (playerId === longestRoadPlayerId ? LONGEST_ROAD_VICTORY_POINTS : 0);
     if (player.victoryPoints !== publicVictoryPoints) {
       invalid(
@@ -549,11 +585,21 @@ function validatePhase(
     }
     case "move_robber":
       validatePlayerId(phase.rollerPlayerId, playerIds, `${path}.rollerPlayerId`);
+      member(phase.resumePhase, ["build_and_trade", "roll"], `${path}.resumePhase`);
       break;
     case "steal":
       validateUniqueIds(phase.eligibleVictimIds, `${path}.eligibleVictimIds`, playerIds);
       validatePlayerId(phase.rollerPlayerId, playerIds, `${path}.rollerPlayerId`);
+      member(phase.resumePhase, ["build_and_trade", "roll"], `${path}.resumePhase`);
       break;
+    case "road_building": {
+      const remainingRoads = positiveInteger(phase.remainingRoads, `${path}.remainingRoads`);
+      if (remainingRoads > 2) {
+        invalid(`${path}.remainingRoads`, "cannot exceed two roads");
+      }
+      member(phase.resumePhase, ["build_and_trade", "roll"], `${path}.resumePhase`);
+      break;
+    }
     case "roll":
     case "build_and_trade":
     case "finished":
@@ -598,6 +644,21 @@ function validateSharedGame(
   nonNegativeInteger(game.actionNumber, `${path}.actionNumber`);
   validatePlayerId(game.activePlayerId, players.ids, `${path}.activePlayerId`);
   const board = validateBoard(game.board, settings.map, players.ids, `${path}.board`);
+  const largestArmyPlayerId =
+    game.largestArmyPlayerId === null
+      ? null
+      : validatePlayerId(game.largestArmyPlayerId, players.ids, `${path}.largestArmyPlayerId`);
+  const expectedLargestArmyPlayerId = getLargestArmyPlayerId(
+    [...players.records].map(([id, player]) => ({
+      id,
+      playedDevelopmentCards: players.playedDevelopmentCards.get(id) ?? [],
+      seatIndex: player.seatIndex as number,
+    })),
+    largestArmyPlayerId,
+  );
+  if (largestArmyPlayerId !== expectedLargestArmyPlayerId) {
+    invalid(`${path}.largestArmyPlayerId`, "does not match played knight cards");
+  }
   const longestRoadPlayerId =
     game.longestRoadPlayerId === null
       ? null
@@ -610,7 +671,25 @@ function validateSharedGame(
   if (longestRoadPlayerId !== expectedLongestRoadPlayerId) {
     invalid(`${path}.longestRoadPlayerId`, "does not match the board's longest road");
   }
-  validatePieceAndScoreConservation(players, board, longestRoadPlayerId, `${path}.players`);
+  validatePieceAndScoreConservation(
+    players,
+    board,
+    largestArmyPlayerId,
+    longestRoadPlayerId,
+    `${path}.players`,
+  );
+  boolean(game.developmentCardPlayedThisTurn, `${path}.developmentCardPlayedThisTurn`);
+  const boughtThisTurn = nonNegativeInteger(
+    game.developmentCardsBoughtThisTurn,
+    `${path}.developmentCardsBoughtThisTurn`,
+  );
+  const activePlayerId = game.activePlayerId as PlayerId;
+  if (boughtThisTurn > (players.developmentCardCounts.get(activePlayerId) ?? 0)) {
+    invalid(
+      `${path}.developmentCardsBoughtThisTurn`,
+      "exceeds the active player's development-card hand",
+    );
+  }
   if (game.lastDiceRoll !== null) {
     validateDiceRoll(game.lastDiceRoll, `${path}.lastDiceRoll`);
   }
@@ -622,7 +701,7 @@ function validateSharedGame(
   if (turnOrder.length !== players.length) {
     invalid(`${path}.turnOrder`, "must contain every player exactly once");
   }
-  if (game.version !== 3) {
+  if (game.version !== 4) {
     invalid(`${path}.version`, "contains an unsupported game-state version");
   }
   if (game.winnerPlayerId !== null) {
@@ -644,6 +723,19 @@ function validateLegalActions(value: unknown, shared: ValidatedSharedGame, path:
     "isRequiredActor",
   ] as const) {
     boolean(actions[key], `${path}.${key}`);
+  }
+  const playableDevelopmentCards = validateDevelopmentCards(
+    actions.playableDevelopmentCards,
+    `${path}.playableDevelopmentCards`,
+  );
+  if (
+    playableDevelopmentCards.includes("victory-point") ||
+    new Set(playableDevelopmentCards).size !== playableDevelopmentCards.length
+  ) {
+    invalid(
+      `${path}.playableDevelopmentCards`,
+      "must contain unique playable development-card types",
+    );
   }
 
   const bankTrades = array(actions.bankTrades, `${path}.bankTrades`);
@@ -730,13 +822,12 @@ export function assertPlayerGameView(value: unknown): asserts value is PlayerGam
     (total, count) => total + count,
     0,
   );
-  const playedKnights = [...players.records.values()].reduce(
-    (total, player) =>
-      total + nonNegativeInteger(player.playedKnights, "view.players.playedKnights"),
+  const playedDevelopmentCards = [...players.playedDevelopmentCards.values()].reduce(
+    (total, cards) => total + cards.length,
     0,
   );
   if (
-    developmentCardSupply + heldDevelopmentCards + playedKnights !==
+    developmentCardSupply + heldDevelopmentCards + playedDevelopmentCards !==
     DEVELOPMENT_CARD_DECK.length
   ) {
     invalid("view.developmentCardSupply", "does not match player development card counts");

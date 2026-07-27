@@ -250,6 +250,45 @@ function tradeResponseCommand(
   };
 }
 
+function chooseDevelopmentCardCommand(state: GameState, playerId: PlayerId): GameCommand | null {
+  const playableCards = getLegalActions(state, playerId).playableDevelopmentCards;
+  if (playableCards.includes("knight")) {
+    return { kind: "play_knight" };
+  }
+  if (playableCards.includes("monopoly")) {
+    const resource = [...RESOURCE_ORDER].sort(
+      (first, second) =>
+        state.players.reduce(
+          (total, player) => total + (player.id === playerId ? 0 : player.resources[second]),
+          0,
+        ) -
+          state.players.reduce(
+            (total, player) => total + (player.id === playerId ? 0 : player.resources[first]),
+            0,
+          ) || RESOURCE_ORDER.indexOf(first) - RESOURCE_ORDER.indexOf(second),
+    )[0];
+    if (resource) {
+      return { kind: "play_monopoly", resource };
+    }
+  }
+  if (playableCards.includes("road-building")) {
+    return { kind: "play_road_building" };
+  }
+  if (playableCards.includes("year-of-plenty")) {
+    const resources = emptyInventory();
+    let remaining = 2;
+    for (const resource of RESOURCE_ORDER) {
+      const amount = Math.min(state.bank[resource], remaining);
+      resources[resource] = amount;
+      remaining -= amount;
+      if (remaining === 0) {
+        return { kind: "play_year_of_plenty", resources };
+      }
+    }
+  }
+  return null;
+}
+
 function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameCommand {
   const player = requirePlayer(state, playerId);
   const legal = getLegalActions(state, playerId);
@@ -266,7 +305,7 @@ function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameComm
       return { edgeKey, kind: "place_road" };
     }
     case "roll":
-      return { kind: "roll" };
+      return chooseDevelopmentCardCommand(state, playerId) ?? { kind: "roll" };
     case "discard": {
       if (legal.discardCount === null) throw new Error("Automated player cannot discard");
       return {
@@ -284,7 +323,14 @@ function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameComm
       if (!victimPlayerId) throw new Error("Automated player has no eligible victim");
       return { kind: "steal", victimPlayerId };
     }
+    case "road_building": {
+      const edgeKey = legal.roadEdgeKeys[0];
+      if (!edgeKey) throw new Error("Automated player has no legal Road Building placement");
+      return { edgeKey, kind: "place_road" };
+    }
     case "build_and_trade": {
+      const developmentCardCommand = chooseDevelopmentCardCommand(state, playerId);
+      if (developmentCardCommand) return developmentCardCommand;
       const cityVertex = legal.cityVertexKeys[0];
       if (cityVertex) return { kind: "build_city", vertexKey: cityVertex };
       const settlementVertex = legal.settlementVertexKeys[0];
@@ -334,7 +380,7 @@ function chooseStrategicCommand(
       return { edgeKey, kind: "place_road" };
     }
     case "roll":
-      return { kind: "roll" };
+      return chooseDevelopmentCardCommand(state, playerId) ?? { kind: "roll" };
     case "discard": {
       const count = legal.discardCount;
 
@@ -378,8 +424,18 @@ function chooseStrategicCommand(
 
       return { kind: "steal", victimPlayerId };
     }
-    case "build_and_trade":
+    case "road_building": {
+      const edgeKey = chooseRoad(state, playerId, legal.roadEdgeKeys, difficulty);
+      if (!edgeKey) {
+        throw new Error("Bot has no legal Road Building placement");
+      }
+      return { edgeKey, kind: "place_road" };
+    }
+    case "build_and_trade": {
+      const developmentCardCommand = chooseDevelopmentCardCommand(state, playerId);
+      if (developmentCardCommand) return developmentCardCommand;
       return chooseBuildCommand(state, playerId, difficulty);
+    }
     case "finished":
       throw new Error("Finished game does not require a bot command");
   }

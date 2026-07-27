@@ -7,8 +7,8 @@ export const SOUND_EFFECT_PATHS = {
   road: "/sound-effects/road-placed.mp3",
   settlement: "/sound-effects/settlement-placed.mp3",
   trade: "/sound-effects/trade-resolved.mp3",
+  nextTurn: "/sound-effects/next-turn.mp3",
   turn: "/sound-effects/your-turn.mp3",
-  turnReminder: "/sound-effects/turn-reminder.mp3",
   victory: "/sound-effects/victory.mp3",
 } as const;
 
@@ -35,6 +35,11 @@ export function getEventSound(
     case "move_robber":
     case "move_robber_and_steal":
       return "robber";
+    case "play_knight":
+    case "play_monopoly":
+    case "play_road_building":
+    case "play_year_of_plenty":
+      return "action";
     case "discard":
     case "steal":
       return "resource";
@@ -58,11 +63,11 @@ export function getViewerEventSound(
   viewerPlayerId: string,
 ): SoundEffect | null {
   const eventSound = getEventSound(kind, sequence, currentPhaseKind);
-  if (!eventSound || actorPlayerId === viewerPlayerId) {
-    return eventSound;
-  }
+  return actorPlayerId === viewerPlayerId ? eventSound : null;
+}
 
-  return "action";
+export function getTurnSound(activePlayerId: string, viewerPlayerId: string): SoundEffect {
+  return activePlayerId === viewerPlayerId ? "turn" : "nextTurn";
 }
 
 export function shouldPlayVictory(
