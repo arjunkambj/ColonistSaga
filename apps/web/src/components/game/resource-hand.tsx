@@ -8,7 +8,14 @@ import {
 } from "@colonistsaga/game";
 import { Button } from "@heroui/react";
 import Image from "next/image";
-import { type CSSProperties, type AnimationEvent, useEffect, useRef, useState } from "react";
+import {
+  type AnimationEvent,
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { DEVELOPMENT_CARD_ASSETS, RESOURCE_CARD_ASSET_PATHS } from "@/constants/game/card-assets";
 import { getResourceCardChanges, type ResourceCardChange } from "@/lib/game/resource-card-changes";
@@ -83,9 +90,11 @@ function GameCardArtwork({
 export function ResourceHand({
   actionNumber,
   me,
+  notice,
 }: {
   actionNumber: number;
   me: PrivatePlayerState;
+  notice?: ReactNode;
 }) {
   const { interaction } = useHandDock();
   const resourceListRef = useRef<HTMLUListElement>(null);
@@ -177,6 +186,7 @@ export function ResourceHand({
         radius: "md",
       })}
     >
+      {notice}
       <div className={styles.actionOverlayRoot} id={HAND_DOCK_ROOT_ID} />
       <div className={styles.cardViewport}>
         <ul
@@ -195,6 +205,8 @@ export function ResourceHand({
                 ? Math.min(me.resources[resource], interaction.selected[resource])
                 : 0;
             const available = me.resources[resource] - selected;
+            const preserveHandAppearance = interaction?.preserveHandAppearance === true;
+            const displayedCount = preserveHandAppearance ? me.resources[resource] : available;
 
             return (
               <li
@@ -207,13 +219,13 @@ export function ResourceHand({
                   "resource-card",
                   "resource-card-face",
                   `resource-${resource}`,
-                  selected > 0 ? styles.selectedCard : "",
+                  selected > 0 && !preserveHandAppearance ? styles.selectedCard : "",
                   interaction && interactionMatchesSource ? styles.selectableCard : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                data-empty={available === 0 ? "true" : undefined}
-                data-selected={selected > 0 ? "true" : undefined}
+                data-empty={displayedCount === 0 ? "true" : undefined}
+                data-selected={selected > 0 && !preserveHandAppearance ? "true" : undefined}
                 key={resource}
                 title={`${RESOURCE_LABELS[resource]} · ${available} available${
                   selected > 0 ? ` · ${selected} selected` : ""
@@ -227,9 +239,9 @@ export function ResourceHand({
                   />
                 </span>
                 <span aria-hidden="true" className={styles.cardCount}>
-                  {available}
+                  {displayedCount}
                 </span>
-                {selected > 0 ? (
+                {selected > 0 && !preserveHandAppearance ? (
                   <span aria-hidden="true" className={styles.selectedCount}>
                     {selected} selected
                   </span>

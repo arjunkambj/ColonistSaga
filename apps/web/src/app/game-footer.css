@@ -88,7 +88,7 @@
   border: 0;
   background: transparent;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
 }
 
 .reference-game .game-footer--three-sections .resource-card-image {
@@ -140,6 +140,127 @@
 
 .reference-game .game-footer--three-sections .resource-card-face::after {
   display: none;
+}
+
+.reference-game .action-dock-stack {
+  position: relative;
+  display: block;
+  min-width: 0;
+  align-self: end;
+  justify-self: end;
+}
+
+.reference-game .action-dock-stack .player-turn-summary {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: calc(100% + 0.35rem);
+  width: 100%;
+  min-height: 2.85rem;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  gap: 0.4rem;
+  padding: 0.28rem 0.38rem;
+  border-color: rgba(225, 184, 230, 0.2);
+  border-radius: 0.8rem;
+  background: linear-gradient(145deg, rgba(111, 57, 126, 0.82), rgba(49, 20, 61, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 7px 18px rgba(34, 10, 42, 0.28);
+  color: #fff7ed;
+}
+
+.reference-game .action-dock-stack .player-turn-summary.has-roll {
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+}
+
+.reference-game .action-dock-stack .player-turn-summary-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-color: color-mix(in srgb, var(--player-color), white 34%);
+  background: color-mix(in srgb, var(--player-color), rgba(42, 16, 52, 0.8) 58%);
+  color: #fff7ed;
+}
+
+.reference-game .action-dock-stack .player-turn-summary h1 {
+  color: #fffaf3;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.reference-game .turn-summary-dice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 0.48rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.reference-game .turn-summary-dice > span {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.reference-game .turn-summary-dice .die-face {
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  padding: 0.22rem;
+  border-color: rgba(255, 255, 255, 0.64);
+  border-radius: 0.4rem;
+  background: linear-gradient(145deg, #fffdf8 0%, #e6edef 72%, #d7e1e4 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(78, 61, 41, 0.12);
+}
+
+.reference-game .turn-summary-dice .die-face i {
+  width: 0.18rem;
+  height: 0.18rem;
+  background: #344451;
+}
+
+.reference-game .turn-summary-dice .compact-dice-total {
+  min-width: 1.2rem;
+  color: #fffaf3;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+}
+
+.reference-game .turn-control-stack {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  align-self: end;
+  justify-self: end;
+}
+
+.reference-game .turn-control-stack > .turn-clock {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: calc(100% + 0.35rem);
+  width: 100%;
+  min-width: 0;
+  min-height: 2.85rem;
+  justify-content: center;
+  padding: 0.35rem 0.45rem;
+  border-color: rgba(225, 184, 230, 0.16);
+  border-radius: 0.8rem;
+  background: linear-gradient(145deg, rgba(111, 57, 126, 0.82), rgba(49, 20, 61, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 7px 18px rgba(34, 10, 42, 0.28);
+  color: #d6bdd8;
+}
+
+.reference-game .turn-control-stack > .turn-clock strong {
+  margin-left: 0;
+  color: #fffaf3;
+  font-size: 0.8rem;
 }
 
 .reference-game .building-actions-dock .action-tile-preset,
@@ -242,8 +363,8 @@
   justify-content: center;
   gap: 0.45rem;
   border: 0;
-  border-radius: 0.72rem;
-  background: rgba(48, 19, 60, 0.38);
+  border-radius: 0;
+  background: transparent;
 }
 
 .reference-game .turn-control .roll-preview-card .die-face {
@@ -287,16 +408,27 @@
 }
 
 .reference-game .turn-control-action {
-  display: grid;
-  height: 100%;
-  min-height: 0;
-  place-items: center;
-  padding: 0.35rem;
-  border: 0;
-  margin: 0;
-  background: transparent;
-  box-shadow: none;
-  color: #fff7ed;
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  min-height: 2.8rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(126, 72, 18, 0.34);
+  border-radius: 0.72rem;
+  background: linear-gradient(180deg, #ffc95c 0%, #e59a24 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 228, 158, 0.24),
+    0 5px 12px rgba(52, 21, 49, 0.28);
+  color: #43284b;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.reference-game .turn-control.is-end-turn {
+  place-content: center;
 }
 
 .reference-game .turn-control-action:disabled,
@@ -307,15 +439,18 @@
 
 .reference-game .turn-control-action:hover,
 .reference-game .turn-control-action[data-hovered="true"] {
-  background: rgba(139, 72, 158, 0.24);
+  border-color: rgba(126, 72, 18, 0.46);
+  background: linear-gradient(180deg, #ffd475 0%, #efa932 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 170, 0.28),
+    0 7px 16px rgba(52, 21, 49, 0.34);
 }
 
-.reference-game .turn-control-action-icon {
-  width: min(5.5rem, 92%);
-  height: min(5.5rem, 92%);
-  opacity: 1;
+.reference-game .turn-control-state-icon {
+  width: 3.2rem;
+  height: 3.2rem;
   object-fit: contain;
-  filter: saturate(1.12) contrast(1.04) drop-shadow(0 3px 5px rgba(23, 8, 31, 0.34));
+  filter: saturate(1.05) drop-shadow(0 2px 4px rgba(23, 8, 31, 0.3));
 }
 
 .reference-game .turn-control.is-unavailable {
@@ -327,7 +462,22 @@
   font-weight: 800;
 }
 
+.reference-game .turn-control-required-copy {
+  display: grid;
+  gap: 0.08rem;
+  color: #fff7ed;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+}
+
 @media (min-width: 841px) and (min-height: 561px) {
+  .reference-game .game-footer.game-footer--three-sections {
+    --footer-control-row-height: 7.15rem;
+    --footer-status-row-height: 3rem;
+  }
+
   .reference-game .game-sidebar {
     bottom: max(0.4rem, env(safe-area-inset-bottom));
   }
@@ -336,22 +486,24 @@
     right: calc(max(1.25rem, env(safe-area-inset-right)) + var(--hud-rail) + 0.7rem);
     height: auto;
     grid-template-columns: minmax(0, 1fr) fit-content(26rem) minmax(6.5rem, 7.25rem);
-    align-items: stretch;
+    align-items: end;
     gap: 0.5rem;
   }
 
   .reference-game .turn-control {
-    height: auto;
+    height: 100%;
+    padding: 0.42rem;
+  }
+
+  .reference-game .turn-control-stack {
+    height: var(--footer-control-row-height);
     max-width: 7.25rem;
-    align-self: stretch;
-    justify-self: end;
-    padding-block: 0.15rem;
   }
 
   .reference-game .game-footer--three-sections .resource-hand {
     display: block;
-    height: auto;
-    align-self: stretch;
+    height: var(--footer-control-row-height);
+    align-self: end;
     padding: 0.2rem 0.75rem;
   }
 
@@ -370,7 +522,7 @@
   .reference-game .game-footer--three-sections .building-actions-dock {
     width: fit-content;
     max-width: 100%;
-    height: auto;
+    height: var(--footer-control-row-height);
     align-self: stretch;
     justify-content: flex-start;
     justify-self: end;
@@ -379,6 +531,18 @@
     margin: 0;
     overflow-x: auto;
     overflow-y: hidden;
+  }
+
+  .reference-game .action-dock-stack {
+    width: fit-content;
+    height: var(--footer-control-row-height);
+    max-width: 100%;
+  }
+
+  .reference-game .action-dock-stack .player-turn-summary,
+  .reference-game .turn-control-stack > .turn-clock {
+    height: var(--footer-status-row-height);
+    min-height: var(--footer-status-row-height);
   }
 
   .reference-game .game-footer--three-sections .building-actions-dock .action-group {
@@ -439,7 +603,17 @@
     grid-area: buildings;
   }
 
+  .reference-game .action-dock-stack {
+    width: 100%;
+    grid-area: buildings;
+    justify-self: stretch;
+  }
+
   .reference-game .turn-control {
+    grid-area: turn;
+  }
+
+  .reference-game .turn-control-stack {
     grid-area: turn;
   }
 

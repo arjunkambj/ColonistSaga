@@ -17,9 +17,9 @@ import {
   UNKNOWN_RESOURCE_CARD_ASSET_PATH,
 } from "@/constants/game/card-assets";
 import { AWARD_ASSET_PATHS } from "@/constants/game/award-assets";
+import { END_TURN_ICON_ASSET_PATH, WAIT_ICON_ASSET_PATH } from "@/constants/game/ui-assets";
 import {
   getTerrainAssetPath,
-  ISLAND_SHELF_ASSET_PATH,
   OCEAN_BOARD_ASSET_PATH,
   PORT_BOAT_ASSET_PATH,
   PORT_DOCK_ASSET_PATH,
@@ -285,9 +285,16 @@ const ASSET_CATEGORIES = [
       },
       {
         name: "End turn icon",
-        description: "Compact hourglass artwork used by the live end-turn control.",
-        format: "PNG · 256×256",
-        path: "/game-assets/ui/end-turn-hourglass.png",
+        description: "Checked turn ledger and dice used by the live end-turn control.",
+        format: "PNG · 256×256 · transparent",
+        path: END_TURN_ICON_ASSET_PATH,
+        status: "generated",
+      },
+      {
+        name: "Wait icon",
+        description: "Hourglass artwork used when another player is taking their turn.",
+        format: "PNG · 256×256 · transparent",
+        path: WAIT_ICON_ASSET_PATH,
         status: "generated",
       },
     ],
@@ -315,13 +322,6 @@ const ASSET_CATEGORIES = [
         description: "Single continuous timber bridge connecting each port to the island.",
         format: "PNG · 1642×328 · transparent",
         path: PORT_DOCK_ASSET_PATH,
-        status: "generated",
-      },
-      {
-        name: "Island shelf",
-        description: "Rock-lined sandstone shelf beneath the playable terrain cluster.",
-        format: "PNG · 1024×1024 · transparent",
-        path: ISLAND_SHELF_ASSET_PATH,
         status: "generated",
       },
     ],

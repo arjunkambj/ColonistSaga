@@ -267,6 +267,9 @@ function validateViewPlayers(value: unknown, viewerPlayerId: PlayerId): Validate
     if ("resources" in player) {
       invalid(`${path}.resources`, "must not expose another player's private resources");
     }
+    if (player.revealedVictoryPointCards !== null) {
+      nonNegativeInteger(player.revealedVictoryPointCards, `${path}.revealedVictoryPointCards`);
+    }
     return undefined;
   });
 
@@ -696,6 +699,26 @@ export function assertPlayerGameView(value: unknown): asserts value is PlayerGam
   const viewerPlayerId = identifier(view.viewerPlayerId, "view.viewerPlayerId");
   const players = validateViewPlayers(view.players, viewerPlayerId);
   const shared = validateSharedGame(view, "view", players);
+  for (const [playerId, player] of players.records) {
+    if (playerId === viewerPlayerId) {
+      if ("revealedVictoryPointCards" in player) {
+        invalid(
+          `view.players.${playerId}.revealedVictoryPointCards`,
+          "must not duplicate the viewer's private card hand",
+        );
+      }
+      continue;
+    }
+    if (
+      (view.status === "completed" && player.revealedVictoryPointCards === null) ||
+      (view.status !== "completed" && player.revealedVictoryPointCards !== null)
+    ) {
+      invalid(
+        `view.players.${playerId}.revealedVictoryPointCards`,
+        "must only reveal victory point cards after the game is complete",
+      );
+    }
+  }
   if (view.bank !== null) {
     validateInventory(view.bank, "view.bank");
   }

@@ -21,6 +21,7 @@ export interface HandInteraction {
   disabled: boolean;
   label: string;
   onSelect(resource: ResourceType): void;
+  preserveHandAppearance?: boolean;
   selected: Readonly<ResourceInventory>;
   sourceResources: Readonly<ResourceInventory>;
 }

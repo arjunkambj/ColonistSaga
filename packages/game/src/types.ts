@@ -268,6 +268,7 @@ export interface LegalActions {
 export interface PublicPlayerState extends Omit<PlayerState, "developmentCards" | "resources"> {
   developmentCardCount: number;
   isViewer: false;
+  revealedVictoryPointCards: number | null;
   resourceCount: number;
 }
 

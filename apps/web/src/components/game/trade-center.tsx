@@ -54,7 +54,17 @@ function MinusGlyph() {
   );
 }
 
-export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps) {
+export function TradeCenter({
+  disabled,
+  game,
+  isPaused,
+  me,
+  onCommand,
+  onPausedAction,
+}: TradeCenterProps & {
+  isPaused: boolean;
+  onPausedAction(): void;
+}) {
   const tradeCenterRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const tradeOfferOpen = game.tradeOffer !== null;
@@ -128,6 +138,10 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
         disabled={disabled}
         kind="trade"
         onPress={() => {
+          if (isPaused) {
+            onPausedAction();
+            return;
+          }
           if (tradeOfferOpen) {
             document.getElementById("trade-offer-surface")?.focus();
             return;
@@ -157,7 +171,7 @@ export function TradeCenter({ disabled, game, me, onCommand }: TradeCenterProps)
                 disabled={disabled}
                 game={game}
                 me={me}
-                onCancel={closeDock}
+                onClose={closeDock}
                 onCommand={onCommand}
               />
             </section>
@@ -182,7 +196,6 @@ function TradeDockHeader({
   return (
     <header className={styles.tradeHeader}>
       <div>
-        <p className={styles.eyebrow}>Island market</p>
         <h2 id={titleId}>{title}</h2>
         {description ? <p className={styles.tradeDescription}>{description}</p> : null}
       </div>
@@ -207,9 +220,9 @@ function TradeComposer({
   disabled,
   game,
   me,
-  onCancel,
+  onClose,
   onCommand,
-}: TradeCenterProps & { onCancel(): void }) {
+}: TradeCenterProps & { onClose(): void }) {
   const { clearInteraction, setInteraction } = useHandDock();
   const [give, setGive] = useState<ResourceInventory>(() => emptyInventory());
   const [want, setWant] = useState<ResourceInventory>(() => emptyInventory());
@@ -328,7 +341,7 @@ function TradeComposer({
         />
       </div>
 
-      <fieldset className={tradeGlassClassName(styles.tradeRecipients)}>
+      <fieldset className={styles.tradeRecipients}>
         <legend className="sr-only">Offer recipients</legend>
         <div className={styles.recipientList}>
           {opponents.map((player) => (
@@ -371,14 +384,6 @@ function TradeComposer({
         </p>
         <div>
           <Button
-            className={styles.cancelButton}
-            isDisabled={disabled}
-            onPress={onCancel}
-            variant="tertiary"
-          >
-            Cancel
-          </Button>
-          <Button
             aria-describedby="bank-trade-match-status"
             className={styles.bankTradeButton}
             isDisabled={disabled || !matchingBankTrade}
@@ -394,7 +399,7 @@ function TradeComposer({
                 },
                 "Bank trade completed.",
               );
-              onCancel();
+              onClose();
             }}
             variant="secondary"
           >
@@ -446,7 +451,7 @@ function RequestedResourceRow({
   };
 
   return (
-    <fieldset className={tradeGlassClassName(styles.draftRow)} data-direction="receive">
+    <fieldset className={styles.draftRow} data-direction="receive">
       <legend>
         <span className={styles.directionIcon}>
           <Icon aria-hidden="true" icon={arrowDownIcon} />
@@ -511,7 +516,17 @@ function RequestedResourceRow({
   );
 }
 
-export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterProps) {
+export function ActiveTradeOffer({
+  disabled,
+  game,
+  isPaused,
+  me,
+  onCommand,
+  onPausedAction,
+}: TradeCenterProps & {
+  isPaused: boolean;
+  onPausedAction(): void;
+}) {
   const { clearInteraction, setInteraction } = useHandDock();
   const [pendingResponse, setPendingResponse] = useState<"accept" | "cancel" | "decline" | null>(
     null,
@@ -554,6 +569,10 @@ export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterP
   const proposerName = proposer?.displayName ?? "A player";
 
   const respond = (accept: boolean) => {
+    if (isPaused) {
+      onPausedAction();
+      return;
+    }
     setPendingResponse(accept ? "accept" : "decline");
     onCommand(
       {
@@ -568,10 +587,7 @@ export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterP
   return (
     <section
       aria-labelledby="trade-offer-title"
-      className={tradeGlassClassName(
-        `${styles.tradeDock} ${styles.sidebarOfferSurface}`,
-        "card",
-      )}
+      className={tradeGlassClassName(`${styles.tradeDock} ${styles.sidebarOfferSurface}`, "card")}
       id="trade-offer-surface"
       tabIndex={-1}
     >
@@ -585,16 +601,6 @@ export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterP
           title={viewerIsProposer ? "Offer sent" : `Offer from ${proposerName}`}
           titleId="trade-offer-title"
         />
-
-        <div className={styles.offerIdentity}>
-          <span className={styles.offerAvatar} aria-hidden="true">
-            {getPlayerInitial(proposerName)}
-          </span>
-          <span>
-            <strong>{viewerIsProposer ? "Waiting for a reply" : proposerName}</strong>
-            <small>{viewerIsProposer ? "Open player trade" : "wants to trade with you"}</small>
-          </span>
-        </div>
 
         <p className="sr-only" role="status">
           {viewerIsProposer ? "Your trade offer is open." : `New trade offer from ${proposerName}.`}
@@ -668,6 +674,10 @@ export function ActiveTradeOffer({ disabled, game, me, onCommand }: TradeCenterP
               isDisabled={disabled}
               isPending={disabled && pendingResponse === "cancel"}
               onPress={() => {
+                if (isPaused) {
+                  onPausedAction();
+                  return;
+                }
                 setPendingResponse("cancel");
                 onCommand(
                   { kind: "cancel_trade", offerActionNumber: offer.offerActionNumber },
@@ -714,7 +724,7 @@ function OfferInventoryRow({
 
   return (
     <section
-      className={tradeGlassClassName(styles.offerRow)}
+      className={styles.offerRow}
       data-direction={direction}
       data-removable={onRemove ? "true" : undefined}
     >

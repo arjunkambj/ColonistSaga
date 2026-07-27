@@ -17,7 +17,6 @@ import {
 } from "react";
 
 import {
-  ISLAND_SHELF_ASSET_PATH,
   PORT_BOAT_ASSET_PATH,
   PORT_BOAT_RENDER_SIZE,
   PORT_DOCK_ASSET_PATH,
@@ -82,6 +81,7 @@ type SceneRenderer<Scene> = (
 
 const MAX_CANVAS_PIXEL_RATIO = 3;
 const ROBBER_ASSET_PATH = "/game-assets/pieces/robber-piece.png";
+const CITY_PIECE_SIZE = 95;
 const ROAD_PIECE_SIZE = 132;
 const ROAD_PIECE_SCALE_Y = 0.82;
 const SETTLEMENT_PIECE_SIZE = 88;
@@ -263,7 +263,6 @@ async function renderStaticScene(
     port.trade === "any" ? [] : [getResourceCardAssetPath(port.trade)],
   );
   const images = await loadImages([
-    ISLAND_SHELF_ASSET_PATH,
     PORT_DOCK_ASSET_PATH,
     PORT_BOAT_ASSET_PATH,
     ...terrainPaths,
@@ -279,7 +278,6 @@ async function renderStaticScene(
     return;
   }
 
-  drawIslandShelf(context, images.get(ISLAND_SHELF_ASSET_PATH) ?? null);
   drawTerrain(context, scene, images, terrainPaths);
   drawPorts(context, scene, images);
 }
@@ -352,20 +350,6 @@ function prepareCanvas(
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
   return context;
-}
-
-function drawIslandShelf(context: CanvasRenderingContext2D, image: HTMLImageElement | null) {
-  if (!image) {
-    return;
-  }
-
-  context.save();
-  context.shadowBlur = 14;
-  context.shadowColor = "rgba(0, 70, 108, 0.32)";
-  context.shadowOffsetY = 12;
-  context.globalAlpha = 0.95;
-  drawImageContained(context, image, { height: 1_122, width: 1_128, x: 36, y: 106 });
-  context.restore();
 }
 
 function drawTerrain(
@@ -627,7 +611,7 @@ function drawBuildings(
       image,
       path,
       point,
-      building.kind === "city" ? 108 : SETTLEMENT_PIECE_SIZE,
+      building.kind === "city" ? CITY_PIECE_SIZE : SETTLEMENT_PIECE_SIZE,
       scene.playerThemes.get(building.playerId) ?? "red",
     );
   }
@@ -1054,23 +1038,6 @@ function createRoundedRectPath(
   context.lineTo(x, y + safeRadius);
   context.quadraticCurveTo(x, y, x + safeRadius, y);
   context.closePath();
-}
-
-function drawImageContained(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  bounds: { height: number; width: number; x: number; y: number },
-) {
-  const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
-  const width = image.naturalWidth * scale;
-  const height = image.naturalHeight * scale;
-  context.drawImage(
-    image,
-    bounds.x + (bounds.width - width) / 2,
-    bounds.y + (bounds.height - height) / 2,
-    width,
-    height,
-  );
 }
 
 async function loadImages(paths: readonly string[]) {

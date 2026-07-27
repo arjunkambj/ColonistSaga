@@ -1013,7 +1013,6 @@
 .reference-game .icon-button,
 .reference-game .side-card,
 .reference-game .player-summary,
-.reference-game .phase-banner,
 .reference-game .resource-hand,
 .reference-game .action-dock {
   border-color: rgba(225, 184, 230, 0.3);
@@ -1028,7 +1027,6 @@
 .reference-game.is-board-interacting .icon-button,
 .reference-game.is-board-interacting .side-card,
 .reference-game.is-board-interacting .player-summary,
-.reference-game.is-board-interacting .phase-banner,
 .reference-game.is-board-interacting .resource-hand,
 .reference-game.is-board-interacting .action-dock,
 .reference-game.is-board-interacting .game-room-meta,
@@ -1047,14 +1045,12 @@
   background: rgba(133, 67, 148, 0.78);
 }
 
-.reference-game .phase-banner h1,
 .reference-game .side-card-title h2,
 .reference-game .action-heading strong,
 .reference-game .player-identity-line > strong {
   color: #fffaf3;
 }
 
-.reference-game .phase-banner p:last-child,
 .reference-game .turn-clock,
 .reference-game .event-list p,
 .reference-game .piece-supply-title,
@@ -1062,10 +1058,17 @@
   color: #d6bdd8;
 }
 
-.reference-game .phase-icon,
 .reference-game .turn-clock {
   border-color: rgba(225, 184, 230, 0.22);
   background: rgba(48, 19, 60, 0.58);
+}
+
+.reference-game .board-inspector-dock-standalone {
+  position: absolute;
+  z-index: 9450;
+  top: 5.1rem;
+  left: max(1.25rem, env(safe-area-inset-left));
+  width: min(18rem, calc(100% - 2.5rem));
 }
 
 .reference-game .event-list li {
@@ -1097,17 +1100,12 @@
   white-space: nowrap;
 }
 
-.reference-game .player-summary {
-  border-inline-start-color: var(--player-color);
-}
-
 .reference-game .player-summary:not(.is-active) {
   opacity: 0.9;
 }
 
 .reference-game .player-summary.is-active {
   border-color: color-mix(in srgb, var(--player-color), #e7c4e8 38%);
-  border-inline-start-color: var(--player-color);
   background: linear-gradient(
     145deg,
     color-mix(in srgb, var(--player-color), rgba(105, 50, 120, 0.74) 82%),
@@ -1130,11 +1128,6 @@
 .reference-game .player-victory-stat > em,
 .reference-game .player-table-fact > small {
   color: #d6bdd8;
-}
-
-.reference-game .player-active-cue {
-  background: color-mix(in srgb, var(--player-color), rgba(42, 16, 52, 0.68) 62%);
-  color: #fffaf3;
 }
 
 .reference-game .player-avatar-fallback {
@@ -1395,70 +1388,6 @@
   color: #43284b;
 }
 
-.game-help-reference-dialog {
-  border-color: rgba(225, 184, 230, 0.62);
-  background: linear-gradient(155deg, rgba(116, 55, 132, 0.94), rgba(43, 16, 53, 0.98));
-  color: #fff7ed;
-}
-
-.game-help-reference-dialog h2 {
-  color: #fff7ed;
-}
-
-.game-help-reference-dialog .eyebrow,
-.game-help-reference-dialog .game-help-steps span {
-  color: #e0c4e1;
-}
-
-.game-help-reference-dialog .game-help-header > button {
-  border-color: rgba(225, 184, 230, 0.42);
-  background: rgba(48, 19, 60, 0.7);
-  color: #fff;
-}
-
-.game-help-steps {
-  display: grid;
-  gap: 0.7rem;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  counter-reset: game-help-step;
-}
-
-.game-help-steps li {
-  position: relative;
-  display: grid;
-  min-height: 4.25rem;
-  align-content: center;
-  gap: 0.18rem;
-  padding: 0.75rem 0.85rem 0.75rem 3.45rem;
-  border: 1px solid rgba(225, 184, 230, 0.3);
-  border-radius: 0.9rem;
-  background: rgba(48, 19, 60, 0.56);
-  counter-increment: game-help-step;
-}
-
-.game-help-steps li::before {
-  position: absolute;
-  top: 50%;
-  left: 0.85rem;
-  display: grid;
-  width: 1.9rem;
-  height: 1.9rem;
-  place-items: center;
-  border: 1px solid rgba(255, 236, 191, 0.68);
-  border-radius: 50%;
-  background: linear-gradient(180deg, #f2b83f, #c77d19);
-  color: #43284b;
-  content: counter(game-help-step);
-  font-weight: 900;
-  transform: translateY(-50%);
-}
-
-.game-help-steps strong {
-  color: #fff;
-}
-
 /* Reusable action-card development preview */
 
 .action-preset-preview {
@@ -1714,10 +1643,9 @@
     min-height: 0;
     grid-template-areas:
       "avatar supply victory"
-      "name supply victory"
-      ". supply victory";
+      "name supply victory";
     grid-template-columns: clamp(4.25rem, 5vw, 5rem) max-content max-content;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     align-content: center;
     justify-content: space-between;
     gap: 0.15rem 0.45rem;
@@ -1728,7 +1656,7 @@
   .reference-game .player-avatar {
     width: 3.2rem;
     height: 3.2rem;
-    align-self: end;
+    align-self: center;
     justify-self: center;
   }
 
@@ -1739,10 +1667,6 @@
   }
 
   .reference-game .player-identity-line {
-    justify-content: center;
-  }
-
-  .reference-game .player-cues {
     justify-content: center;
   }
 
@@ -1803,68 +1727,8 @@
     height: min(100%, 2.8rem);
   }
 
-  .reference-game .phase-banner-overlay {
-    position: absolute;
-    z-index: 9400;
-    top: 5.1rem;
-    left: max(1.25rem, env(safe-area-inset-left));
-    display: grid;
-    width: min(30rem, calc(72.6vw - 2.5rem));
-    min-height: 3.55rem;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 0.55rem;
-    padding: 0.48rem 0.62rem;
-    border-color: rgba(225, 184, 230, 0.32);
-    background: linear-gradient(145deg, rgba(111, 57, 126, 0.82), rgba(49, 20, 61, 0.92));
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.18),
-      0 8px 22px rgba(34, 10, 42, 0.34);
-    backdrop-filter: blur(16px) saturate(140%);
-  }
-
-  .reference-game .phase-banner-overlay .phase-icon {
-    width: 2rem;
-    height: 2rem;
-  }
-
-  .reference-game .phase-banner-overlay h1 {
-    color: #fff;
-    font-family: inherit;
-    font-size: 0.9rem;
-  }
-
-  .reference-game .phase-banner-overlay .phase-copy > p:last-child {
-    display: none;
-  }
-
-  .reference-game .phase-banner-overlay .phase-status-tools {
-    display: flex;
-    grid-column: 3;
-    justify-content: flex-end;
-    gap: 0.35rem;
-  }
-
-  .reference-game .phase-banner-overlay .turn-clock {
-    min-width: 4.65rem;
-    padding: 0.28rem 0.42rem;
-    font-size: 0.58rem;
-  }
-
-  .reference-game .phase-banner-overlay .turn-clock span {
-    display: none;
-  }
-
-  .reference-game .phase-banner-overlay .dice-result {
-    gap: 0.1rem;
-  }
-
-  .reference-game .phase-banner-overlay .die-face {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
   .reference-game .board-placement-banner {
-    top: 9.2rem;
+    top: 5.1rem;
     left: max(1.25rem, env(safe-area-inset-left));
     width: min(30rem, calc(72.6vw - 2.5rem));
     transform: none;

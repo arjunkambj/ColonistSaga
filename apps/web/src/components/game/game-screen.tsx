@@ -5,6 +5,7 @@ import {
   BUILD_COSTS,
   DEVELOPMENT_CARD_COST,
   getLongestRoadLength,
+  LONGEST_ROAD_VICTORY_POINTS,
   RESOURCE_ORDER,
   type GameCommand,
   type PlayerGameView,
@@ -14,8 +15,6 @@ import {
 import { Button, Modal } from "@heroui/react";
 import botIcon from "@iconify-icons/game-icons/robot-golem";
 import crownIcon from "@iconify-icons/game-icons/crown";
-import diceIcon from "@iconify-icons/game-icons/rolling-dice-cup";
-import flagIcon from "@iconify-icons/game-icons/flag-objective";
 import hammerIcon from "@iconify-icons/game-icons/hammer-nails";
 import moveIcon from "@iconify-icons/game-icons/move";
 import playerIcon from "@iconify-icons/game-icons/player-base";
@@ -32,10 +31,12 @@ import { liquidGlassClassName } from "@/components/ui/liquid-glass";
 import {
   ACTION_CARD_ASSET_PATHS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
+  DEVELOPMENT_CARD_ASSETS,
   UNKNOWN_RESOURCE_CARD_ASSET_PATH,
 } from "@/constants/game/card-assets";
 import { AWARD_ASSET_PATHS } from "@/constants/game/award-assets";
 import { getPlayerPortraitPath } from "@/constants/game/player-assets";
+import { WAIT_ICON_ASSET_PATH } from "@/constants/game/ui-assets";
 import type { BoardTargetMode } from "@/lib/game/board-canvas-model";
 import { getTurnControlKind } from "@/lib/game/game-footer-model";
 import type { RoomEventView } from "@/lib/game/types";
@@ -49,6 +50,8 @@ import { BOARD_INSPECTOR_DOCK_ROOT_ID, HandDockProvider } from "./hand-dock";
 import { RESOURCE_LABELS, ResourceIcon } from "./resource-icon";
 import { ResourceHand } from "./resource-hand";
 import { ActiveTradeOffer, TradeCenter } from "./trade-center";
+import { GameHelpDialog } from "./game-help-dialog";
+import { useActionCountdown } from "./use-action-countdown";
 
 type GameConfirmation =
   | { kind: "leave" }
@@ -109,11 +112,33 @@ export function GameScreen({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [error, setError] = useState("");
+  const [pausedNoticeVisible, setPausedNoticeVisible] = useState(false);
   const commandInFlightRef = useRef(false);
   const confirmationInFlightRef = useRef(false);
   const phaseHeadingRef = useRef<HTMLHeadingElement>(null);
   const pauseChangeInFlightRef = useRef(false);
+  const pausedNoticeTimerRef = useRef<number | null>(null);
   const replacementInFlightRef = useRef(false);
+
+  const hidePausedNotice = useCallback(() => {
+    if (pausedNoticeTimerRef.current !== null) {
+      window.clearTimeout(pausedNoticeTimerRef.current);
+      pausedNoticeTimerRef.current = null;
+    }
+    setPausedNoticeVisible(false);
+  }, []);
+
+  const showPausedNotice = useCallback(() => {
+    setError("");
+    setPausedNoticeVisible(true);
+    if (pausedNoticeTimerRef.current !== null) {
+      window.clearTimeout(pausedNoticeTimerRef.current);
+    }
+    pausedNoticeTimerRef.current = window.setTimeout(() => {
+      pausedNoticeTimerRef.current = null;
+      setPausedNoticeVisible(false);
+    }, 3_000);
+  }, []);
 
   const restorePlacementFocus = useCallback((mode: BoardTargetMode) => {
     const buildAction = document.querySelector<HTMLButtonElement>(
@@ -130,16 +155,34 @@ export function GameScreen({
 
   const me = game.players.find((player): player is PrivatePlayerState => player.isViewer);
   const activePlayer = game.players.find((player) => player.id === game.activePlayerId);
-  const winner = game.players.find((player) => player.id === game.winnerPlayerId);
   useEffect(() => {
     setBuildMode(null);
   }, [game.actionNumber, game.phase.kind]);
+
+  useEffect(() => {
+    if (!isPaused) {
+      hidePausedNotice();
+    }
+  }, [hidePausedNotice, isPaused]);
+
+  useEffect(
+    () => () => {
+      if (pausedNoticeTimerRef.current !== null) {
+        window.clearTimeout(pausedNoticeTimerRef.current);
+      }
+    },
+    [],
+  );
 
   if (!me || !activePlayer) {
     return <UnavailablePlayerView onLeave={onLeave} />;
   }
 
   const sendCommand = async (command: GameCommand, successMessage: string) => {
+    if (isPaused) {
+      showPausedNotice();
+      return;
+    }
     if (!acquireSingleFlight(commandInFlightRef)) {
       return;
     }
@@ -156,7 +199,11 @@ export function GameScreen({
       setAnnouncement(successMessage);
       setBuildMode(null);
     } catch (cause) {
-      setError(toGameError(cause));
+      if (isGamePausedError(cause)) {
+        showPausedNotice();
+      } else {
+        setError(toGameError(cause));
+      }
     } finally {
       commandInFlightRef.current = false;
       setPendingCommand(null);
@@ -214,9 +261,18 @@ export function GameScreen({
     }
   };
 
-  const phaseCopy = getPhaseCopy(game.phase, activePlayer.id === me.id, activePlayer.displayName);
+  const isViewerTurn = activePlayer.id === me.id;
+  const phaseCopy = getPhaseCopy(game.phase, isViewerTurn, activePlayer.displayName);
+  const activePlayerTheme = getPlayerTheme(activePlayer);
   const latestEvent = events.at(-1)?.text;
   const phaseLiveMessage = `${phaseCopy.title}. ${phaseCopy.detail}${latestEvent ? ` Latest table event: ${latestEvent}.` : ""}`;
+  const changeBuildMode = (mode: BuildMode) => {
+    if (isPaused) {
+      showPausedNotice();
+      return;
+    }
+    setBuildMode(mode);
+  };
 
   const runConfirmedAction = async () => {
     if (!confirmation || !acquireSingleFlight(confirmationInFlightRef)) {
@@ -305,24 +361,6 @@ export function GameScreen({
         </div>
       </header>
 
-      {isPaused ? (
-        <div
-          aria-live="polite"
-          className={liquidGlassClassName({
-            className: "game-purple-glass pause-status-banner",
-            kind: "control",
-            radius: "pill",
-          })}
-          role="status"
-        >
-          <Icon aria-hidden="true" icon="hugeicons:pause" />
-          <span>
-            <strong>Game paused</strong>
-            <small>{isHost ? "Use the play button to resume" : "Waiting for the host"}</small>
-          </span>
-        </div>
-      ) : null}
-
       <HandDockProvider>
         <aside aria-label="Table status" className="game-sidebar">
           <div className="game-sidebar-panels">
@@ -334,8 +372,10 @@ export function GameScreen({
             <ActiveTradeOffer
               disabled={pendingCommand !== null}
               game={game}
+              isPaused={isPaused}
               me={me}
               onCommand={(command, message) => void sendCommand(command, message)}
+              onPausedAction={showPausedNotice}
             />
           ) : null}
 
@@ -343,6 +383,7 @@ export function GameScreen({
             activePlayerId={game.activePlayerId}
             board={game.board}
             isHost={isHost}
+            lastDiceRoll={game.lastDiceRoll}
             onReplacePlayer={requestBotReplacement}
             pendingReplacementId={pendingReplacementId}
             players={game.players}
@@ -351,23 +392,10 @@ export function GameScreen({
           />
         </aside>
 
-        <section className="phase-banner phase-banner-overlay" aria-labelledby="phase-title">
-          <div className="phase-icon" aria-hidden="true">
-            <Icon icon={game.phase.kind === "roll" ? diceIcon : flagIcon} />
-          </div>
-          <div className="phase-copy">
-            <p className="eyebrow">Turn {game.turnNumber}</p>
-            <h1 id="phase-title" ref={phaseHeadingRef} tabIndex={-1}>
-              {phaseCopy.title}
-            </h1>
-            <p>{phaseCopy.detail}</p>
-          </div>
-          <div className="phase-status-tools">
-            <TurnClock botThinking={botThinking} nextActionAt={nextActionAt} />
-            <DiceResult game={game} />
-          </div>
-          <div className="board-inspector-dock" id={BOARD_INSPECTOR_DOCK_ROOT_ID} />
-        </section>
+        <div
+          className="board-inspector-dock board-inspector-dock-standalone"
+          id={BOARD_INSPECTOR_DOCK_ROOT_ID}
+        />
 
         <GameBoard
           buildMode={buildMode}
@@ -379,27 +407,92 @@ export function GameScreen({
         />
 
         <footer className="game-footer game-footer--three-sections">
-          <ResourceHand actionNumber={game.actionNumber} me={me} />
-
-          <ActionDock
-            buildMode={buildMode}
-            game={game}
+          <ResourceHand
+            actionNumber={game.actionNumber}
             me={me}
-            onBuildMode={setBuildMode}
-            onCommand={(command, message) => void sendCommand(command, message)}
-            pending={pendingCommand !== null}
+            notice={
+              pausedNoticeVisible ? (
+                <div
+                  aria-atomic="true"
+                  aria-live="polite"
+                  className={liquidGlassClassName({
+                    className: "game-purple-glass pause-status-banner",
+                    kind: "control",
+                    radius: "sm",
+                  })}
+                  role="status"
+                >
+                  <Icon aria-hidden="true" icon="hugeicons:pause" />
+                  <span>
+                    {isHost
+                      ? "The game is paused. Use the play button in the header to resume."
+                      : "The game is paused. The host can resume it from the header."}
+                  </span>
+                </div>
+              ) : null
+            }
           />
 
-          <TurnControl
-            game={game}
-            onCommand={(command, message) => void sendCommand(command, message)}
-            pending={pendingCommand !== null}
-          />
+          <div className="action-dock-stack">
+            <section
+              aria-labelledby="phase-title"
+              className={liquidGlassClassName({
+                className: `game-purple-glass player-turn-summary player-${activePlayerTheme}${isViewerTurn && game.lastDiceRoll ? " has-roll" : ""}`,
+                kind: "control",
+                radius: "sm",
+              })}
+            >
+              <span aria-hidden="true" className="player-turn-summary-avatar">
+                <Icon icon={playerIcon} />
+              </span>
+              <div className="player-turn-summary-copy">
+                <h1 id="phase-title" ref={phaseHeadingRef} tabIndex={-1}>
+                  {phaseCopy.title}
+                </h1>
+                <span className="sr-only">{phaseCopy.detail}</span>
+              </div>
+              {isViewerTurn && game.lastDiceRoll ? (
+                <CompactDiceResult
+                  className="turn-summary-dice"
+                  roll={game.lastDiceRoll}
+                  showTotal
+                />
+              ) : null}
+            </section>
+
+            <ActionDock
+              buildMode={buildMode}
+              game={game}
+              isPaused={isPaused}
+              me={me}
+              onBuildMode={changeBuildMode}
+              onCommand={(command, message) => void sendCommand(command, message)}
+              onPausedAction={showPausedNotice}
+              pending={pendingCommand !== null}
+            />
+          </div>
+
+          <div className="turn-control-stack">
+            {game.legalActions.discardCount === null ? (
+              <TurnClock
+                botThinking={botThinking}
+                isPaused={isPaused}
+                nextActionAt={nextActionAt}
+              />
+            ) : null}
+            <TurnControl
+              game={game}
+              onCommand={(command, message) => void sendCommand(command, message)}
+              pending={pendingCommand !== null}
+            />
+          </div>
         </footer>
         {game.legalActions.discardCount === null ? null : (
           <DiscardPanel
             count={game.legalActions.discardCount}
+            isPaused={isPaused}
             me={me}
+            nextActionAt={nextActionAt}
             onCommand={(command, message) => void sendCommand(command, message)}
             pending={pendingCommand !== null}
           />
@@ -436,12 +529,7 @@ export function GameScreen({
       ) : null}
 
       {game.status === "completed" ? (
-        <WinOverlay
-          isDraw={game.winnerPlayerId === null}
-          isViewer={winner?.id === me.id}
-          onLeave={onLeave}
-          winnerName={winner?.displayName}
-        />
+        <WinOverlay game={game} onLeave={onLeave} viewerProfileImageUrl={viewerProfileImageUrl} />
       ) : null}
     </main>
   );
@@ -451,6 +539,7 @@ function PlayerStrip({
   activePlayerId,
   board,
   isHost,
+  lastDiceRoll,
   onReplacePlayer,
   pendingReplacementId,
   players,
@@ -460,6 +549,7 @@ function PlayerStrip({
   activePlayerId: string;
   board: PlayerGameView["board"];
   isHost: boolean;
+  lastDiceRoll: PlayerGameView["lastDiceRoll"];
   onReplacePlayer(playerId: string): void;
   pendingReplacementId: string | null;
   players: PlayerGameView["players"];
@@ -471,6 +561,9 @@ function PlayerStrip({
   const tableStats = useMemo(() => {
     return new Map(players.map((player) => [player.id, getLongestRoadLength(board, player.id)]));
   }, [board, players]);
+  const hasSideDice = Boolean(
+    lastDiceRoll && players.some((player) => player.id === activePlayerId && !player.isViewer),
+  );
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
@@ -502,13 +595,20 @@ function PlayerStrip({
   }, [activePlayerId]);
 
   return (
-    <ol className="player-strip" aria-label="Players" ref={stripRef}>
+    <ol
+      className={`player-strip${hasSideDice ? " has-active-dice" : ""}`}
+      aria-label="Players"
+      ref={stripRef}
+    >
       {orderedPlayers.map((player) => {
         const theme = getPlayerTheme(player);
         const longestRoad = tableStats.get(player.id) ?? 0;
         const developmentCardCount = player.isViewer
           ? player.developmentCards.length
           : player.developmentCardCount;
+        const hiddenVictoryPointCount = player.isViewer
+          ? player.developmentCards.filter((card) => card === "victory-point").length
+          : 0;
         const isActive = player.id === activePlayerId;
         const avatarSrc =
           player.isViewer && viewerProfileImageUrl
@@ -518,13 +618,16 @@ function PlayerStrip({
           <li
             aria-current={isActive ? "true" : undefined}
             className={liquidGlassClassName({
-              className: `player-summary player-${theme}${isActive ? " is-active" : ""}${player.isViewer ? " is-viewer" : ""}`,
+              className: `player-summary player-${theme}${isActive ? " is-active" : ""}${player.isViewer ? " is-viewer" : ""}${isActive && !player.isViewer && lastDiceRoll ? " has-side-dice" : ""}`,
               kind: "card",
               radius: "md",
             })}
             data-player-id={player.id}
             key={player.id}
           >
+            {isActive && !player.isViewer && lastDiceRoll ? (
+              <CompactDiceResult className="player-side-dice" roll={lastDiceRoll} />
+            ) : null}
             <span
               className={player.isBot ? "player-avatar is-bot" : "player-avatar is-human"}
               aria-hidden="true"
@@ -552,20 +655,22 @@ function PlayerStrip({
               <div className="player-identity-line">
                 <strong title={player.displayName}>{player.displayName}</strong>
               </div>
-              {player.isViewer && isActive ? (
-                <div className="player-cues">
-                  <span className="player-active-cue">Your turn</span>
-                </div>
-              ) : null}
             </div>
             <div className="player-victory-progress">
               <span
-                aria-label={`${player.victoryPoints} of ${victoryTarget} victory points`}
+                aria-label={
+                  hiddenVictoryPointCount > 0
+                    ? `${player.victoryPoints} visible plus ${hiddenVictoryPointCount} hidden of ${victoryTarget} victory points`
+                    : `${player.victoryPoints} of ${victoryTarget} victory points`
+                }
                 className="player-stat player-victory-stat"
               >
                 <Icon aria-hidden="true" icon={crownIcon} />
                 <span className="player-victory-score" aria-hidden="true">
                   <strong>{player.victoryPoints}</strong>
+                  {hiddenVictoryPointCount > 0 ? (
+                    <span className="player-victory-bonus">(+{hiddenVictoryPointCount})</span>
+                  ) : null}
                   <small>/{victoryTarget}</small>
                 </span>
                 <em aria-hidden="true">Victory</em>
@@ -658,30 +763,30 @@ function PlayerStrip({
   );
 }
 
-function DiceResult({ game }: { game: PlayerGameView }) {
-  if (!game.lastDiceRoll) {
-    return (
-      <div className="dice-result is-empty" aria-label="No dice have been rolled yet" role="group">
-        <span className="dice-result-label">Last roll</span>
-        <span className="dice-result-empty">Not rolled</span>
-      </div>
-    );
-  }
+function CompactDiceResult({
+  className,
+  roll,
+  showTotal = false,
+}: {
+  className: string;
+  roll: NonNullable<PlayerGameView["lastDiceRoll"]>;
+  showTotal?: boolean;
+}) {
   return (
     <div
-      className="dice-result"
-      aria-label={`Last roll: ${game.lastDiceRoll.first} and ${game.lastDiceRoll.second}, total ${game.lastDiceRoll.sum}`}
+      className={className}
+      aria-label={`${roll.first} and ${roll.second}, total ${roll.sum}`}
       role="group"
     >
-      <span className="dice-result-label">Last roll</span>
-      <span className="dice-result-faces" aria-hidden="true">
-        <DieFace value={game.lastDiceRoll.first} />
-        <DieFace value={game.lastDiceRoll.second} />
+      <span aria-hidden="true">
+        <DieFace value={roll.first} />
+        <DieFace value={roll.second} />
       </span>
-      <span className="dice-result-total" aria-hidden="true">
-        <small>Total</small>
-        <strong>{game.lastDiceRoll.sum}</strong>
-      </span>
+      {showTotal ? (
+        <strong aria-hidden="true" className="compact-dice-total">
+          {roll.sum}
+        </strong>
+      ) : null}
     </div>
   );
 }
@@ -789,93 +894,23 @@ function EventLog({ events }: { events: RoomEventView[] }) {
   );
 }
 
-function GameHelpDialog({ onClose }: { onClose(): void }) {
-  return (
-    <Modal>
-      <Modal.Backdrop
-        className="game-help-backdrop"
-        isOpen
-        onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
-      >
-        <Modal.Container>
-          <Modal.Dialog
-            aria-label="Game help"
-            className={liquidGlassClassName({
-              className: "game-help-dialog game-help-reference-dialog",
-              kind: "panel",
-              radius: "md",
-            })}
-            id="game-help-dialog"
-          >
-            <Modal.Header className="game-help-header">
-              <div>
-                <p className="eyebrow">Player Guide</p>
-                <Modal.Heading>How to Play</Modal.Heading>
-              </div>
-              <Button aria-label="Close game help" isIconOnly onPress={onClose} variant="ghost">
-                ×
-              </Button>
-            </Modal.Header>
-            <Modal.Body className="game-help-body">
-              <ol className="game-help-steps">
-                <li>
-                  <strong>Reach the victory target</strong>
-                  <span>Build settlements and cities until you reach the table’s VP goal.</span>
-                </li>
-                <li>
-                  <strong>Roll</strong>
-                  <span>Start your turn by rolling both dice.</span>
-                </li>
-                <li>
-                  <strong>Read the number pips</strong>
-                  <span>More dots mean a more frequent roll. Red 6 and 8 are the strongest.</span>
-                </li>
-                <li>
-                  <strong>Trade and build</strong>
-                  <span>
-                    Trade, buy development cards, or choose a piece and a glowing board target.
-                  </span>
-                </li>
-                <li>
-                  <strong>Keep settlements apart</strong>
-                  <span>Every new settlement needs at least two clear roads between homes.</span>
-                </li>
-                <li>
-                  <strong>Unlock harbors</strong>
-                  <span>Build on a harbor corner to trade at its printed 3:1 or 2:1 rate.</span>
-                </li>
-                <li>
-                  <strong>Resolve the robber</strong>
-                  <span>
-                    On a seven, discard if required, move the robber, and choose a neighbor.
-                  </span>
-                </li>
-                <li>
-                  <strong>End your turn</strong>
-                  <span>Pass play clockwise when you have finished every action.</span>
-                </li>
-              </ol>
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
-  );
-}
-
 function ActionDock({
   buildMode,
   game,
+  isPaused,
   me,
   onBuildMode,
   onCommand,
+  onPausedAction,
   pending,
 }: {
   buildMode: BuildMode;
   game: PlayerGameView;
+  isPaused: boolean;
   me: PrivatePlayerState;
   onBuildMode(mode: BuildMode): void;
   onCommand(command: GameCommand, message: string): void;
+  onPausedAction(): void;
   pending: boolean;
 }) {
   const legal = game.legalActions;
@@ -885,9 +920,11 @@ function ActionDock({
         buildMode={buildMode}
         disabledReasonOverride="Wait for your turn"
         game={game}
+        isPaused={isPaused}
         me={me}
         onBuildMode={onBuildMode}
         onCommand={onCommand}
+        onPausedAction={onPausedAction}
         pending={pending}
       />
     );
@@ -901,9 +938,11 @@ function ActionDock({
           legal.discardCount === 1 ? "card" : "cards"
         } from your hand`}
         game={game}
+        isPaused={isPaused}
         me={me}
         onBuildMode={onBuildMode}
         onCommand={onCommand}
+        onPausedAction={onPausedAction}
         pending={pending}
       />
     );
@@ -961,9 +1000,11 @@ function ActionDock({
         buildMode={buildMode}
         disabledReasonOverride="Roll the dice first"
         game={game}
+        isPaused={isPaused}
         me={me}
         onBuildMode={onBuildMode}
         onCommand={onCommand}
+        onPausedAction={onPausedAction}
         pending={pending}
       />
     );
@@ -985,9 +1026,11 @@ function ActionDock({
     <BuildingActionsDock
       buildMode={buildMode}
       game={game}
+      isPaused={isPaused}
       me={me}
       onBuildMode={onBuildMode}
       onCommand={onCommand}
+      onPausedAction={onPausedAction}
       pending={pending}
     />
   );
@@ -997,17 +1040,21 @@ function BuildingActionsDock({
   buildMode,
   disabledReasonOverride,
   game,
+  isPaused,
   me,
   onBuildMode,
   onCommand,
+  onPausedAction,
   pending,
 }: {
   buildMode: BuildMode;
   disabledReasonOverride?: string;
   game: PlayerGameView;
+  isPaused: boolean;
   me: PrivatePlayerState;
   onBuildMode(mode: BuildMode): void;
   onCommand(command: GameCommand, message: string): void;
+  onPausedAction(): void;
   pending: boolean;
 }) {
   const legal = game.legalActions;
@@ -1071,8 +1118,10 @@ function BuildingActionsDock({
       <TradeCenter
         disabled={pending || disabledReasonOverride !== undefined}
         game={game}
+        isPaused={isPaused}
         me={me}
         onCommand={onCommand}
+        onPausedAction={onPausedAction}
       />
       <div className="action-group build-actions">
         <DevelopmentCardAction
@@ -1131,11 +1180,7 @@ function TurnControl({
     isRequiredActor: legal.isRequiredActor,
     phaseKind: game.phase.kind,
   });
-  const turnControlClassName = liquidGlassClassName({
-    className: "game-purple-glass turn-control",
-    kind: "control",
-    radius: "md",
-  });
+  const turnControlClassName = "game-purple-glass turn-control";
 
   if (controlKind === "roll") {
     return (
@@ -1158,40 +1203,40 @@ function TurnControl({
 
   if (controlKind === "end_turn") {
     return (
-      <section className={turnControlClassName} aria-label="Turn control">
+      <section className={`${turnControlClassName} is-end-turn`} aria-label="Turn control">
         <Button
           aria-label="End Turn"
-          className="turn-control-action"
+          className="button button-primary turn-control-action"
           isDisabled={pending || !legal.canEndTurn}
+          isPending={pending}
           onPress={() => onCommand({ kind: "end_turn" }, "Turn ended.")}
-          variant="ghost"
         >
-          <Image
-            alt=""
-            className="turn-control-action-icon"
-            draggable={false}
-            height={256}
-            loading="eager"
-            sizes="5.5rem"
-            src="/game-assets/ui/end-turn-hourglass.png"
-            width={256}
-          />
+          <span>{pending ? "Ending…" : "End Turn"}</span>
         </Button>
       </section>
     );
   }
 
   return (
-    <section
-      aria-label="Turn control"
-      className={liquidGlassClassName({
-        className: "game-purple-glass turn-control is-unavailable",
-        kind: "control",
-        radius: "md",
-      })}
-    >
-      <Icon aria-hidden="true" icon={controlKind === "waiting" ? playerIcon : flagIcon} />
-      <span>{controlKind === "waiting" ? "Waiting" : "Finish action"}</span>
+    <section aria-label="Turn control" className={`${turnControlClassName} is-unavailable`}>
+      {controlKind === "waiting" ? (
+        <>
+          <Image
+            alt=""
+            className="turn-control-state-icon"
+            draggable={false}
+            height={256}
+            src={WAIT_ICON_ASSET_PATH}
+            width={256}
+          />
+          <span>Waiting</span>
+        </>
+      ) : (
+        <span className="turn-control-required-copy">
+          <span>Finish</span>
+          <span>action</span>
+        </span>
+      )}
     </section>
   );
 }
@@ -1515,77 +1560,83 @@ function getMissingResourcesReason(
   return missingResources.length > 0 ? `Need ${missingResources.join(", ")}` : null;
 }
 
-function TurnClock({ botThinking, nextActionAt }: { botThinking: boolean; nextActionAt?: number }) {
-  const [now, setNow] = useState<number | null>(null);
+function TurnClock({
+  botThinking,
+  isPaused,
+  nextActionAt,
+}: {
+  botThinking: boolean;
+  isPaused: boolean;
+  nextActionAt?: number;
+}) {
+  const { isExpired, seconds } = useActionCountdown({ isPaused, nextActionAt });
 
-  useEffect(() => {
-    if (!nextActionAt) {
-      setNow(null);
-      return;
-    }
-
-    const initialNow = Date.now();
-    setNow(initialNow);
-    if (initialNow >= nextActionAt) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      const currentNow = Date.now();
-      setNow(currentNow);
-      if (currentNow >= nextActionAt) {
-        window.clearInterval(timer);
-      }
-    }, 250);
-    return () => window.clearInterval(timer);
-  }, [nextActionAt]);
-
-  if (!nextActionAt) {
+  if (!isPaused && !nextActionAt) {
     return null;
   }
 
-  const isExpired = now !== null && now >= nextActionAt;
-  const seconds = now === null ? null : Math.max(0, Math.ceil((nextActionAt - now) / 1_000));
-  const status = isExpired
-    ? botThinking
-      ? "Bot acting"
-      : "Advancing"
-    : botThinking
-      ? "Bot thinking"
-      : "Turn time";
+  const status = isPaused
+    ? "Paused"
+    : isExpired
+      ? botThinking
+        ? "Bot acting"
+        : "Advancing"
+      : botThinking
+        ? "Bot thinking"
+        : "Turn time";
   return (
     <div
       aria-label={
-        isExpired
-          ? botThinking
-            ? "Bot acting"
-            : "Turn expired, advancing"
-          : seconds === null
-            ? `${status}, timer starting`
-            : `${status}, ${seconds} seconds remaining`
+        isPaused
+          ? seconds === null
+            ? "Turn paused"
+            : `Turn paused, ${seconds} seconds remaining`
+          : isExpired
+            ? botThinking
+              ? "Bot acting"
+              : "Turn expired, advancing"
+            : seconds === null
+              ? `${status}, timer starting`
+              : `${status}, ${seconds} seconds remaining`
       }
       aria-live="off"
-      className={`turn-clock${botThinking ? " is-bot" : ""}${isExpired ? " is-expired" : ""}`}
+      className={`turn-clock${botThinking ? " is-bot" : ""}${isPaused ? " is-paused" : ""}${isExpired ? " is-expired" : ""}`}
       role="timer"
     >
-      {botThinking ? <Icon aria-hidden="true" icon={botIcon} /> : null}
-      <span>{status}</span>
       <strong>{isExpired ? "…" : seconds === null ? "—" : `${seconds}s`}</strong>
     </div>
   );
 }
 
 function WinOverlay({
-  isDraw,
-  isViewer,
+  game,
   onLeave,
-  winnerName,
+  viewerProfileImageUrl,
 }: {
-  isDraw: boolean;
-  isViewer: boolean;
+  game: PlayerGameView;
   onLeave(): Promise<void>;
-  winnerName?: string;
+  viewerProfileImageUrl: string | null;
 }) {
+  const standings = [...game.players]
+    .map((player) => ({
+      player,
+      score: getFinalVictoryPointTotal(player),
+    }))
+    .sort(
+      (left, right) => right.score - left.score || left.player.seatIndex - right.player.seatIndex,
+    );
+  const winner = game.players.find((player) => player.id === game.winnerPlayerId);
+  const featuredPlayer = winner ?? standings[0]?.player;
+  const isDraw = game.winnerPlayerId === null;
+  const isViewer = winner?.isViewer === true;
+  const featuredTheme = featuredPlayer ? getPlayerTheme(featuredPlayer) : "purple";
+  const featuredScore = featuredPlayer ? getFinalVictoryPointTotal(featuredPlayer) : 0;
+  const pointBreakdown = featuredPlayer ? getVictoryPointBreakdown(game, featuredPlayer) : [];
+  const longestRoad = featuredPlayer ? getLongestRoadLength(game.board, featuredPlayer.id) : 0;
+  const featuredPortrait = featuredPlayer
+    ? getResultPortraitPath(featuredPlayer, viewerProfileImageUrl)
+    : getPlayerPortraitPath("purple");
+
   return (
     <Modal>
       <Modal.Backdrop
@@ -1595,31 +1646,140 @@ function WinOverlay({
         isOpen
       >
         <Modal.Container>
-          <Modal.Dialog className="win-card">
+          <Modal.Dialog className={`win-card player-${featuredTheme}`}>
             <Modal.Header className="win-card-header">
-              <span className="win-crown" aria-hidden="true">
-                <Icon icon={crownIcon} />
-              </span>
-              <div>
-                <p className="eyebrow">Game Complete</p>
-                <Modal.Heading id="win-title">
-                  {isDraw
-                    ? "The Island Rests in a Draw"
-                    : isViewer
-                      ? "You Rule the Island!"
-                      : `${winnerName ?? "A Player"} Wins!`}
-                </Modal.Heading>
+              <Image
+                alt=""
+                aria-hidden="true"
+                className="win-flourish"
+                draggable={false}
+                height={512}
+                priority
+                sizes="(max-width: 700px) 88vw, 42rem"
+                src="/game-assets/results/victory-flourish.png"
+                width={1536}
+              />
+              <div className="win-hero">
+                <span className="win-avatar" aria-hidden="true">
+                  <img alt="" draggable={false} height={256} src={featuredPortrait} width={256} />
+                  <span className="win-crown">
+                    <Icon icon={crownIcon} />
+                  </span>
+                </span>
+                <div className="win-hero-copy">
+                  <p className="eyebrow">{isDraw ? "Match Complete" : "Island Conquered"}</p>
+                  <Modal.Heading id="win-title">
+                    {isDraw
+                      ? "The Island Rests in a Draw"
+                      : isViewer
+                        ? "You Rule the Island!"
+                        : `${winner?.displayName ?? "A Player"} Wins!`}
+                  </Modal.Heading>
+                  <p>
+                    {isDraw
+                      ? `No player reached ${game.settings.victoryPoints} victory points.`
+                      : `${winner?.displayName ?? "The winner"} claimed the island in ${game.turnNumber} turns.`}
+                  </p>
+                </div>
               </div>
             </Modal.Header>
-            <Modal.Body className="win-card-body" id="win-description">
-              {isDraw
-                ? "No player reached the victory target before the final turn."
-                : isViewer
-                  ? "Your settlements became a thriving island realm."
-                  : "A new saga begins with the next game."}
+            <Modal.Body className="win-card-body">
+              <section aria-labelledby="score-breakdown-title" className="win-score-panel">
+                <div className="win-score-heading">
+                  <div>
+                    <p className="eyebrow">{isDraw ? "Top Score" : "Final Score"}</p>
+                    <h3 id="score-breakdown-title">Victory point breakdown</h3>
+                  </div>
+                  <strong className="win-total-score">
+                    <span>{featuredScore}</span>
+                    <small>VP</small>
+                  </strong>
+                </div>
+                <ul className="win-point-breakdown">
+                  {pointBreakdown.map((source) => (
+                    <li className="win-point-source" key={source.label}>
+                      <span className="win-point-source-art" aria-hidden="true">
+                        <Image
+                          alt=""
+                          draggable={false}
+                          height={source.assetHeight}
+                          sizes="3.25rem"
+                          src={source.asset}
+                          width={source.assetWidth}
+                        />
+                      </span>
+                      <span>
+                        <strong>{source.label}</strong>
+                        <small>{source.detail}</small>
+                      </span>
+                      <b>{source.points}</b>
+                    </li>
+                  ))}
+                </ul>
+                {featuredPlayer ? (
+                  <div aria-label="Match statistics" className="win-match-stats">
+                    <span>
+                      <small>Turns</small>
+                      <strong>{game.turnNumber}</strong>
+                    </span>
+                    <span>
+                      <small>Longest road</small>
+                      <strong>{longestRoad}</strong>
+                    </span>
+                    <span>
+                      <small>Knights played</small>
+                      <strong>{featuredPlayer.playedKnights}</strong>
+                    </span>
+                  </div>
+                ) : null}
+              </section>
+
+              <section aria-labelledby="final-standings-title" className="win-standings">
+                <div className="win-standings-heading">
+                  <p className="eyebrow">Final Standings</p>
+                  <h3 id="final-standings-title">The table</h3>
+                </div>
+                <ol>
+                  {standings.map(({ player, score }, index) => {
+                    const theme = getPlayerTheme(player);
+                    return (
+                      <li
+                        className={`player-${theme}${player.id === game.winnerPlayerId ? " is-winner" : ""}`}
+                        key={player.id}
+                      >
+                        <span className="win-rank">{index + 1}</span>
+                        <img
+                          alt=""
+                          aria-hidden="true"
+                          draggable={false}
+                          height={96}
+                          src={getResultPortraitPath(player, viewerProfileImageUrl)}
+                          width={96}
+                        />
+                        <span className="win-standing-name">
+                          <strong>{player.displayName}</strong>
+                          <small>
+                            {player.id === game.winnerPlayerId
+                              ? "Island champion"
+                              : player.isViewer
+                                ? "You"
+                                : player.isBot
+                                  ? "Bot"
+                                  : "Explorer"}
+                          </small>
+                        </span>
+                        <strong className="win-standing-score">
+                          {score}
+                          <small> VP</small>
+                        </strong>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
             </Modal.Body>
             <Modal.Footer className="win-card-footer">
-              <Button className="button button-primary" onPress={onLeave}>
+              <Button className="button win-home-button" onPress={onLeave}>
                 Return Home
               </Button>
             </Modal.Footer>
@@ -1630,12 +1790,98 @@ function WinOverlay({
   );
 }
 
+interface VictoryPointSource {
+  asset: string;
+  assetHeight: number;
+  assetWidth: number;
+  detail: string;
+  label: string;
+  points: number;
+}
+
+const VICTORY_POINT_CARD_ASSET =
+  DEVELOPMENT_CARD_ASSETS.find((card) => card.id === "victory-point")?.path ??
+  "/game-assets/cards/development/victory-point.png";
+
+function getRevealedVictoryPointCards(player: PlayerGameView["players"][number]): number {
+  return player.isViewer
+    ? player.developmentCards.filter((card) => card === "victory-point").length
+    : (player.revealedVictoryPointCards ?? 0);
+}
+
+function getFinalVictoryPointTotal(player: PlayerGameView["players"][number]): number {
+  return player.victoryPoints + getRevealedVictoryPointCards(player);
+}
+
+function getVictoryPointBreakdown(
+  game: PlayerGameView,
+  player: PlayerGameView["players"][number],
+): VictoryPointSource[] {
+  let settlements = 0;
+  let cities = 0;
+  for (const building of game.board.buildings) {
+    if (building.playerId !== player.id) {
+      continue;
+    }
+    if (building.kind === "city") {
+      cities += 1;
+    } else {
+      settlements += 1;
+    }
+  }
+
+  const victoryPointCards = getRevealedVictoryPointCards(player);
+  const longestRoadPoints =
+    game.longestRoadPlayerId === player.id ? LONGEST_ROAD_VICTORY_POINTS : 0;
+
+  return [
+    {
+      asset: ACTION_CARD_ASSET_PATHS.settlement,
+      assetHeight: 768,
+      assetWidth: 512,
+      detail: `${settlements} × 1 point`,
+      label: "Settlements",
+      points: settlements,
+    },
+    {
+      asset: ACTION_CARD_ASSET_PATHS.city,
+      assetHeight: 768,
+      assetWidth: 512,
+      detail: `${cities} × 2 points`,
+      label: "Cities",
+      points: cities * 2,
+    },
+    {
+      asset: AWARD_ASSET_PATHS.longestRoad,
+      assetHeight: 512,
+      assetWidth: 512,
+      detail: longestRoadPoints > 0 ? "Award held" : "Not held",
+      label: "Longest Road",
+      points: longestRoadPoints,
+    },
+    {
+      asset: VICTORY_POINT_CARD_ASSET,
+      assetHeight: 768,
+      assetWidth: 512,
+      detail: `${victoryPointCards} hidden ${victoryPointCards === 1 ? "card" : "cards"}`,
+      label: "Victory Cards",
+      points: victoryPointCards,
+    },
+  ];
+}
+
+function getResultPortraitPath(
+  player: PlayerGameView["players"][number],
+  viewerProfileImageUrl: string | null,
+): string {
+  return player.isViewer && viewerProfileImageUrl
+    ? viewerProfileImageUrl
+    : getPlayerPortraitPath(getPlayerTheme(player));
+}
+
 function toGameError(cause: unknown): string {
   const rawMessage = cause instanceof Error ? cause.message : "The action could not be completed.";
   const normalizedMessage = rawMessage.toLowerCase();
-  if (normalizedMessage.includes("game is paused")) {
-    return "The game is paused. The host can resume it from the header.";
-  }
   if (normalizedMessage.includes("action number") || normalizedMessage.includes("stale")) {
     return "The game moved ahead before this action arrived. Review the refreshed board and try again.";
   }
@@ -1649,6 +1895,10 @@ function toGameError(cause: unknown): string {
     return "That action is no longer available. Review the current turn instruction and try again.";
   }
   return "The game rejected that action. Review the highlighted legal choices and try again.";
+}
+
+function isGamePausedError(cause: unknown): boolean {
+  return cause instanceof Error && cause.message.toLowerCase().includes("game is paused");
 }
 
 function acquireSingleFlight(lock: { current: boolean }): boolean {

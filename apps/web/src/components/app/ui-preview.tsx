@@ -25,6 +25,7 @@ import {
   ACTION_CARD_ASSET_PATHS,
   DEVELOPMENT_CARD_BACK_ASSET_PATH,
 } from "@/constants/game/card-assets";
+import { END_TURN_ICON_ASSET_PATH } from "@/constants/game/ui-assets";
 import { DEFAULT_AUDIO_SETTINGS } from "@/lib/audio-settings";
 import type { RoomEventView } from "@/lib/game/types";
 
@@ -34,6 +35,7 @@ export type UiPreviewMode =
   | "game"
   | "game-actions"
   | "game-discard"
+  | "game-results"
   | "game-setup"
   | "game-trade-offer"
   | "home";
@@ -44,6 +46,7 @@ const PREVIEW_MODES = new Set<UiPreviewMode>([
   "game",
   "game-actions",
   "game-discard",
+  "game-results",
   "game-setup",
   "game-trade-offer",
   "home",
@@ -53,6 +56,7 @@ const GAME_PREVIEW_MODES = new Set<UiPreviewMode>([
   "game",
   "game-actions",
   "game-discard",
+  "game-results",
   "game-setup",
   "game-trade-offer",
 ]);
@@ -120,16 +124,17 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
       game={
         mode === "game-setup"
           ? createSetupPreviewGame()
-          : mode === "game-trade-offer"
-            ? createTradeOfferPreviewGame()
-            : mode === "game-discard"
-              ? createDiscardPreviewGame()
-              : createPreviewGame(mode === "game-actions")
+          : mode === "game-results"
+            ? createResultsPreviewGame()
+            : mode === "game-trade-offer"
+              ? createTradeOfferPreviewGame()
+              : mode === "game-discard"
+                ? createDiscardPreviewGame()
+                : createPreviewGame(mode === "game-actions")
       }
       isHost
       isPaused={false}
       nextActionAt={previewDeadline}
-      onAudioSettingsChange={() => undefined}
       onLeave={async () => undefined}
       viewerProfileImageUrl="/game-assets/players/red-navigator.png"
     />
@@ -239,7 +244,7 @@ const ACTION_PRESET_TILES: readonly ActionPresetPreviewTile[] = [
     caption: "Pass play clockwise",
     kind: "end-turn",
     meta: "Turn complete",
-    src: "/game-assets/ui/end-turn-hourglass.png",
+    src: END_TURN_ICON_ASSET_PATH,
     title: "End Turn",
   },
 ];
@@ -289,6 +294,23 @@ function createPreviewState({
 
 function createPreviewGame(showActions: boolean) {
   return createPreviewView(createPreviewState({ showActions }));
+}
+
+function createResultsPreviewGame() {
+  const state = createPreviewState({ activePlayerId: "player-2", showActions: false });
+  const victoryPointIndex = state.developmentDeck.indexOf("victory-point");
+  if (victoryPointIndex < 0) throw new Error("Results preview needs a victory point card");
+  const [victoryPointCard] = state.developmentDeck.splice(victoryPointIndex, 1);
+  if (!victoryPointCard) throw new Error("Results preview could not draw a victory point card");
+  state.players[1]!.developmentCards.push(victoryPointCard);
+
+  return createPreviewView({
+    ...state,
+    phase: { kind: "finished" },
+    settings: { ...state.settings, victoryPoints: 3 },
+    status: "completed",
+    winnerPlayerId: "player-2",
+  });
 }
 
 function createTradeOfferPreviewGame() {

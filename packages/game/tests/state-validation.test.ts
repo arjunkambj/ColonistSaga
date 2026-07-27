@@ -57,7 +57,36 @@ describe("serialized game-state validation", () => {
     expect(view.developmentCardSupply).toBe(DEVELOPMENT_CARD_DECK.length);
     expect(view.players[0]!.isViewer && view.players[0]!.developmentCards).toEqual([]);
     expect(!view.players[1]!.isViewer && view.players[1]!.developmentCardCount).toBe(0);
+    expect(!view.players[1]!.isViewer && view.players[1]!.revealedVictoryPointCards).toBeNull();
     expect(view.legalActions.canBuyDevelopmentCard).toBe(false);
+  });
+
+  test("reveals opponents' victory point cards only after the game is complete", () => {
+    const state = createGame();
+    const victoryPointIndex = state.developmentDeck.indexOf("victory-point");
+    if (victoryPointIndex < 0) throw new Error("Development deck needs a victory point card");
+    const [victoryPointCard] = state.developmentDeck.splice(victoryPointIndex, 1);
+    if (!victoryPointCard) throw new Error("Victory point card could not be drawn");
+    state.players[1]!.developmentCards.push(victoryPointCard);
+
+    const activeView = toPlayerView(state, state.players[0]!.id);
+    expect(
+      !activeView.players[1]!.isViewer && activeView.players[1]!.revealedVictoryPointCards,
+    ).toBeNull();
+
+    const completedView = toPlayerView(
+      {
+        ...state,
+        phase: { kind: "finished" },
+        status: "completed",
+        winnerPlayerId: state.players[1]!.id,
+      },
+      state.players[0]!.id,
+    );
+    expect(
+      !completedView.players[1]!.isViewer && completedView.players[1]!.revealedVictoryPointCards,
+    ).toBe(1);
+    expect(() => assertPlayerGameView(completedView)).not.toThrow();
   });
 
   test("exposes played knights as a public conserved count", () => {

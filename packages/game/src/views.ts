@@ -29,6 +29,10 @@ export function toPlayerView(state: GameState, viewerPlayerId: PlayerId): Player
           isViewer: false,
           piecesRemaining: { ...player.piecesRemaining },
           playedKnights: player.playedKnights,
+          revealedVictoryPointCards:
+            state.status === "completed"
+              ? player.developmentCards.filter((card) => card === "victory-point").length
+              : null,
           resourceCount,
           seatIndex: player.seatIndex,
           victoryPoints: player.victoryPoints,

@@ -61,7 +61,6 @@ Do not use neon lime, lemon yellow, saturated orange, bright cyan, pure white, o
 | Coastal environment | `apps/web/public/shared-assets/coastal-island-kingdom-day.png` | 1672×941 RGB PNG   |
 | Ocean board canvas  | `apps/web/public/game-assets/ui/ocean-board-canvas.webp`       | 1586×992 RGB WebP  |
 | Port skiff          | `apps/web/public/game-assets/ui/port-skiff.png`                | 384×512 RGBA PNG   |
-| Island shelf        | `apps/web/public/game-assets/ui/island-shelf.png`              | 1024×1024 RGBA PNG |
 | Road piece          | `apps/web/public/game-assets/pieces/road-piece.png`            | 512×512 RGBA PNG   |
 | Settlement piece    | `apps/web/public/game-assets/pieces/settlement-piece.png`      | 512×512 RGBA PNG   |
 | City piece          | `apps/web/public/game-assets/pieces/city-piece.png`            | 512×512 RGBA PNG   |
