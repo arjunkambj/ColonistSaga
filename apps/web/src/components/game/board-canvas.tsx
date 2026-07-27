@@ -23,6 +23,7 @@ import {
   getTerrainAssetPath,
 } from "@/constants/game/board-assets";
 import { getResourceCardAssetPath } from "@/constants/game/card-assets";
+import { PLAYER_COLOR_HEX } from "@/constants/game/player-colors";
 import {
   BOARD_CANVAS,
   getEdgePlacement,
@@ -96,17 +97,6 @@ const PORT_RESOURCE_ACCENTS: Readonly<Record<ResourceType, string>> = {
   stone: "#657686",
   tree: "#287444",
   wheat: "#b77a0b",
-};
-
-const PLAYER_COLOR_VALUES: Readonly<Record<PlayerColor, string>> = {
-  blue: "#2f8ee8",
-  green: "#2fb86a",
-  orange: "#f18c2c",
-  pink: "#d74786",
-  purple: "#8357d9",
-  red: "#f04f49",
-  teal: "#0f9696",
-  yellow: "#bd8100",
 };
 
 const BOARD_CANVAS_STYLE: CSSProperties = {
@@ -659,12 +649,7 @@ function drawBuildingTargetTooltip(
   const cardLeft = -cardWidth / 2;
   const cardTop = cardBottom - cardHeight;
   const previewSize = target.asset === "city" ? 40 : 36;
-  const preview = getTintedPieceCanvas(
-    image,
-    path,
-    target.theme,
-    PLAYER_COLOR_VALUES[target.theme],
-  );
+  const preview = getTintedPieceCanvas(image, path, target.theme, PLAYER_COLOR_HEX[target.theme]);
 
   context.save();
   context.translate(placement.x, placement.y);
@@ -685,7 +670,7 @@ function drawBuildingTargetTooltip(
   context.fill();
   context.shadowColor = "transparent";
   context.strokeStyle = target.highlighted
-    ? PLAYER_COLOR_VALUES[target.theme]
+    ? PLAYER_COLOR_HEX[target.theme]
     : "rgba(82, 145, 180, 0.78)";
   context.lineWidth = target.highlighted ? 4 : 3;
   context.stroke();
@@ -774,7 +759,7 @@ function drawTargetGhost(
   const preview =
     target.asset === "robber"
       ? image
-      : getTintedPieceCanvas(image, path, target.theme, PLAYER_COLOR_VALUES[target.theme]);
+      : getTintedPieceCanvas(image, path, target.theme, PLAYER_COLOR_HEX[target.theme]);
 
   context.save();
   context.translate(placement.x, placement.y);
@@ -799,7 +784,7 @@ function drawPlayerPiece(
   angle = 0,
   scaleY = 1,
 ) {
-  const tintedPiece = getTintedPieceCanvas(image, path, theme, PLAYER_COLOR_VALUES[theme]);
+  const tintedPiece = getTintedPieceCanvas(image, path, theme, PLAYER_COLOR_HEX[theme]);
 
   context.save();
   context.translate(point.x, point.y);

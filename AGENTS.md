@@ -24,6 +24,8 @@ Run commands from the root through package scripts and `turbo run`.
 
 Use TypeScript, ES modules, two-space indentation, and trailing commas. Oxfmt and Oxlint are authoritative. Favor pure functions, immutable data, early returns, and simple composition. Choose domain names such as `createGame`, `rollDice`, and `activePlayerId`; avoid generic names and unexplained abbreviations. Use `PascalCase` for components and types, `camelCase` for functions and variables, `UPPER_SNAKE_CASE` for constants, and kebab-case filenames. Keep game rules in one source of truth.
 
+All game UI styling flows through the design tokens declared in `apps/web/src/app/styles.css`: the `--space-*` spacing scale, the `--radius-*` radius scale, and the `--hud-*` game-HUD palette (surfaces, lines, text, shadows, gold actions, panel recipes such as `--hud-panel-bg`). Never introduce new hardcoded purple/gold hex or rgba values in game styles; extend the token block instead. Alpha variants of a hue use channel tokens, for example `rgb(var(--hud-line) / 0.3)`. Player piece colors are shared between CSS and canvas rendering via the `.player-*` classes and `apps/web/src/constants/game/player-colors.ts`; keep the two in sync.
+
 ## Commit & Pull Request Guidelines
 
 Git history is unavailable here. Use Conventional Commits, for example `feat(web): add lobby route` or `fix(backend): validate player count`. Pull requests must explain intent, list verification commands, link issues, and include screenshots for UI changes. Call out schema, environment, or deployment impacts.

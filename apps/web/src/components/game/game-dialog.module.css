@@ -17,13 +17,13 @@
 }
 
 .dialog {
-  --liquid-border: rgba(238, 210, 244, 0.52);
-  --liquid-color: rgba(112, 56, 129, 0.86);
-  --liquid-color-deep: rgba(42, 16, 53, 0.95);
+  --liquid-border: rgb(var(--hud-line-bright) / 0.52);
+  --liquid-color: rgb(var(--hud-brand-purple) / 0.86);
+  --liquid-color-deep: rgb(var(--hud-surface-deep) / 0.95);
   --liquid-highlight: rgba(255, 255, 255, 0.26);
   --liquid-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(255, 255, 255, 0.08),
-    0 30px 90px rgba(15, 7, 29, 0.56);
+    0 30px 90px rgb(var(--hud-well) / 0.56);
   display: grid;
   width: min(48rem, calc(100vw - 1.5rem));
   max-width: none;
@@ -31,7 +31,7 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   padding: 0;
   overflow: hidden;
-  color: #fff9f1;
+  color: var(--hud-text);
 }
 
 .header {
@@ -40,7 +40,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.1rem 1.25rem 0.85rem;
-  border-bottom: 1px solid rgba(232, 195, 238, 0.18);
+  border-bottom: 1px solid rgb(var(--hud-line) / 0.18);
 }
 
 .header h2 {
@@ -88,7 +88,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1.25rem 1.1rem;
-  border-top: 1px solid rgba(232, 195, 238, 0.18);
+  border-top: 1px solid rgb(var(--hud-line) / 0.18);
 }
 
 @media (max-width: 640px) {

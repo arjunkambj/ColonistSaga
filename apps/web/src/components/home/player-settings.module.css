@@ -46,7 +46,7 @@
 
 .label {
   margin: 0;
-  color: #dff5ff;
+  color: #e9c8ef;
   font-size: 0.76rem;
   font-weight: 750;
   text-shadow: none;
@@ -55,25 +55,25 @@
 .input.input {
   min-height: 3.15rem;
   padding: 0.75rem 0.95rem;
-  border: 2px solid rgba(200, 230, 248, 0.28);
+  border: 2px solid rgba(216, 185, 224, 0.32);
   border-radius: 0.9rem;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: inset 0 1px 2px rgba(42, 68, 95, 0.06);
-  color: #243b58;
+  background: rgba(255, 250, 243, 0.96);
+  box-shadow: inset 0 1px 2px rgba(67, 40, 75, 0.07);
+  color: #43284b;
   font-size: 1rem;
   font-weight: 700;
 }
 
 .input.input::placeholder {
-  color: #9aafc0;
+  color: #b39cbf;
   font-weight: 600;
 }
 
 .input.input:focus-visible,
 .input.input[data-focus-visible="true"] {
-  border-color: #3db8ef;
+  border-color: #c078cb;
   outline: 0;
-  box-shadow: 0 0 0 4px rgba(61, 184, 239, 0.18);
+  box-shadow: 0 0 0 4px rgba(192, 120, 203, 0.2);
 }
 
 .footer {
@@ -92,14 +92,14 @@
 }
 
 .cancel {
-  border: 1px solid rgba(210, 241, 255, 0.22);
-  background: rgba(210, 241, 255, 0.1);
-  color: #fff;
+  border: 1px solid rgba(245, 216, 239, 0.22);
+  background: rgba(225, 184, 230, 0.1);
+  color: #fffaf3;
 }
 
 .cancel:not(:disabled):hover,
 .cancel[data-hovered="true"] {
-  background: rgba(210, 241, 255, 0.16);
+  background: rgba(225, 184, 230, 0.16);
 }
 
 .save {

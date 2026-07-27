@@ -82,10 +82,10 @@
   height: 1.3rem;
   place-items: center;
   padding-inline: 0.24rem;
-  border: 1px solid rgba(67, 40, 75, 0.32);
+  border: 1px solid var(--hud-badge-line);
   border-radius: 999px;
-  background: #fff7ed;
-  color: #43284b;
+  background: var(--hud-badge);
+  color: var(--hud-gold-ink);
   font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
@@ -99,10 +99,10 @@
   right: 50%;
   bottom: -0.34rem;
   padding: 0.2rem 0.38rem;
-  border: 1px solid rgba(255, 239, 184, 0.86);
+  border: 1px solid rgb(var(--hud-gold-shine) / 0.86);
   border-radius: 999px;
-  background: rgba(75, 35, 84, 0.96);
-  box-shadow: 0 0.18rem 0.5rem rgba(30, 10, 36, 0.34);
+  background: rgb(var(--hud-surface-deep) / 0.96);
+  box-shadow: 0 0.18rem 0.5rem rgb(var(--hud-well) / 0.34);
   color: #fff4ce;
   font-size: 0.56rem;
   font-weight: 900;

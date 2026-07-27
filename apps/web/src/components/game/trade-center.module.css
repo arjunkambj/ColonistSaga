@@ -24,7 +24,7 @@
   padding: 0.6rem;
   border-radius: 1.1rem;
   overflow-y: auto;
-  color: #fff7ed;
+  color: var(--hud-text);
   overscroll-behavior: contain;
 }
 
@@ -54,7 +54,7 @@
 
 .tradeHeader h2 {
   margin: 0;
-  color: #fffaf2;
+  color: var(--hud-text-strong);
   font-family: var(--font-ui);
   font-size: 1rem;
   line-height: 1.1;
@@ -63,7 +63,7 @@
 .tradeDescription {
   max-width: 30rem;
   margin: 0.2rem 0 0;
-  color: #dac9dd;
+  color: var(--hud-text-muted);
   font-size: 0.68rem;
   line-height: 1.35;
 }
@@ -74,7 +74,7 @@
   height: 44px;
   border: 0;
   background: transparent;
-  color: #fff7ed;
+  color: var(--hud-text);
 }
 
 .closeButton svg {
@@ -105,14 +105,14 @@
   min-width: 0;
   width: 100%;
   padding: 0.45rem;
-  border: 1px solid rgba(235, 199, 236, 0.14);
+  border: 1px solid rgb(var(--hud-line) / 0.14);
   border-radius: 0.82rem;
-  background: rgba(25, 8, 34, 0.16);
+  background: rgb(var(--hud-well) / 0.16);
   overflow: hidden;
 }
 
 .draftRow[data-direction="receive"] {
-  border-color: rgba(73, 216, 187, 0.34);
+  border-color: rgb(var(--hud-trade-in) / 0.34);
 }
 
 .draftRow > legend {
@@ -129,7 +129,7 @@
 }
 
 .draftRow > legend strong {
-  color: #fffaf2;
+  color: var(--hud-text-strong);
   font-size: 0.68rem;
 }
 
@@ -142,13 +142,13 @@
 }
 
 [data-direction="receive"] .directionIcon {
-  background: rgba(64, 203, 174, 0.2);
-  color: #79e2cc;
+  background: rgb(var(--hud-trade-in) / 0.2);
+  color: rgb(var(--hud-trade-in));
 }
 
 [data-direction="give"] .directionIcon {
-  background: rgba(238, 105, 93, 0.2);
-  color: #ff9e8f;
+  background: rgb(var(--hud-trade-out) / 0.2);
+  color: rgb(var(--hud-trade-out));
 }
 
 .directionIcon svg {
@@ -189,7 +189,7 @@
   border: 0;
   border-radius: 0.7rem;
   background: transparent;
-  color: #e7dbe9;
+  color: var(--hud-text-soft);
   overflow: visible;
   transition:
     filter 150ms ease,
@@ -199,13 +199,13 @@
 .resourceAdd:not([aria-disabled="true"]):hover,
 .resourceAdd.isSelected {
   background: transparent;
-  filter: brightness(1.08) drop-shadow(0 0.35rem 0.6rem rgba(18, 5, 25, 0.28));
+  filter: brightness(1.08) drop-shadow(0 0.35rem 0.6rem rgb(var(--hud-well) / 0.28));
   transform: translateY(-2px);
 }
 
 .resourceAdd.isSelected .resourceCardImage {
-  filter: drop-shadow(0 0 0.15rem rgba(255, 228, 145, 0.95))
-    drop-shadow(0 0.3rem 0.55rem rgba(18, 5, 25, 0.34));
+  filter: drop-shadow(0 0 0.15rem rgb(var(--hud-gold-shine) / 0.95))
+    drop-shadow(0 0.3rem 0.55rem rgb(var(--hud-well) / 0.34));
 }
 
 .resourceAdd[aria-disabled="true"] {
@@ -222,7 +222,7 @@
   height: 4.15rem;
   border-radius: 0.45rem;
   object-fit: contain;
-  filter: drop-shadow(0 0.3rem 0.45rem rgba(7, 3, 12, 0.34));
+  filter: drop-shadow(0 0.3rem 0.45rem rgb(var(--hud-well) / 0.34));
 }
 
 .quantityChip {
@@ -235,11 +235,11 @@
   height: 1.3rem;
   place-items: center;
   padding: 0 0.24rem;
-  border: 1px solid rgba(67, 40, 75, 0.32);
+  border: 1px solid var(--hud-badge-line);
   border-radius: 999px;
-  background: #fff7ed;
-  box-shadow: 0 0.2rem 0.5rem rgba(12, 5, 18, 0.3);
-  color: #43284b;
+  background: var(--hud-badge);
+  box-shadow: 0 0.2rem 0.5rem rgb(var(--hud-well) / 0.3);
+  color: var(--hud-gold-ink);
   font-size: 0.68rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -255,7 +255,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #fff7ed;
+  color: var(--hud-text);
 }
 
 .resourceRemove {
@@ -273,8 +273,8 @@
   height: 1.4rem;
   padding: 0.27rem;
   border-radius: 999px;
-  background: #3e2249;
-  box-shadow: 0 0.18rem 0.4rem rgba(12, 5, 18, 0.32);
+  background: rgb(var(--hud-surface-deep));
+  box-shadow: 0 0.18rem 0.4rem rgb(var(--hud-well) / 0.32);
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -318,13 +318,17 @@
   padding: 0.28rem 0.4rem;
   border: 0;
   border-radius: 0.62rem;
-  background: rgba(17, 7, 25, 0.35);
+  background: rgb(var(--hud-well) / 0.35);
   cursor: pointer;
 }
 
 .recipient[data-selected="true"] .recipientContent {
-  background: linear-gradient(145deg, rgba(130, 65, 147, 0.54), rgba(65, 29, 78, 0.62));
-  box-shadow: inset 0 0 0 1px rgba(229, 167, 46, 0.42);
+  background: linear-gradient(
+    145deg,
+    rgb(var(--hud-brand-purple) / 0.54),
+    rgb(var(--hud-surface-deep) / 0.62)
+  );
+  box-shadow: inset 0 0 0 1px rgb(var(--hud-brand-gold) / 0.42);
 }
 
 .recipientAvatar,
@@ -336,8 +340,8 @@
 .statusAvatar {
   display: grid;
   place-items: center;
-  background: #e5a72e;
-  color: #3d2348;
+  background: var(--brand-gold);
+  color: var(--hud-gold-ink);
   font-size: 0.62rem;
   font-weight: 950;
 }
@@ -367,7 +371,7 @@
 
 .recipientCopy strong {
   overflow: hidden;
-  color: #fff7ed;
+  color: var(--hud-text);
   font-size: 0.62rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -389,7 +393,7 @@
 .offerFooter p,
 .observerStatus {
   margin: 0;
-  color: #d6c4d9;
+  color: var(--hud-text-muted);
   font-size: 0.64rem;
   line-height: 1.35;
 }
@@ -427,7 +431,7 @@
 .sendOfferButton:not([aria-disabled="true"]) {
   border: 0;
   background: var(--brand-purple);
-  color: #fff7ed;
+  color: var(--hud-text);
 }
 
 .bankTradeButton[aria-disabled="true"],
@@ -452,11 +456,11 @@
 }
 
 .offerRow[data-direction="receive"] {
-  border-color: rgba(73, 216, 187, 0.34);
+  border-color: rgb(var(--hud-trade-in) / 0.34);
 }
 
 .offerRow[data-direction="give"] {
-  border-color: rgba(244, 157, 124, 0.34);
+  border-color: rgb(var(--hud-trade-out) / 0.34);
 }
 
 .offerRow[data-removable="true"] {
@@ -468,7 +472,7 @@
   min-height: 1.65rem;
   align-items: center;
   gap: 0.35rem;
-  color: #fff7ed;
+  color: var(--hud-text);
   font-size: 0.68rem;
 }
 
@@ -503,7 +507,7 @@
   height: 4rem;
   border-radius: 0.4rem;
   object-fit: contain;
-  filter: drop-shadow(0 0.25rem 0.4rem rgba(7, 3, 12, 0.32));
+  filter: drop-shadow(0 0.25rem 0.4rem rgb(var(--hud-well) / 0.32));
 }
 
 .offerRow li > strong {
@@ -516,18 +520,18 @@
   height: 1.3rem;
   place-items: center;
   padding-inline: 0.24rem;
-  border: 1px solid rgba(67, 40, 75, 0.32);
+  border: 1px solid var(--hud-badge-line);
   border-radius: 999px;
-  background: #fff7ed;
-  box-shadow: 0 0.2rem 0.5rem rgba(12, 5, 18, 0.3);
-  color: #43284b;
+  background: var(--hud-badge);
+  box-shadow: 0 0.2rem 0.5rem rgb(var(--hud-well) / 0.3);
+  color: var(--hud-gold-ink);
   font-size: 0.68rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
 .offerRow li > small {
-  color: #ffb2a6;
+  color: rgb(var(--hud-trade-out));
   font-size: 0.5rem;
   font-weight: 850;
 }
@@ -549,7 +553,7 @@
   border-radius: 0.65rem;
   margin: 0;
   background: rgba(255, 255, 255, 0.045);
-  color: #d6c4d9;
+  color: var(--hud-text-muted);
   font-size: 0.62rem;
   line-height: 1.35;
   text-align: center;
@@ -559,10 +563,10 @@
   width: 0.72rem;
   height: 0.95rem;
   flex: 0 0 auto;
-  border: 1px solid rgba(255, 224, 137, 0.64);
+  border: 1px solid rgb(var(--hud-gold-shine) / 0.64);
   border-radius: 0.18rem;
-  background: rgba(229, 167, 46, 0.1);
-  box-shadow: 0.18rem 0.12rem 0 -0.05rem rgba(255, 224, 137, 0.3);
+  background: rgb(var(--hud-brand-gold) / 0.1);
+  box-shadow: 0.18rem 0.12rem 0 -0.05rem rgb(var(--hud-gold-shine) / 0.3);
   content: "";
   transform: rotate(-4deg);
 }
@@ -586,7 +590,7 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 0.65rem;
   background: rgba(255, 255, 255, 0.06);
-  color: #e6d9e7;
+  color: var(--hud-text-soft);
   font-size: 0.58rem;
 }
 
@@ -601,7 +605,7 @@
 }
 
 .recipientStatuses li > strong {
-  color: #79e2cc;
+  color: rgb(var(--hud-trade-in));
   font-size: 0.52rem;
 }
 
@@ -610,15 +614,15 @@
 }
 
 .recipientStatuses li[data-state="rejected"] > strong {
-  color: #ffab9e;
+  color: rgb(var(--hud-trade-out));
 }
 
 .offerFooter p[data-state="ready"] {
-  color: #8ce6d2;
+  color: rgb(var(--hud-trade-in));
 }
 
 .offerFooter p[data-state="error"] {
-  color: #ffb2a6;
+  color: rgb(var(--hud-trade-out));
 }
 
 .observerStatus {

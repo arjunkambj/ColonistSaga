@@ -5,7 +5,7 @@
   width: 100%;
   gap: 0.5rem;
   padding: 0.4rem 0.5rem 0.4rem 0.65rem;
-  color: #fff8ed;
+  color: var(--hud-text);
 }
 
 .trayHeader {
@@ -14,7 +14,7 @@
 
 .trayHeader h2 {
   margin: 0;
-  color: #fffaf2;
+  color: var(--hud-text-strong);
   font-size: 0.76rem;
   line-height: 1.2;
   white-space: nowrap;
@@ -68,7 +68,7 @@
   border: 2px solid rgba(255, 255, 255, 0.92);
   border-radius: 999px;
   background: linear-gradient(145deg, #d16b50, #a73e35);
-  box-shadow: 0 0.2rem 0.45rem rgba(20, 5, 24, 0.3);
+  box-shadow: 0 0.2rem 0.45rem rgb(var(--hud-well) / 0.3);
   color: #fff;
   font-size: 0.55rem;
   font-variant-numeric: tabular-nums;
@@ -87,21 +87,21 @@
   padding: 0;
   border: 1px solid rgba(255, 244, 238, 0.55);
   border-radius: 999px;
-  background: rgba(51, 20, 61, 0.9);
-  box-shadow: 0 0.15rem 0.35rem rgba(20, 5, 24, 0.28);
-  color: #fff8ed;
+  background: rgb(var(--hud-surface-deep) / 0.9);
+  box-shadow: 0 0.15rem 0.35rem rgb(var(--hud-well) / 0.28);
+  color: var(--hud-text);
   font-size: 0.72rem;
   line-height: 1;
 }
 
 .removeButton:hover,
 .removeButton[data-hovered="true"] {
-  background: rgba(145, 76, 151, 0.78);
+  background: rgb(var(--hud-surface-raised) / 0.78);
 }
 
 .removeButton:focus-visible,
 .removeButton[data-focus-visible="true"] {
-  outline: 2px solid #f6d78d;
+  outline: 2px solid var(--hud-gold-label);
   outline-offset: 2px;
 }
 
@@ -116,7 +116,7 @@
   display: grid;
   min-width: 2.7rem;
   justify-items: center;
-  color: #d6c4d9;
+  color: var(--hud-text-muted);
   line-height: 1;
 }
 
@@ -129,13 +129,13 @@
 }
 
 .autoDiscardTimer strong {
-  color: #fffaf2;
+  color: var(--hud-text-strong);
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
 }
 
 .autoDiscardTimer[data-expired="true"] strong {
-  color: #f6d78d;
+  color: var(--hud-gold-label);
 }
 
 .trayActions p {
@@ -143,12 +143,12 @@
   min-width: 2.4rem;
   justify-items: center;
   margin: 0;
-  color: #d6c4d9;
+  color: var(--hud-text-muted);
   line-height: 1;
 }
 
 .trayActions strong {
-  color: #f6d78d;
+  color: var(--hud-gold-label);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
 }

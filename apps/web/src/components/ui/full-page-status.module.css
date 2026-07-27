@@ -9,7 +9,7 @@
   padding: max(1.5rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
     max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
   overflow: hidden;
-  background: #087dc5;
+  background: #2a1234;
 }
 
 .page::before,
@@ -23,12 +23,12 @@
 
 .page::before {
   background:
-    radial-gradient(circle at 50% 46%, rgba(84, 202, 255, 0.08) 0 9rem, transparent 25rem),
-    linear-gradient(180deg, rgba(3, 65, 133, 0.08) 20%, rgba(1, 32, 80, 0.5) 100%);
+    radial-gradient(circle at 50% 46%, rgba(192, 120, 203, 0.1) 0 9rem, transparent 25rem),
+    linear-gradient(180deg, rgba(52, 20, 64, 0.1) 20%, rgba(24, 8, 32, 0.52) 100%);
 }
 
 .page::after {
-  box-shadow: inset 0 0 min(18vw, 10rem) rgba(0, 25, 70, 0.38);
+  box-shadow: inset 0 0 min(18vw, 10rem) rgba(22, 7, 30, 0.44);
 }
 
 .content {
@@ -40,7 +40,7 @@
   align-items: center;
   margin-top: clamp(-2.5rem, -5vh, -1rem);
   text-align: center;
-  filter: drop-shadow(0 1rem 1.8rem rgba(0, 27, 71, 0.28));
+  filter: drop-shadow(0 1rem 1.8rem rgba(24, 8, 34, 0.34));
 }
 
 .brand {
@@ -147,13 +147,13 @@
   display: grid;
   justify-items: center;
   gap: 0.35rem;
-  color: #f7fcff;
-  text-shadow: 0 2px 8px rgba(0, 42, 95, 0.68);
+  color: #fff7ed;
+  text-shadow: 0 2px 8px rgba(24, 8, 34, 0.68);
 }
 
 .eyebrow {
   margin: 0;
-  color: #bdeeff;
+  color: #ecc6f2;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.18em;
@@ -162,7 +162,7 @@
 
 .label {
   margin: 0;
-  color: #fff;
+  color: #fffaf3;
   font-size: clamp(1.25rem, 4.4vw, 1.65rem);
   font-weight: 950;
   line-height: 1.15;
@@ -170,7 +170,7 @@
 
 .hint {
   margin: 0;
-  color: #d8f3ff;
+  color: #d6bdd8;
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -186,7 +186,7 @@
   height: 0.4rem;
   border-radius: 50%;
   background: #ffe064;
-  box-shadow: 0 2px 5px rgba(0, 40, 91, 0.42);
+  box-shadow: 0 2px 5px rgba(24, 8, 34, 0.46);
   animation: dot-bob 1.2s ease-in-out infinite;
 }
 

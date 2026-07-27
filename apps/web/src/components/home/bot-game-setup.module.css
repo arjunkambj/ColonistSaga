@@ -40,7 +40,7 @@
 
 .body :global(.lobby-settings-intro) {
   margin-bottom: 0.75rem;
-  color: #b8e5fb;
+  color: #d6bdd8;
 }
 
 .body :global(.lobby-settings-grid) {
@@ -50,30 +50,30 @@
 }
 
 .body :global(.lobby-settings-group) {
-  border-color: rgba(220, 246, 255, 0.12);
-  background: rgba(2, 73, 124, 0.27);
+  border-color: rgba(245, 216, 239, 0.14);
+  background: rgba(52, 21, 64, 0.3);
 }
 
 .body :global(.lobby-settings-group-header h2) {
-  color: #fff;
+  color: #fffaf3;
 }
 
 .body :global(.lobby-settings-group-header p) {
-  color: #acdff7;
+  color: #d6bdd8;
 }
 
 .body :global(.lobby-settings-control),
 .body :global(.lobby-settings-toggle),
 .body :global(.lobby-settings-static) {
-  border-color: rgba(220, 246, 255, 0.13);
-  background: rgba(234, 248, 255, 0.96);
+  border-color: rgba(245, 216, 239, 0.14);
+  background: rgba(255, 248, 251, 0.96);
 }
 
 .note {
   padding: 0.55rem 1rem 0;
   margin: 0;
-  background: rgba(1, 66, 112, 0.3);
-  color: #bce7fd;
+  background: rgba(52, 21, 64, 0.32);
+  color: #d6bdd8;
 }
 
 .footer {
