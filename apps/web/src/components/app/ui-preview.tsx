@@ -5,21 +5,24 @@ import {
   assertGameState,
   assertPlayerGameView,
   createDefaultGame,
+  DEVELOPMENT_CARD_TYPES,
   emptyInventory,
   getLegalActions,
   RESOURCE_TYPES,
   toPlayerView,
+  type GameCommand,
   type GamePlayerInput,
   type GameState,
   type ResourceInventory,
 } from "@colonistsaga/game";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AuthScreenView } from "@/components/auth/auth-screen";
 import { ActionTile } from "@/components/game/action-tile";
 import { GameScreen } from "@/components/game/game-screen";
 import { HomeScreen } from "@/components/home/home-screen";
+import { FullPageStatus } from "@/components/ui/full-page-status";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import {
   ACTION_CARD_ASSET_PATHS,
@@ -39,6 +42,8 @@ export type UiPreviewMode =
   | "game-setup"
   | "game-trade-offer"
   | "home";
+
+type GamePreviewMode = Extract<UiPreviewMode, `game${string}`>;
 
 const PREVIEW_MODES = new Set<UiPreviewMode>([
   "action-preset",
@@ -72,12 +77,13 @@ export function isUiPreviewMode(value: string | null): value is UiPreviewMode {
   return value !== null && PREVIEW_MODES.has(value as UiPreviewMode);
 }
 
-export function isGamePreviewMode(mode: UiPreviewMode): boolean {
+export function isGamePreviewMode(mode: UiPreviewMode): mode is GamePreviewMode {
   return GAME_PREVIEW_MODES.has(mode);
 }
 
-export function UiPreview({ mode }: { mode: UiPreviewMode }) {
+export function UiPreview({ mode, seed }: { mode: UiPreviewMode; seed?: string }) {
   const [previewDeadline, setPreviewDeadline] = useState<number>();
+  const [randomGameSeed, setRandomGameSeed] = useState<string>();
 
   useEffect(() => {
     if (!isGamePreviewMode(mode)) {
@@ -87,6 +93,15 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
 
     setPreviewDeadline(Date.now() + 45_000);
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "game" || seed) {
+      setRandomGameSeed(undefined);
+      return;
+    }
+
+    setRandomGameSeed(window.crypto.randomUUID());
+  }, [mode, seed]);
 
   if (mode === "auth") {
     return <AuthScreenView onSignIn={async () => undefined} />;
@@ -115,27 +130,54 @@ export function UiPreview({ mode }: { mode: UiPreviewMode }) {
     return <ActionPresetPreview />;
   }
 
+  const gameSeed = mode === "game" ? (seed ?? randomGameSeed) : undefined;
+  if (mode === "game" && !gameSeed) {
+    return <FullPageStatus label="Shuffling a new island…" />;
+  }
+
+  return (
+    <GamePreview
+      key={`${mode}:${gameSeed ?? "reference"}`}
+      mode={mode}
+      previewDeadline={previewDeadline}
+      seed={gameSeed}
+    />
+  );
+}
+
+function GamePreview({
+  mode,
+  previewDeadline,
+  seed,
+}: {
+  mode: GamePreviewMode;
+  previewDeadline?: number;
+  seed?: string;
+}) {
+  const [previewState, setPreviewState] = useState(() => createGamePreviewState(mode, seed));
+  const previewStateRef = useRef(previewState);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const runCommand = async (command: GameCommand) => {
+    const nextState = applyCommand(previewStateRef.current, "player-1", command);
+    assertGameState(nextState);
+    previewStateRef.current = nextState;
+    setPreviewState(nextState);
+  };
+
   return (
     <GameScreen
       audioSettings={DEFAULT_AUDIO_SETTINGS}
       botThinking={false}
-      code="NW9C4B"
       events={PREVIEW_EVENTS}
-      game={
-        mode === "game-setup"
-          ? createSetupPreviewGame()
-          : mode === "game-results"
-            ? createResultsPreviewGame()
-            : mode === "game-trade-offer"
-              ? createTradeOfferPreviewGame()
-              : mode === "game-discard"
-                ? createDiscardPreviewGame()
-                : createPreviewGame(mode === "game-actions")
-      }
+      game={createPreviewView(previewState)}
       isHost
-      isPaused={false}
+      isPaused={isPaused}
       nextActionAt={previewDeadline}
+      onCommand={runCommand}
       onLeave={async () => undefined}
+      onPauseChange={async (shouldPause) => setIsPaused(shouldPause)}
+      onReplacePlayer={async () => undefined}
       viewerProfileImageUrl="/game-assets/players/red-navigator.png"
     />
   );
@@ -292,8 +334,50 @@ function createPreviewState({
   return state;
 }
 
-function createPreviewGame(showActions: boolean) {
-  return createPreviewView(createPreviewState({ showActions }));
+function createGamePreviewState(mode: GamePreviewMode, seed?: string): GameState {
+  switch (mode) {
+    case "game-setup":
+      return createSetupPreviewGame();
+    case "game-results":
+      return createResultsPreviewGame();
+    case "game-trade-offer":
+      return createTradeOfferPreviewGame();
+    case "game-discard":
+      return createDiscardPreviewGame();
+    case "game-actions":
+      return createPreviewGame(true);
+    case "game":
+      return createPreviewGame(false, seed);
+  }
+}
+
+function createPreviewGame(showActions: boolean, seed?: string): GameState {
+  return givePreviewPlayerEveryDevelopmentCard(createPreviewState({ seed, showActions }));
+}
+
+function givePreviewPlayerEveryDevelopmentCard(state: GameState): GameState {
+  const developmentDeck = [...state.developmentDeck];
+  const developmentCards = DEVELOPMENT_CARD_TYPES.map((card) => {
+    const cardIndex = developmentDeck.indexOf(card);
+    if (cardIndex < 0) {
+      throw new Error(`Preview game requires a ${card} development card`);
+    }
+    developmentDeck.splice(cardIndex, 1);
+    return card;
+  });
+
+  return {
+    ...state,
+    developmentDeck,
+    players: state.players.map((player) =>
+      player.id === "player-1"
+        ? {
+            ...player,
+            developmentCards: [...player.developmentCards, ...developmentCards],
+          }
+        : player,
+    ),
+  };
 }
 
 function createResultsPreviewGame() {
@@ -304,13 +388,13 @@ function createResultsPreviewGame() {
   if (!victoryPointCard) throw new Error("Results preview could not draw a victory point card");
   state.players[1]!.developmentCards.push(victoryPointCard);
 
-  return createPreviewView({
+  return {
     ...state,
     phase: { kind: "finished" },
     settings: { ...state.settings, victoryPoints: 3 },
     status: "completed",
     winnerPlayerId: "player-2",
-  });
+  } satisfies GameState;
 }
 
 function createTradeOfferPreviewGame() {
@@ -333,7 +417,7 @@ function createTradeOfferPreviewGame() {
       tree: 1,
     },
   });
-  return createPreviewView(state);
+  return state;
 }
 
 function createDiscardPreviewGame() {
@@ -346,11 +430,10 @@ function createDiscardPreviewGame() {
     "player-1",
     { kind: "roll" },
   );
-  const view = createPreviewView(state);
-  if (view.legalActions.discardCount === null) {
+  if (getLegalActions(state, "player-1").discardCount === null) {
     throw new Error("Discard preview requires a viewer discard");
   }
-  return view;
+  return state;
 }
 
 function replacePreviewPlayerResources(
@@ -382,14 +465,11 @@ function createPreviewView(state: GameState) {
 }
 
 function createSetupPreviewGame() {
-  return toPlayerView(
-    createDefaultGame(PREVIEW_PLAYERS, "reference-setup-preview", {
-      balancedDice: false,
-      friendlyRobber: false,
-      victoryPoints: 10,
-    }),
-    "player-1",
-  );
+  return createDefaultGame(PREVIEW_PLAYERS, "reference-setup-preview", {
+    balancedDice: false,
+    friendlyRobber: false,
+    victoryPoints: 10,
+  });
 }
 
 function completePreviewSetup(initialState: GameState) {

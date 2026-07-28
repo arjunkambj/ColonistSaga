@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@colonistsaga/backend/convex/_generated/api";
+import type { GameCommand } from "@colonistsaga/game";
 import { type CurrentUser, useHexclaveApp } from "@hexclave/next";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -141,9 +142,12 @@ function AuthenticatedApp({
 
   const createRoom = useMutation(api.rooms.createRoom);
   const joinRoom = useMutation(api.rooms.joinRoom);
+  const applyGameCommand = useMutation(api.games.applyCommand);
   const createQuickGame = useMutation(api.games.createQuickGame);
   const leaveRoomMutation = useMutation(api.rooms.leaveRoom);
+  const pauseGame = useMutation(api.games.pauseGame);
   const replacePlayerWithBot = useMutation(api.rooms.replacePlayerWithBot);
+  const resumeGame = useMutation(api.games.resumeGame);
   const updateLobbyConfiguration = useMutation(api.rooms.updateLobbyConfiguration);
   const startGame = useMutation(api.games.startGame);
 
@@ -290,6 +294,27 @@ function AuthenticatedApp({
     });
   };
 
+  const handleGameCommand = async (
+    code: string,
+    expectedActionNumber: number,
+    command: GameCommand,
+  ) => {
+    await applyGameCommand({
+      clientActionId: globalThis.crypto.randomUUID(),
+      code,
+      command,
+      expectedActionNumber,
+    });
+  };
+
+  const handlePauseChange = async (code: string, shouldPause: boolean) => {
+    if (shouldPause) {
+      await pauseGame({ code });
+      return;
+    }
+    await resumeGame({ code });
+  };
+
   const handleRoomSettings = async ({ botCount, botDifficulty, settings }: LobbySettingsValue) => {
     const code = session.activeCode;
     if (!code) {
@@ -388,13 +413,17 @@ function AuthenticatedApp({
     <GameScreen
       audioSettings={audioSettings}
       botThinking={room.botThinking}
-      code={room.code}
       events={room.events}
       game={game}
       isHost={room.isHost}
       isPaused={room.isPaused}
       nextActionAt={room.nextActionAt}
+      onCommand={(command) => handleGameCommand(room.code, game.actionNumber, command)}
       onLeave={leaveRoom}
+      onPauseChange={(shouldPause) => handlePauseChange(room.code, shouldPause)}
+      onReplacePlayer={(targetSeatId) =>
+        replacePlayerWithBot({ code: room.code, targetSeatId }).then(() => undefined)
+      }
       viewerProfileImageUrl={profileImageUrl}
     />
   );

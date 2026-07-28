@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@colonistsaga/backend/convex/_generated/api";
 import {
   BUILD_COSTS,
   DEVELOPMENT_CARD_COST,
@@ -23,7 +22,6 @@ import playerIcon from "@iconify-icons/game-icons/player-base";
 import scrollIcon from "@iconify-icons/game-icons/scroll-unfurled";
 import trophyIcon from "@iconify-icons/game-icons/trophy-cup";
 import { Icon } from "@iconify/react";
-import { useMutation } from "convex/react";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -82,31 +80,31 @@ const LOCAL_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
 
 export function GameScreen({
   audioSettings,
-  code,
   events,
   game,
   isHost,
   isPaused,
   botThinking,
   nextActionAt,
+  onCommand,
   onLeave,
+  onPauseChange,
+  onReplacePlayer,
   viewerProfileImageUrl,
 }: {
   audioSettings: AudioSettings;
-  code: string;
   events: RoomEventView[];
   game: PlayerGameView;
   isHost: boolean;
   isPaused: boolean;
   botThinking: boolean;
   nextActionAt?: number;
+  onCommand(command: GameCommand): Promise<void>;
   onLeave(): Promise<void>;
+  onPauseChange(shouldPause: boolean): Promise<void>;
+  onReplacePlayer(playerId: string): Promise<void>;
   viewerProfileImageUrl: string | null;
 }) {
-  const applyCommand = useMutation(api.games.applyCommand);
-  const pauseGame = useMutation(api.games.pauseGame);
-  const replacePlayerWithBot = useMutation(api.rooms.replacePlayerWithBot);
-  const resumeGame = useMutation(api.games.resumeGame);
   const [buildMode, setBuildMode] = useState<BuildMode>(null);
   const [pendingCommand, setPendingCommand] = useState<GameCommand["kind"] | null>(null);
   const [pendingReplacementId, setPendingReplacementId] = useState<string | null>(null);
@@ -197,12 +195,7 @@ export function GameScreen({
     setError("");
     setAnnouncement("");
     try {
-      await applyCommand({
-        clientActionId: globalThis.crypto.randomUUID(),
-        code,
-        command,
-        expectedActionNumber: game.actionNumber,
-      });
+      await onCommand(command);
       setAnnouncement(successMessage);
       setBuildMode(null);
     } catch (cause) {
@@ -243,7 +236,7 @@ export function GameScreen({
     setPendingReplacementId(playerId);
     setError("");
     try {
-      await replacePlayerWithBot({ code, targetSeatId: playerId });
+      await onReplacePlayer(playerId);
       setAnnouncement("Player control transferred to a bot.");
     } catch {
       setError("That player could not be replaced. Refresh the room and try again.");
@@ -273,11 +266,7 @@ export function GameScreen({
     setPauseChangePending(true);
     setError("");
     try {
-      if (shouldPause) {
-        await pauseGame({ code });
-      } else {
-        await resumeGame({ code });
-      }
+      await onPauseChange(shouldPause);
       setAnnouncement(shouldPause ? "Game paused." : "Game resumed.");
     } catch (cause) {
       setError(toGameError(cause));

@@ -58,6 +58,19 @@
   );
 }
 
+.reference-game {
+  --game-toast-bottom: calc(7.15rem + var(--space-xl));
+}
+
+.reference-game .toast {
+  z-index: 14000;
+  bottom: max(
+    var(--game-toast-bottom),
+    calc(env(safe-area-inset-bottom) + var(--game-toast-bottom))
+  );
+  pointer-events: none;
+}
+
 .reference-game .game-footer--three-sections .resource-hand {
   --hand-card-gap: var(--space-md);
   --hand-card-width: 4.25rem;
@@ -591,6 +604,10 @@
 }
 
 @media (max-width: 840px) {
+  .reference-game {
+    --game-toast-bottom: calc(9rem + var(--space-xl));
+  }
+
   .reference-game .game-footer.game-footer--three-sections {
     grid-template-areas:
       "resources turn"

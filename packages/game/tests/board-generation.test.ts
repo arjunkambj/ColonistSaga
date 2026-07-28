@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import { axialToPixel, createBoard, getBoardTopology, type TileState } from "../src/index";
+import {
+  axialToPixel,
+  createBoard,
+  getBoardTopology,
+  NUMBER_TOKEN_PIPS,
+  TERRAIN_RESOURCE,
+  type ResourceType,
+  type TileState,
+} from "../src/index";
 
 const OFFICIAL_BASE_NUMBER_SEQUENCE = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11];
 
@@ -83,12 +91,33 @@ describe("base board generation", () => {
     }
   });
 
-  test("keeps same-terrain groups to at most two connected tiles", () => {
+  test("balances resource production without banning natural terrain clusters", () => {
+    let largestTerrainCluster = 0;
+
     for (let index = 0; index < 100; index += 1) {
-      const board = createBoard("base", `base-terrain-clusters-${index}`);
+      const board = createBoard("base", `base-resource-balance-${index}`);
       const topology = getBoardTopology(board.tiles);
       const terrainByTileId = new Map(board.tiles.map((tile) => [tile.id, tile.terrain]));
-      const matchingNeighborCounts = new Map<string, number>();
+      const matchingNeighbors = new Map(board.tiles.map((tile) => [tile.id, [] as string[]]));
+      const resourcePips = new Map<ResourceType, number>();
+      const redResources = new Set<ResourceType>();
+
+      for (const tile of board.tiles) {
+        const resource = TERRAIN_RESOURCE[tile.terrain];
+        if (resource === null || tile.numberToken === null) continue;
+
+        resourcePips.set(
+          resource,
+          (resourcePips.get(resource) ?? 0) + (NUMBER_TOKEN_PIPS[tile.numberToken] ?? 0),
+        );
+        if (tile.numberToken === 6 || tile.numberToken === 8) {
+          redResources.add(resource);
+        }
+      }
+
+      expect(redResources.size).toBeGreaterThanOrEqual(3);
+      const pipTotals = [...resourcePips.values()];
+      expect(Math.max(...pipTotals) - Math.min(...pipTotals)).toBeLessThanOrEqual(8);
 
       for (const tileIds of Object.values(topology.edgeTileIds)) {
         if (tileIds.length !== 2) continue;
@@ -99,14 +128,34 @@ describe("base board generation", () => {
         const secondTerrain = terrainByTileId.get(secondTileId);
         if (!firstTerrain || firstTerrain === "desert" || firstTerrain !== secondTerrain) continue;
 
-        matchingNeighborCounts.set(firstTileId, (matchingNeighborCounts.get(firstTileId) ?? 0) + 1);
-        matchingNeighborCounts.set(
-          secondTileId,
-          (matchingNeighborCounts.get(secondTileId) ?? 0) + 1,
-        );
+        matchingNeighbors.get(firstTileId)?.push(secondTileId);
+        matchingNeighbors.get(secondTileId)?.push(firstTileId);
       }
 
-      expect(Math.max(0, ...matchingNeighborCounts.values())).toBeLessThanOrEqual(1);
+      const visitedTileIds = new Set<string>();
+      for (const tile of board.tiles) {
+        if (tile.terrain === "desert" || visitedTileIds.has(tile.id)) continue;
+
+        let clusterSize = 0;
+        const pendingTileIds = [tile.id];
+        visitedTileIds.add(tile.id);
+
+        while (pendingTileIds.length > 0) {
+          const tileId = pendingTileIds.pop();
+          if (!tileId) continue;
+          clusterSize += 1;
+
+          for (const neighborId of matchingNeighbors.get(tileId) ?? []) {
+            if (visitedTileIds.has(neighborId)) continue;
+            visitedTileIds.add(neighborId);
+            pendingTileIds.push(neighborId);
+          }
+        }
+
+        largestTerrainCluster = Math.max(largestTerrainCluster, clusterSize);
+      }
     }
+
+    expect(largestTerrainCluster).toBeGreaterThanOrEqual(3);
   });
 });

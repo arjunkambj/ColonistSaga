@@ -1,4 +1,4 @@
-import { TERRAIN_RESOURCE } from "./constants";
+import { NUMBER_TOKEN_PIPS, TERRAIN_RESOURCE } from "./constants";
 import { getGameMapDefinition } from "./maps";
 import { deterministicInteger, deterministicShuffle } from "./random";
 import {
@@ -8,7 +8,7 @@ import {
   getTileId,
   type BoardTopology,
 } from "./topology";
-import { TERRAIN_TYPES } from "./types";
+import { RESOURCE_TYPES, TERRAIN_TYPES } from "./types";
 import type {
   AxialCoordinate,
   BoardState,
@@ -21,6 +21,8 @@ import type {
 
 const PORT_RESOURCE_ORDER: readonly ResourceType[] = ["tree", "brick", "sheep", "wheat", "stone"];
 const BOARD_GENERATION_ATTEMPTS = 100;
+const MAX_RESOURCE_PIP_SPREAD = 8;
+const MIN_RED_RESOURCE_TYPES = 3;
 const HEX_SIDE_COUNT = 6;
 
 function coordinateRadius({ q, r }: AxialCoordinate): number {
@@ -72,68 +74,24 @@ function createTerrainPool(mapId: GameMapId): TerrainType[] {
   return terrains;
 }
 
-function hasLargeTerrainCluster(
-  terrainTiles: readonly Omit<TileState, "numberToken">[],
-  topology: BoardTopology,
-): boolean {
-  const terrainByTileId = new Map(terrainTiles.map((tile) => [tile.id, tile.terrain]));
-  const matchingNeighborCounts = new Map<string, number>();
-
-  for (const tileIds of Object.values(topology.edgeTileIds)) {
-    if (tileIds.length !== 2) {
-      continue;
-    }
-
-    const [firstTileId, secondTileId] = tileIds;
-    if (!firstTileId || !secondTileId) {
-      continue;
-    }
-
-    const firstTerrain = terrainByTileId.get(firstTileId);
-    const secondTerrain = terrainByTileId.get(secondTileId);
-    if (!firstTerrain || firstTerrain === "desert" || firstTerrain !== secondTerrain) {
-      continue;
-    }
-
-    const firstCount = (matchingNeighborCounts.get(firstTileId) ?? 0) + 1;
-    const secondCount = (matchingNeighborCounts.get(secondTileId) ?? 0) + 1;
-    if (firstCount > 1 || secondCount > 1) {
-      return true;
-    }
-
-    matchingNeighborCounts.set(firstTileId, firstCount);
-    matchingNeighborCounts.set(secondTileId, secondCount);
-  }
-
-  return false;
-}
-
 function createTerrainTiles(
   mapId: GameMapId,
   coordinates: readonly AxialCoordinate[],
-  topology: BoardTopology,
   seed: string,
+  attempt = 0,
 ): Omit<TileState, "numberToken">[] {
   const terrainPool = createTerrainPool(mapId);
+  const terrainSeed = attempt === 0 ? `${seed}:terrain` : `${seed}:terrain:${attempt}`;
+  const terrains = deterministicShuffle(terrainPool, terrainSeed);
 
-  for (let attempt = 0; attempt < BOARD_GENERATION_ATTEMPTS; attempt += 1) {
-    const terrainSeed = attempt === 0 ? `${seed}:terrain` : `${seed}:terrain:${attempt}`;
-    const terrains = deterministicShuffle(terrainPool, terrainSeed);
-    const terrainTiles = coordinates.map((coordinate, index) => {
-      const terrain = terrains[index];
-      if (!terrain) {
-        throw new Error(`Missing terrain for ${getTileId(coordinate)}`);
-      }
-
-      return { ...coordinate, id: getTileId(coordinate), terrain };
-    });
-
-    if (mapId !== "base" || !hasLargeTerrainCluster(terrainTiles, topology)) {
-      return terrainTiles;
+  return coordinates.map((coordinate, index) => {
+    const terrain = terrains[index];
+    if (!terrain) {
+      throw new Error(`Missing terrain for ${getTileId(coordinate)}`);
     }
-  }
 
-  throw new Error(`Could not create a separated terrain layout for ${mapId}`);
+    return { ...coordinate, id: getTileId(coordinate), terrain };
+  });
 }
 
 function clockwiseAngleFromTop(coordinate: AxialCoordinate): number {
@@ -276,6 +234,58 @@ function assignNumberTokens(
   throw new Error(`Could not create a balanced number layout for ${mapId}`);
 }
 
+function hasBalancedBaseResourceProduction(tiles: readonly TileState[]): boolean {
+  const resourcePips = new Map<ResourceType, number>(
+    RESOURCE_TYPES.map((resource) => [resource, 0]),
+  );
+  const redResources = new Set<ResourceType>();
+
+  for (const tile of tiles) {
+    const resource = TERRAIN_RESOURCE[tile.terrain];
+    if (resource === null) {
+      continue;
+    }
+
+    const numberToken = tile.numberToken;
+    const pips = numberToken === null ? undefined : NUMBER_TOKEN_PIPS[numberToken];
+    if (pips === undefined) {
+      throw new Error(`Producing tile ${tile.id} is missing a valid number token`);
+    }
+
+    resourcePips.set(resource, (resourcePips.get(resource) ?? 0) + pips);
+    if (numberToken === 6 || numberToken === 8) {
+      redResources.add(resource);
+    }
+  }
+
+  const pipTotals = [...resourcePips.values()];
+  const pipSpread = Math.max(...pipTotals) - Math.min(...pipTotals);
+  return redResources.size >= MIN_RED_RESOURCE_TYPES && pipSpread <= MAX_RESOURCE_PIP_SPREAD;
+}
+
+function createBoardTiles(
+  mapId: GameMapId,
+  coordinates: readonly AxialCoordinate[],
+  topology: BoardTopology,
+  seed: string,
+): TileState[] {
+  if (mapId !== "base") {
+    const terrainTiles = createTerrainTiles(mapId, coordinates, seed);
+    return assignNumberTokens(terrainTiles, mapId, seed, topology);
+  }
+
+  for (let attempt = 0; attempt < BOARD_GENERATION_ATTEMPTS; attempt += 1) {
+    const terrainTiles = createTerrainTiles(mapId, coordinates, seed, attempt);
+    const tiles = assignNumberTokens(terrainTiles, mapId, seed, topology);
+
+    if (hasBalancedBaseResourceProduction(tiles)) {
+      return tiles;
+    }
+  }
+
+  throw new Error(`Could not create a balanced resource layout for ${mapId}`);
+}
+
 function edgeAngle(topology: BoardTopology, edgeKey: string): number {
   const [firstVertexKey, secondVertexKey] = topology.edgeVertices[edgeKey] ?? [];
   const first = firstVertexKey ? topology.vertexPositions[firstVertexKey] : undefined;
@@ -321,8 +331,7 @@ function createPorts(topology: BoardTopology, mapId: GameMapId, seed: string): P
 export function createBoard(mapId: GameMapId, seed = "default-board"): BoardState {
   const coordinates = createMapCoordinates(getGameMapDefinition(mapId).tileCount);
   const topology = getBoardTopology(coordinates);
-  const terrainTiles = createTerrainTiles(mapId, coordinates, topology, seed);
-  const tiles = assignNumberTokens(terrainTiles, mapId, seed, topology);
+  const tiles = createBoardTiles(mapId, coordinates, topology, seed);
   const desert = tiles.find((tile) => TERRAIN_RESOURCE[tile.terrain] === null);
 
   if (!desert) {

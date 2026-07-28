@@ -5,7 +5,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { isGamePreviewMode, isUiPreviewMode, UiPreview } from "@/components/app/ui-preview";
+import { isUiPreviewMode, UiPreview } from "@/components/app/ui-preview";
 import { FullPageStatus } from "@/components/ui/full-page-status";
 import { getHexclaveClientApp } from "@/hexclave/client";
 
@@ -26,10 +26,7 @@ export function AppProviders({
   const [isBrowserReady, setIsBrowserReady] = useState(false);
   const isConfigured = Boolean(convexUrl && hexclaveProjectId);
   const previewMode = searchParams.get("preview");
-  const previewConvex = useMemo(
-    () => (convexUrl ? new ConvexReactClient(convexUrl) : null),
-    [convexUrl],
-  );
+  const previewSeed = searchParams.get("seed")?.trim() || undefined;
 
   useEffect(() => {
     setIsBrowserReady(true);
@@ -48,15 +45,7 @@ export function AppProviders({
   }, [convexUrl, hexclaveProjectId, hexclavePublishableClientKey, isBrowserReady]);
 
   if (process.env.NODE_ENV === "development" && isUiPreviewMode(previewMode)) {
-    if (isGamePreviewMode(previewMode) && previewConvex) {
-      return (
-        <ConvexProvider client={previewConvex}>
-          <UiPreview mode={previewMode} />
-        </ConvexProvider>
-      );
-    }
-
-    return <UiPreview mode={previewMode} />;
+    return <UiPreview mode={previewMode} seed={previewSeed} />;
   }
 
   if (!isConfigured) {

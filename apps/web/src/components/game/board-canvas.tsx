@@ -628,7 +628,9 @@ function drawTargets(
       continue;
     }
 
-    drawHighlightedTarget(context, target, placement);
+    if (target.asset !== "road") {
+      drawHighlightedTarget(context, target, placement);
+    }
 
     if (image) {
       drawTargetGhost(context, target, placement, image, path);
@@ -690,19 +692,19 @@ function drawTargetHint(
   target: BoardCanvasTarget,
   placement: PixelCoordinate & { angle: number },
 ) {
+  if (target.asset === "road") {
+    return;
+  }
+
   context.save();
   context.translate(placement.x, placement.y);
   context.rotate((placement.angle * Math.PI) / 180);
   context.globalAlpha = target.disabled ? 0.16 : 0.62;
   context.fillStyle = "#ffe7a4";
 
-  if (target.asset === "road") {
-    createRoundedRectPath(context, -15, -4, 30, 8, 4);
-  } else {
-    const radius = target.asset === "robber" ? 8 : target.asset === "settlement" ? 12 : 6;
-    context.beginPath();
-    context.arc(0, 0, radius, 0, Math.PI * 2);
-  }
+  const radius = target.asset === "robber" ? 8 : target.asset === "settlement" ? 12 : 6;
+  context.beginPath();
+  context.arc(0, 0, radius, 0, Math.PI * 2);
 
   context.fill();
   context.strokeStyle = "rgba(9, 49, 70, 0.7)";
