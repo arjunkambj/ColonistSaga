@@ -183,12 +183,10 @@ export function TradeCenter({
 }
 
 function TradeDockHeader({
-  description,
   onClose,
   title,
   titleId = "trade-dock-title",
 }: {
-  description?: string;
   onClose?: () => void;
   title: string;
   titleId?: string;
@@ -197,7 +195,6 @@ function TradeDockHeader({
     <header className={styles.tradeHeader}>
       <div>
         <h2 id={titleId}>{title}</h2>
-        {description ? <p className={styles.tradeDescription}>{description}</p> : null}
       </div>
       {onClose ? (
         <Button
@@ -593,11 +590,6 @@ export function ActiveTradeOffer({
     >
       <div className={styles.activeOffer}>
         <TradeDockHeader
-          description={
-            viewerIsProposer
-              ? "The first invited player to accept completes the exchange."
-              : "Review both rows before answering."
-          }
           title={viewerIsProposer ? "Offer sent" : `Offer from ${proposerName}`}
           titleId="trade-offer-title"
         />
@@ -668,8 +660,7 @@ export function ActiveTradeOffer({
             </div>
           </footer>
         ) : game.legalActions.canCancelTrade ? (
-          <footer className={styles.offerFooter}>
-            <p role="status">The offer stays open until somebody accepts or everyone declines.</p>
+          <footer className={`${styles.offerFooter} ${styles.cancelOfferFooter}`}>
             <Button
               isDisabled={disabled}
               isPending={disabled && pendingResponse === "cancel"}
@@ -686,7 +677,6 @@ export function ActiveTradeOffer({
               }}
               variant="danger"
             >
-              <Icon aria-hidden="true" icon={closeIcon} />
               {pendingResponse === "cancel" ? "Cancelling…" : "Cancel offer"}
             </Button>
           </footer>

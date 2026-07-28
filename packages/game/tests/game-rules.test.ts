@@ -875,6 +875,41 @@ describe("automated decisions", () => {
     expect(chooseAutomatedCommand(state, PLAYERS[0]!.id)).toEqual({ kind: "end_turn" });
   });
 
+  test("easy and medium bots vary deterministic robber destinations", () => {
+    for (const botDifficulty of ["easy", "medium"] as const) {
+      const created = createGame(`robber-destinations-${botDifficulty}`);
+      let state: GameState = {
+        ...created,
+        activePlayerId: PLAYERS[0]!.id,
+        phase: {
+          kind: "move_robber",
+          resumePhase: "build_and_trade",
+          rollerPlayerId: PLAYERS[0]!.id,
+        },
+        players: created.players.map((player) =>
+          player.id === PLAYERS[0]!.id ? { ...player, botDifficulty } : player,
+        ),
+        settings: { ...created.settings, friendlyRobber: false },
+      };
+      const destinations = new Set<string>();
+
+      for (let move = 0; move < 20; move += 1) {
+        const command = chooseAutomatedCommand(state, PLAYERS[0]!.id);
+        expect(command.kind).toBe("move_robber");
+        if (command.kind !== "move_robber") throw new Error("Bot must move the robber");
+
+        destinations.add(command.tileId);
+        state = {
+          ...state,
+          actionNumber: state.actionNumber + 1,
+          board: { ...state.board, robberTileId: command.tileId },
+        };
+      }
+
+      expect(destinations.size).toBeGreaterThan(2);
+    }
+  });
+
   test("easy bots use targeted trades instead of cycling or starving forever", () => {
     const players = Array.from({ length: 3 }, (_, index) => ({
       botDifficulty: "easy" as const,

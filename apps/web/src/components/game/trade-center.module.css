@@ -60,14 +60,6 @@
   line-height: 1.1;
 }
 
-.tradeDescription {
-  max-width: 30rem;
-  margin: 0.2rem 0 0;
-  color: var(--hud-text-muted);
-  font-size: 0.68rem;
-  line-height: 1.35;
-}
-
 .closeButton {
   width: 44px;
   min-width: 44px;
@@ -409,6 +401,11 @@
   gap: 0.4rem;
 }
 
+.cancelOfferFooter {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .composerFooter button,
 .offerFooter button {
   min-height: 40px;
@@ -572,8 +569,8 @@
 }
 
 .recipientStatuses {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
   padding: 0;
   margin: 0;
@@ -582,7 +579,7 @@
 
 .recipientStatuses li {
   display: grid;
-  min-width: 8rem;
+  min-width: 0;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.1rem 0.35rem;
@@ -670,10 +667,6 @@
     padding-bottom: 0.3rem;
   }
 
-  .tradeDescription {
-    display: none;
-  }
-
   .quickResourceGrid {
     gap: 0.22rem;
   }
@@ -691,11 +684,19 @@
     grid-template-columns: 1fr;
   }
 
+  .cancelOfferFooter {
+    display: flex;
+  }
+
   .composerFooter > div,
   .offerFooter > div,
   .composerFooter button,
   .offerFooter button {
     width: 100%;
+  }
+
+  .cancelOfferFooter button {
+    width: auto;
   }
 
   .composerFooter > div {

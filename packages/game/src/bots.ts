@@ -12,8 +12,16 @@ import {
   getSettlementVertexKeys,
 } from "./rules";
 import { emptyInventory, hasResources, totalResources } from "./resources";
+import { deterministicInteger } from "./random";
 import { getBoardTopology } from "./topology";
-import type { BankTradeOption, GameCommand, GameState, PlayerId, ResourceInventory } from "./types";
+import type {
+  BankTradeOption,
+  BotDifficulty,
+  GameCommand,
+  GameState,
+  PlayerId,
+  ResourceInventory,
+} from "./types";
 
 type StrategicBotDifficulty = "hard" | "medium";
 
@@ -134,6 +142,37 @@ function robberTileScore(state: GameState, playerId: PlayerId, tileId: string) {
 
     return score + numberScore * weight * 10 + totalResources(owner?.resources ?? emptyInventory());
   }, 0);
+}
+
+function chooseRobberTile(
+  state: GameState,
+  playerId: PlayerId,
+  tileIds: readonly string[],
+  difficulty: BotDifficulty,
+) {
+  let candidates = tileIds;
+
+  if (difficulty === "hard") {
+    const scoredTiles = tileIds.map((tileId) => ({
+      score: robberTileScore(state, playerId, tileId),
+      tileId,
+    }));
+    const highestScore = Math.max(...scoredTiles.map(({ score }) => score));
+    candidates = scoredTiles
+      .filter(({ score }) => score === highestScore)
+      .map(({ tileId }) => tileId);
+  }
+
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
+  const draw = deterministicInteger(
+    `${state.seed}:bot-robber:${playerId}`,
+    state.actionNumber,
+    candidates.length,
+  );
+  return candidates[draw.value];
 }
 
 function chooseTradeTowardCost(
@@ -314,7 +353,7 @@ function chooseFirstLegalCommand(state: GameState, playerId: PlayerId): GameComm
       };
     }
     case "move_robber": {
-      const tileId = legal.robberTileIds[0];
+      const tileId = chooseRobberTile(state, playerId, legal.robberTileIds, "easy");
       if (!tileId) throw new Error("Automated player has no robber destination");
       return { kind: "move_robber", tileId };
     }
@@ -391,12 +430,7 @@ function chooseStrategicCommand(
       return { kind: "discard", resources: createDiscard(player.resources, count) };
     }
     case "move_robber": {
-      const tileId =
-        difficulty === "hard"
-          ? highestScoringKey(legal.robberTileIds, (candidate) =>
-              robberTileScore(state, playerId, candidate),
-            )
-          : legal.robberTileIds[0];
+      const tileId = chooseRobberTile(state, playerId, legal.robberTileIds, difficulty);
 
       if (!tileId) {
         throw new Error("Bot has no legal robber destination");

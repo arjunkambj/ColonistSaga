@@ -515,21 +515,21 @@ export function GameScreen({
             pending={pendingCommand !== null}
           />
         )}
+        {developmentCardChoice ? (
+          <DevelopmentCardDialog
+            bank={game.bank}
+            card={developmentCardChoice}
+            onClose={() => setDevelopmentCardChoice(null)}
+            onPlay={(command, message) => {
+              setDevelopmentCardChoice(null);
+              void sendCommand(command, message);
+            }}
+            pending={pendingCommand !== null}
+          />
+        ) : null}
       </HandDockProvider>
 
       {isHelpOpen ? <GameHelpDialog onClose={() => setIsHelpOpen(false)} /> : null}
-      {developmentCardChoice ? (
-        <DevelopmentCardDialog
-          bank={game.bank}
-          card={developmentCardChoice}
-          onClose={() => setDevelopmentCardChoice(null)}
-          onPlay={(command, message) => {
-            setDevelopmentCardChoice(null);
-            void sendCommand(command, message);
-          }}
-          pending={pendingCommand !== null}
-        />
-      ) : null}
 
       {confirmation ? (
         <ConfirmationDialog

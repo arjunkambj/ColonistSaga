@@ -333,7 +333,7 @@ export function GameBoard({
 
   return (
     <section
-      aria-label="Game board. Hover a board item for visual details, or Tab into the board items and use arrow keys to inspect them. When the board itself is focused, drag or use arrow keys to pan, use the mouse wheel or plus and minus keys to zoom, and press zero to reset."
+      aria-label="Game board. Hover a board item for visual details, or Tab into the board items and use arrow keys to inspect them. Drag to pan, or use arrow keys while a board item is focused. Use the mouse wheel or plus and minus keys to zoom, and press zero to reset."
       className={`board-shell${targetMode ? " is-placing" : ""}`}
       onClickCapture={handleClickCapture}
       onKeyDown={handleKeyDown}
@@ -343,7 +343,6 @@ export function GameBoard({
       onPointerMove={movePointerGesture}
       onPointerUp={stopPointerGesture}
       ref={boardShellRef}
-      tabIndex={0}
     >
       {targetMode && boardTargets.length > 0 ? (
         <p aria-live="polite" className="sr-only" role="status">
